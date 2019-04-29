@@ -4,6 +4,11 @@
 # External imports
 import os, sys
 from subprocess import Popen, PIPE
+try:
+    # пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке
+    import matplotlib.pyplot as plt
+except:
+    pass
 
 # Internal imports
 import global_vars as gl
