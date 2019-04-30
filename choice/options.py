@@ -48,6 +48,7 @@ class Options:
         self.is_smooth = False
         self.is_group = False
         self.is_dcs = False
+        self.is_seq = False
         self.comp_machine = 'pear'
         self.comp_cpu_num = 'NONE'
         self.exec_machine = 'cordelia'
@@ -72,18 +73,20 @@ def read(argv):
     options = Options()
 
     try:
-        opts, args = getopt.getopt(sys.argv,"ho:",["odir=",
+        opts, args = getopt.getopt(argv,"ho:",["odir=",
                                                    "comp_machine=", "comp_cpu=",
                                                    "exec_machine=", "exec_cpu=",
                                                    "every", "smooth", "group", "dcs",
                                                    "pars=", "specs="])
     except getopt.GetoptError:
-        print usage ()
-        sys.exit(2)
-
-    if args != '':
         print usage()
         sys.exit(2)
+    
+    
+
+    #if args != '':
+        #print usage()
+        #sys.exit(2)
 
     for opt, arg in opts:
         if opt == '-h':

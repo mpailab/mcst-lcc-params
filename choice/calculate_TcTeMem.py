@@ -8,6 +8,7 @@ from sys import maxsize
 
 # Internal imports
 import par, read
+import global_vars as gl
 
 # Вычилсяем папку, из которой запущен процесс
 PWD = os.getcwd()

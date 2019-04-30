@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 # External imports
+from __future__ import division # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
 from copy import deepcopy
 import math, random
 from sys import maxsize
-from __future__ import division # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
 
 # Internal imports
 import global_vars as gl
