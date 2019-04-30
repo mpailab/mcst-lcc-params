@@ -140,5 +140,34 @@ DRAW_RUN_RESULTS_ON_GRAPHICS = True
 # Модуль optimize
 ##
 
+# Хранить в оперативной памяти, вычисленные на предыдущих шагах оптимизации распределения? {True, False}
+PAR_DISTRIBUTION_DATABASE = True
+
+# Начальное значение температуры
+START_TEMPERATURE = 0.5 # Range of temperature: (0, 1].
+
+# Закон убывания температуры: {0, 1, 2}
+# 0 -> 1 / ln(n + 1)
+# 1 -> 1 / n
+# 2 -> alpha ^ n
+TEMPERATURE_LAW_TYPE = 2
+# значение alpha
+ALPHA_IN_TEPMERATURE_LAW = 0.7
+# Тип вероятностного распределения, определяющего выбор следующего состояния системы в зависимости от ее текущих состояния и температуры
+# {0, 1, 2, 3}
+# 0 -> нормальное распределение
+# 1 -> распределение для сверхбыстрого отжига
+# 2 -> распределение Коши
+# 3 -> равномерное распределение
+DISTRIBUTION_LAW_TYPE = 1
+
 USE_RELATIONS_OF_PARAMETORS = True
 GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP = True
+KOEF_TIME_EXEC_IMPOTANCE = 5
+MAX_NUMBER_ITERATIONS = 10
+MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION = 10
+# Уменьшать значение температуры после итераций, на которых не был осуществлен переход к лучшему значению
+DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS = True
+COMP_TIME_INCREASE_ALLOWABLE_PERCENT = 0.25
+EXEC_TIME_INCREASE_ALLOWABLE_PERCENT = 0.05
+MEMEMORY_INCREASE_ALLOWABLE_PERCENT = 0.50

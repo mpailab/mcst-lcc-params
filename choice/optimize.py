@@ -5,62 +5,54 @@
 from copy import deepcopy
 import math, random
 from sys import maxsize
+from __future__ import division # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
 
 # Internal imports
-from calculate_TcTeMem import calculate_abs_values
 import global_vars as gl
+from calculate_TcTeMem import calculate_abs_values
 import par
 import smooth_stat as sm
 import stat_adaptation as stat
 
-# Хранить в оперативной памяти, вычисленные на предыдущих шагах оптимизации распределения? {True, False}
-DISTRIBUTION_DATABASE = True
-
-# Начальное значение температуры
-START_TEMPERATURE = 0.5 # Range of temperature: (0, 1].
 
 
-# Закон убывания температуры: 0, 1, 2
-# 0 -> 1/ln(n)
-# 1 -> 1/n
-# 2 -> alpha^n
-TEMPERATURE_LAW_TYPE = 2
-# значение alpha
-ALPHA_IN_TEPMERATURE_LAW = 0.7
-
-#def change_var(newvalue):
-    #global ALPHA_IN_TEPMERATURE_LAW
-    #ALPHA_IN_TEPMERATURE_LAW = newvalue
-
-def temperature_law(i):
-    if TEMPERATURE_LAW_TYPE == 0:
-        return 1. / math.log(i + 1)
-    elif TEMPERATURE_LAW_TYPE == 1:
+if gl.TEMPERATURE_LAW_TYPE == 1:
+    def temperature_law(i):
+        """ 1 / n """
         return 1. / i
-    elif TEMPERATURE_LAW_TYPE == 2:
-        return ALPHA_IN_TEPMERATURE_LAW ** i
+elif gl.TEMPERATURE_LAW_TYPE == 2:
+    def temperature_law(i):
+        """ alpha ^ n """
+        return gl.ALPHA_IN_TEPMERATURE_LAW ** i
+else:
+    def temperature_law(i):
+        """ 1 / ln(n + 1) """
+        return 1. / math.log(i + 1)
 
 def temperature(i):
     '''Функция вычисляет значение температуры на итерации i
-       i = 1, 2, ... '''
-    koef = START_TEMPERATURE / temperature_law(1)
+       i = 1, 2, ...
+    '''
+    koef = gl.START_TEMPERATURE / temperature_law(1)
     return koef * temperature_law(i)
 
-# 
-def distribution(T):
-    '''Вероятностное распределение, определяющее выбор следующего состояния системы в зависимости от ее текущих состояния и температуры'''
-    # return random.gauss(0, T) # нормальное распределение
-    return random.choice([-1, 1]) * T * ((1 + 1./T) ** abs(2 * random.uniform(-0.5, 0.5)) - 1) # распределение для сверхбыстрого отжига
-    #return T * math.tan(math.pi * random.uniform(-0.5, 0.5)) # распределение Коши
-    #return math.sqrt(T * 3) * random.uniform(-1, 1) # равномерное распределение
-
-KOEF_TIME_EXEC_IMPOTANCE = 5
-
-MAX_NUMBER_ITERATIONS = 10
-MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION = 10
-# Уменьшать значение температуры после итераций, на которых не был осуществлен переход к лучшему значению
-DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS = True
-
+# Вероятностное распределение, определяющее выбор следующего состояния системы в зависимости от ее текущих состояния и температуры
+if gl.DISTRIBUTION_LAW_TYPE == 1:
+    def distribution(T):
+        """ распределение для сверхбыстрого отжига """
+        return random.choice([-1, 1]) * T * ((1 + 1./T) ** abs(2 * random.uniform(-0.5, 0.5)) - 1)
+elif gl.DISTRIBUTION_LAW_TYPE == 2:
+    def distribution(T):
+        """ распределение Коши """
+        return T * math.tan(math.pi * random.uniform(-0.5, 0.5))
+elif gl.DISTRIBUTION_LAW_TYPE == 3:
+    def distribution(T):
+        """ равномерное распределение """
+        return math.sqrt(T * 3) * random.uniform(-1, 1)
+else:
+    def distribution(T):
+        """ нормальное распределение """
+        return random.gauss(0, T)
             
 def F(list_trio):
     len_list_trio = len(list_trio)
@@ -72,17 +64,17 @@ def F(list_trio):
     mul_delta_V = 1
     for trio in list_trio:
         delta_T_comp = trio[0]
-        if delta_T_comp > 1.25:
+        if delta_T_comp > 1. + gl.COMP_TIME_INCREASE_ALLOWABLE_PERCENT:
             return maxsize
         mul_delta_T_comp *= delta_T_comp
         
         delta_T_exec = trio[1]
-        if delta_T_exec > 1.05:
+        if delta_T_exec > 1. + gl.EXEC_TIME_INCREASE_ALLOWABLE_PERCENT:
             return maxsize
         mul_delta_T_exec *= delta_T_exec
         
         delta_V = trio[2]
-        if delta_V > 1.5:
+        if delta_V > 1. + gl.MEMEMORY_INCREASE_ALLOWABLE_PERCENT:
             return maxsize
         mul_delta_V *= delta_V
     
@@ -90,7 +82,7 @@ def F(list_trio):
     mul_delta_T_comp = mul_delta_T_comp ** (1. / len_list_trio)
     mul_delta_V = mul_delta_V ** (1. / len_list_trio)
         
-    return KOEF_TIME_EXEC_IMPOTANCE * mul_delta_T_exec + mul_delta_T_comp + mul_delta_V
+    return gl.KOEF_TIME_EXEC_IMPOTANCE * mul_delta_T_exec + mul_delta_T_comp + mul_delta_V
 
 def calculate_F(values, values_default):
     list_rel_trio = []
@@ -336,7 +328,7 @@ def optimize(procs_dic, par_names,
     # добавление в базу соответсвующих значений при начальном значении параметров
     F_run_result[0].append(dict(par_current_value))
     F_run_result[1].append(val_F_current)
-    if DISTRIBUTION_DATABASE == True:
+    if gl.PAR_DISTRIBUTION_DATABASE == True:
         F_run_result[2].append(deepcopy(value_par))
         F_run_result[3].append(deepcopy(sm_dis))
     else:
@@ -351,7 +343,7 @@ def optimize(procs_dic, par_names,
     
     # основной цикл
     ind = 0
-    while (iterr < MAX_NUMBER_ITERATIONS or (iterr < 3 * MAX_NUMBER_ITERATIONS and (iterr <= i_for_best_value + 1))):
+    while (iterr < gl.MAX_NUMBER_ITERATIONS or (iterr < 3 * gl.MAX_NUMBER_ITERATIONS and (iterr <= i_for_best_value + 1))):
         iterr += 1
         print >> output, 'Iteration ' + str(iterr) + ':'
         
@@ -366,7 +358,7 @@ def optimize(procs_dic, par_names,
                     stat.weight.normolize_dict(dis_icvpar)
                 value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
                 sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
-                if DISTRIBUTION_DATABASE == True:
+                if gl.PAR_DISTRIBUTION_DATABASE == True:
                     F_run_result[2][ind] = deepcopy(value_par)
                     F_run_result[3][ind] = deepcopy(sm_dis)
             else:
@@ -403,9 +395,9 @@ def optimize(procs_dic, par_names,
         
         max_step = temperature(j_for_temperature)
         print >> output, 'Temperature:', str(max_step * 100) + '%'
-        for attempt in xrange(MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION + 1):
+        for attempt in xrange(gl.MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION + 1):
             # сдвигаемся в случайную точку, отстоящую не больше чем на max_step
-            if attempt != MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION:
+            if attempt != gl.MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION:
                 #step_iterr_sum = abs(random.gauss(0, max_step))
                 step_iterr_sum = abs(distribution(max_step))
             else:
@@ -511,7 +503,7 @@ def optimize(procs_dic, par_names,
         else:
             print >> output, 'There is not variants for candidate values in step', iterr, 'of the algorithm'
             print >> output
-            #if DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
+            #if gl.DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
             #        j_for_temperature += 1
             continue
         
@@ -566,7 +558,7 @@ def optimize(procs_dic, par_names,
                     position = position_candidate
                 print >> output, 'Moving to the not better value with chance_move =', chance_move
             else:
-                if DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
+                if gl.DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
                     j_for_temperature += 1
                 print >> output, 'Not moving to the candidate value with chance_move =', chance_move
         
