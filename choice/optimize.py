@@ -239,8 +239,8 @@ def optimize(procs_dic, par_names,
     '''
     
     # объеденим отображения index_in_reg_seq и index_in_icv_seq в index_in_own_seq
-    index_in_own_seq = dict(stat.index_in_reg_seq)
-    index_in_own_seq.update(stat.index_in_icv_seq)
+    index_in_own_seq = dict(par.index_in_reg_seq)
+    index_in_own_seq.update(par.index_in_icv_seq)
     
     # выделяем из списка заданных параметров в отдельные упорядоченные списки параметры фазы regions и if_conv
     reg_parnames = get_reg_parnames(par_names)
@@ -436,7 +436,7 @@ def optimize(procs_dic, par_names,
             par_candidate_value = {}
             position_candidate = {}
             for parname in reg_parnames:
-                coord = stat.index_in_reg_seq[parname]
+                coord = par.index_in_reg_seq[parname]
                 for i in xrange(len(new_reg_pv_list), coord):
                     tmp_parname = par.reg_seq[i]
                     if par_start_value.has_key(tmp_parname):
@@ -476,7 +476,7 @@ def optimize(procs_dic, par_names,
             
             new_icv_pv_list = []
             for parname in icv_parnames:
-                coord = stat.index_in_icv_seq[parname]
+                coord = par.index_in_icv_seq[parname]
                 for i in xrange(len(new_icv_pv_list), coord):
                     tmp_parname = par.icv_seq[i]
                     if par_start_value.has_key(tmp_parname):

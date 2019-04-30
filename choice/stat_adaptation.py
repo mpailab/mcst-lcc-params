@@ -171,9 +171,6 @@ def get_unnorm_dis_icvpar_for_proc(taskname, procname):
                         dis_par[key] = w
             return dis_par
 
-index_in_reg_seq = par.index_in_reg_seq
-index_in_icv_seq = par.index_in_icv_seq
-
 def get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar):
     # Также считывает при необходимости dis_regpar и dis_icvpar из статистики
     
@@ -186,32 +183,32 @@ def get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
     value_par = {}
     for parname in reg_parnames:
         value_one_regpar = list(value_regpar)
-        i = index_in_reg_seq[parname]
+        i = par.index_in_reg_seq[parname]
         cmp_coord_i = lambda x, y: cmp(x[i], y[i])
         value_one_regpar.sort(cmp_coord_i)
         value_par[parname] = value_one_regpar
     for parname in icv_parnames:
         value_one_icvpar = list(value_icvpar)
-        i = index_in_icv_seq[parname]
+        i = par.index_in_icv_seq[parname]
         cmp_coord_i = lambda x, y: cmp(x[i], y[i])
         value_one_icvpar.sort(cmp_coord_i)
         value_par[parname] = value_one_icvpar
     
-    #надо просеять некоторые value_par[parname] от maxsize и None в своей координате (index_in_reg_seq[parname])
+    #надо просеять некоторые value_par[parname] от maxsize и None в своей координате (par.index_in_reg_seq[parname])
     for parname in ['regn_heur2', 'regn_heur3', 'regn_heur4']:
         if parname in reg_parnames:
-            coord = index_in_reg_seq[parname]
+            coord = par.index_in_reg_seq[parname]
             while value_par[parname][-1][coord] == maxsize: # maxsize > x, где 0 <= x <= 1.
                 value_par[parname].pop()
     for parname in par.reg_unb:
         if parname in reg_parnames:
-           coord = index_in_reg_seq[parname]
+           coord = par.index_in_reg_seq[parname]
            # пользуемся тем, что None < x для любого x. Так как массив value_par[parname] упорядочен, то все None будут в начале.
            while value_par[parname][0][coord] == None:
                value_par[parname].pop(0)
     for parname in ['ifconv_merge_heur']:
         if parname in icv_parnames:
-            coord = index_in_icv_seq[parname]
+            coord = par.index_in_icv_seq[parname]
             while value_par[parname][0][coord] == None:
                value_par[parname].pop(0)
             while value_par[parname][-1][coord] == maxsize:

@@ -6,32 +6,18 @@ from math import erf
 
 # Internal imports
 import par
-
-## Опции сглаживание статистики
-# Включение сглаживания статистики
-SMOOTH_STAT = True
-# Чем меньше следующие коэффиценты, тем сильнее сглаживание
-ERF_KOEF_FOR_CONTINUOUS_PAR = 20 # коэффициент сглаживания для параметров типа float
-ERF_KOEF_FOR_DISCRETE_PAR = 0.5 # коэффициент сглаживания для параметров типа int
-# Порог, значения ниже которого отбрасываются, при определении доли оставшегося для распределения веса
-ZERO_LIMIT_FOR_ERF = 0.01
-# Веса ниже следующего значения не будут сглаживаться
-ZERO_LIMIT_FOR_WEIGHT = 0.001
-
-def print_var():
-    print SMOOTH_STAT
-
+import global_vars as gl
 
 def cerf(x):
     '''
     Функция сглаживания для параметров с вещественными значениями
     '''
-    return erf(x * ERF_KOEF_FOR_CONTINUOUS_PAR)
+    return erf(x * gl.ERF_KOEF_FOR_CONTINUOUS_PAR)
 def derf(x):
     '''
     Функция сглаживания для параметров со значениями в int
     '''
-    return erf(x * ERF_KOEF_FOR_DISCRETE_PAR)
+    return erf(x * gl.ERF_KOEF_FOR_DISCRETE_PAR)
 
 def get_erf(parname):
     '''
@@ -182,7 +168,7 @@ def smooth_dis(array, coord, w_dis, erff):
     blocks = get_blocks(array, coord, w_dis)
     for bl_center in blocks:
         w_amount = bl_center.wsum
-        if w_amount < ZERO_LIMIT_FOR_WEIGHT:
+        if w_amount < gl.ZERO_LIMIT_FOR_WEIGHT:
             return_weights(1, sdis, (bl_center,), array, w_dis)
             sdis[key] = w_amount
             continue
@@ -197,10 +183,10 @@ def smooth_dis(array, coord, w_dis, erff):
             give_weight(pr * w_amount, sdis, bls, array)
             
             pr_rest = 1 - er_dist_next
-            if pr_rest < ZERO_LIMIT_FOR_ERF:
+            if pr_rest < gl.ZERO_LIMIT_FOR_ERF:
                 # доля оставшегося для распределения веса пренебрежимо мала
                 break
-            if w_amount * pr_rest < ZERO_LIMIT_FOR_WEIGHT:
+            if w_amount * pr_rest < gl.ZERO_LIMIT_FOR_WEIGHT:
                 return_weights(pr_rest, sdis, (bl_center,), array, w_dis)
                 break
             
@@ -213,7 +199,7 @@ def smooth_dis(array, coord, w_dis, erff):
             
     return sdis
 
-def get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar, smooth_stat = SMOOTH_STAT):
+def get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar, smooth_stat = gl.SMOOTH_STAT):
     # dis_regpar и dis_icvpar должны быть уже нормированы
     sm_dis = {}
     if not smooth_stat:

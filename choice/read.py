@@ -258,9 +258,4 @@ def dcs_level(procpath, lv):
     return Dcs_level(procname, lv, n_num, e_num, l_num, nd_num, ed_num, ld_num, N, E, L)
 
 if __name__ == '__main__':
-    for task in task_list():
-        print task
-        for proc in proc_list(task):
-            #print '  ', proc
-            dlist = dcs_proc(task, proc)
-        print '  ok'
+    pass

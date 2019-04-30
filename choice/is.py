@@ -5,7 +5,7 @@
 import os, sys
 from subprocess import Popen, PIPE
 try:
-    # пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке
+    # пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
     import matplotlib.pyplot as plt
 except:
     pass
