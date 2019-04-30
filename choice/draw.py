@@ -6,46 +6,26 @@ import matplotlib.pyplot as plt
 import os, sys
 
 # Internal imports
-from analyse import resultfile_to_picture
 import global_vars as gl
+from analyse import resultfile_to_picture
 import par, weight
 from read import task_list
 import smooth_stat as sm
 import stat_adaptation as stat
 
-PAR_DIAG_COL_NUM = 100
-
-# Опция включает отображение на экран всех генерируемых графиков
-SHOW_FLAG = False
-
-# Если опция включена, то генерируемые графики будут сохраняться
-SAVE_PIC_FLAG = True
-# Путь до каталога, в который будут сохраняться генерируемые графики
-IMAGES_SAVE_MAIN_DIR = './images'
-# Опция определяет структуру подкаталогов, в соответствии с которой будут распределяться сохраняемые графики
-# 0 -> нет подкаталогов
-# 1 -> taskname/...
-# 2 -> parname/...
-SAVE_SUBDIR_STRUCTURE_MODE = 2
-
-# Опция включает отрисовку на графиках результатов запуска оптимизации на реальных данных
-DRAW_RUN_RESULTS_ON_GRAPHICS = True
-
-
-
 def hist_dict(dic):
-    plt.hist(dic.keys(), PAR_DIAG_COL_NUM, weights = dic.values())
+    plt.hist(dic.keys(), gl.PAR_DIAG_COL_NUM, weights = dic.values())
     plt.show()
 
 def hist(titlename, x_label,
          p_values , p_weights,
-         save_pic_flag = SAVE_PIC_FLAG, show_flag = SHOW_FLAG,
+         save_pic_flag = gl.SAVE_PIC_FLAG, show_flag = gl.SHOW_FLAG,
          fullstat_flag = gl.USE_FULL_STAT, sm_dis_flag = gl.SMOOTH_STAT):
     title = titlename
     p_min = min(p_values)
     p_max = max(p_values)
     p_range = p_max - p_min
-    x_split = min(10, PAR_DIAG_COL_NUM)
+    x_split = min(10, gl.PAR_DIAG_COL_NUM)
     x_step = p_range / x_split
     x_marks = [p_min + i * x_step for i in xrange(x_split)] + [p_max]
     x_marks = map(lambda x: float('%.2f' % x), x_marks)
@@ -56,8 +36,8 @@ def hist(titlename, x_label,
     plt.xlabel(x_label)
     plt.ylabel('%')
     plt.xticks(x_marks)
-    plt.hist(p_values, PAR_DIAG_COL_NUM, weights = norm_weights)
-    if DRAW_RUN_RESULTS_ON_GRAPHICS:
+    plt.hist(p_values, gl.PAR_DIAG_COL_NUM, weights = norm_weights)
+    if gl.DRAW_RUN_RESULTS_ON_GRAPHICS:
         res_path = gl.RUN_LOGS_PATH + '/' + title + '.' + x_label + '.txt'
         if os.path.exists(res_path):
             x_array, y_array = resultfile_to_picture(res_path, title)
@@ -68,14 +48,14 @@ def hist(titlename, x_label,
             plt.plot(x_array, y_array, 'o')
     if save_pic_flag:
         title_print = reduce(lambda x, y: x + y, titlename.split('.'))
-        if SAVE_SUBDIR_STRUCTURE_MODE == 2:
-            savedir = IMAGES_SAVE_MAIN_DIR + '/' + x_label
+        if gl.SAVE_SUBDIR_STRUCTURE_MODE == 2:
+            savedir = gl.IMAGES_SAVE_MAIN_DIR + '/' + x_label
             savepath = savedir + '/' + title_print
-        elif SAVE_SUBDIR_STRUCTURE_MODE == 1:
-            savedir = IMAGES_SAVE_MAIN_DIR + '/' + title_print
+        elif gl.SAVE_SUBDIR_STRUCTURE_MODE == 1:
+            savedir = gl.IMAGES_SAVE_MAIN_DIR + '/' + title_print
             savepath = savedir + '/' + x_label
         else:
-            savedir = IMAGES_SAVE_MAIN_DIR
+            savedir = gl.IMAGES_SAVE_MAIN_DIR
             savepath = savedir + '/' + title_print + ' ' + x_label
         if not os.path.exists(savedir):
             os.makedirs(savedir)
