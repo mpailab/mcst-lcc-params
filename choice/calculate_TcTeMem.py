@@ -12,11 +12,6 @@ import par, read
 # Вычилсяем папку, из которой запущен процесс
 PWD = os.getcwd()
 
-SCRIPT_COMP = 'run_comp.sh'
-SCRIPT_EXEC = 'run_exec.sh'
-# SCRIPT_COMP_WITH_STAT компилирует, собирает статистику и печатает объем затраченной памяти
-SCRIPT_COMP_WITH_STAT = 'run_comp_with_stat.sh'
-
 class ExternalScriptError(BaseException):
     pass
 
@@ -60,6 +55,12 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
     else:
         elements = procs_dic.keys()
         
+    
+    # Вычисляем абсолютный путь к скриптам SCRIPT_COMP, SCRIPT_EXEC, SCRIPT_COMP_WITH_STAT
+    SCRIPT_COMP = os.path.abspath(gl.SCRIPT_COMP)
+    SCRIPT_EXEC = os.path.abspath(gl.SCRIPT_EXEC)
+    SCRIPT_COMP_WITH_STAT = os.path.abspath(gl.SCRIPT_COMP_WITH_STAT)
+        
     tmpdir_name = 'tmp' + '_' + str(random.randrange(10**10))
     os.mkdir(tmpdir_name)
     tmpdir_path = os.path.join(PWD, tmpdir_name)
@@ -73,7 +74,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         else:
             cmd_pars = get_cmd_pars(el, par_value, procs_dic[el], output)
             
-        cmd_comp = PWD + "/bin/" + SCRIPT_COMP + ' ' + cmd_pars
+        cmd_comp = SCRIPT_COMP + ' ' + cmd_pars
         print >> output, cmd_comp
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
         comp_proc.wait()
@@ -101,12 +102,12 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
                 shutil.rmtree(tmpdir_path)
                 raise ExternalScriptError(error)
         
-        cmd_exec = PWD + "/bin/" + SCRIPT_EXEC + ' ' + cmd_pars + ' \"' + tmpdir_path + '\"'
+        cmd_exec = SCRIPT_EXEC + ' ' + cmd_pars + ' \"' + tmpdir_path + '\"'
         print >> output, cmd_exec
         exec_proc = Popen(cmd_exec, shell=True, stdout=PIPE, stderr=PIPE)
         el_pred = el
         
-        cmd_comp = PWD + "/bin/" + SCRIPT_COMP_WITH_STAT + ' ' + cmd_pars
+        cmd_comp = SCRIPT_COMP_WITH_STAT + ' ' + cmd_pars
         print >> output, cmd_comp
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
         comp_proc.wait()

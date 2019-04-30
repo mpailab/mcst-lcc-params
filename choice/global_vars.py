@@ -104,6 +104,17 @@ ZERO_LIMIT_FOR_ERF = 0.01
 # Веса ниже следующего значения не будут сглаживаться
 ZERO_LIMIT_FOR_WEIGHT = 0.001
 
+
+##
+# Модуль calculate_TcTeMem
+##
+
+SCRIPT_COMP = './choice/run_comp.sh'
+SCRIPT_EXEC = './choice/run_exec.sh'
+# SCRIPT_COMP_WITH_STAT компилирует, собирает статистику и печатает объем затраченной памяти
+SCRIPT_COMP_WITH_STAT = './choice/run_comp_with_stat.sh'
+
+
 ##
 # Модуль draw
 ##

@@ -4,22 +4,24 @@
 # External imports
 import sys
 
-# Internal imports
-import calculate_TcTeMem as calc
-import options, weight
-import smooth_stat as sm
-from optimize import optimize, seq_optimize, dcs_optimize
-from stat_adaptation import get_dis_regpar, get_dis_icvpar, add_dic
-
 # Read script options
+import options
 options = options.read(sys.argv[1:])
 
 # Init globals
-calc.COMP_MACHINE = options.comp_machine
-calc.COMP_CPU_NUM = options.comp_cpu_num
-calc.EXEC_MACHINE = options.exec_machine
-calc.EXEC_CPU_NUM = options.exec_cpu_num
-sm.SMOOTH_STAT    = options.is_smooth
+import global_vars as gl
+gl.COMP_MACHINE = options.comp_machine
+gl.COMP_CPU_NUM = options.comp_cpu_num
+gl.EXEC_MACHINE = options.exec_machine
+gl.EXEC_CPU_NUM = options.exec_cpu_num
+gl.SMOOTH_STAT    = options.is_smooth
+
+# Internal imports
+import calculate_TcTeMem as calc
+import weight
+from stat_adaptation import get_dis_regpar, get_dis_icvpar, add_dic
+from optimize import optimize, seq_optimize, dcs_optimize
+
 
 if options.is_seq:
 
