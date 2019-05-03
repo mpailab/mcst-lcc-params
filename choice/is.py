@@ -33,7 +33,7 @@ def get_globals_names(types = None):
 
 def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
     '''
-    Считывание данных из конфигурационного файла и инициализация глобальных переменных
+    Считывание данных из конфигурационного файла
     '''
     gnames = get_globals_names() # получаем имена всех глобальных переменных проекта
     def gtype(gname):
@@ -45,11 +45,12 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
         print 'There is not file:', configure_file_path
         print 'Warning! Configuration file was not found.'
         print 'Default values for all parametors of IS will be used.'
-        return 0
+        return {}
     else:
         print 'Read configuration file:', configure_file_path
     
     cfile = open(configure_file_path)
+    result = {}
     for line in cfile:
         line = line[:-1] # откусываем от строки последний символ (символ перехода на новую строку)
         line = line.split('#', 1)[0] # все, начиная с символа '#' в строке считаем комментарием
@@ -69,9 +70,56 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
         varname, value = line.split('=', 1)
         varname = varname.strip() # обрезаем имя глобальной переменной от возможных лишних пробелов
         if not varname in gnames:
-            print 'Warning! There is not parametor of IS with name :',
+            print 'Warning! There is not a parametor of IS with name :',
             print '\'' + varname + '\''
             continue
+        
+        tvar = gtype(varname) # получить тип переменной varname {bool, int, float, str}
+        if tvar == bool:
+            # {0, 1}
+            value = value.strip() # обрезаем пробельные символы с двух сторон
+            if value in ('0', '1'):
+                value = bool(value)
+                # gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
+                result[varname] = value
+            else:
+                print 'Warning! Incorrect value for bool parametor', varname ,':', value
+                print '         The set of valid values for', varname, 'is {0, 1}'
+                print '         Default value for', varname, 'will be used :', int(gl.__dict__[varname])
+                continue
+        elif tvar == int:
+            value = value.strip() # обрезаем пробельные символы с двух сторон
+            if value.isdigit():
+                value = int(value)
+                # gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
+                result[varname] = value
+            else:
+                print 'Warning! Incorrect value for parametor', varname ,':', value
+                print '         The type of', varname, 'is int'
+                print '         Default value for', varname, 'will be used :', gl.__dict__[varname] 
+                continue
+        elif tvar == float:
+            try:
+                value = float(value)
+            except ValueError:
+                print 'Warning! Incorrect value for parametor', varname ,':', value
+                print '         The type of', varname, 'is float'
+                print '         Default value for', varname, 'will be used ', gl.__dict__[varname] 
+                continue
+            result[varname] = value
+        elif tvar == str:
+            result[varname] = value
+        else:
+            try:
+                value = tvar(value)
+            except:
+                print 'Warning! Incorrect value for parametor', varname ,':', value
+                print '         The type of', varname, 'is', tvar
+                print '         Default value for', varname, 'will be used ', gl.__dict__[varname] 
+                continue
+            result[varname] = value
+        
+    return result
         
 # Читаем конфигурационный файл и инициализацием глобальные переменные
 read_configure()
