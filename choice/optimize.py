@@ -631,7 +631,8 @@ def dcs_optimize(procs_dic, dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT, result_defa
     val_F_best = val_F_default
         
     dis = stat.get_dcs_dis(procs_dic)
-    for lv in gl.DCS_LEVELS:
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+    for lv in dcs_levels:
         print >> output
         print >> output, 'dcs_level:', lv
         if dis[lv] > dcs_zero_limit:

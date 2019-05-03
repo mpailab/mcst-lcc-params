@@ -221,7 +221,8 @@ def get_dcs_proc_dis(dcs_proc,
                     koef_loop_impotance = gl.DCS_KOEF_LOOP_IMPOTANCE):
     
     pdis = [0] # распределение на нулевом уровне
-    for lv in gl.DCS_LEVELS:
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+    for lv in dcs_levels:
         nd = dcs_proc[lv].nd_num / dcs_proc[lv].n_num # процент мертвых узлов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
         ed = dcs_proc[lv].ed_num / dcs_proc[lv].e_num # процент мертвых ребер
         ld = dcs_proc[lv].ld_num / dcs_proc[lv].l_num # процент мертвых циклов
@@ -235,6 +236,7 @@ def get_dcs_dis(procs_dic,
                 koef_node_impotance = gl.DCS_KOEF_NODE_IMPOTANCE,
                 koef_edge_impotance = gl.DCS_KOEF_EDGE_IMPOTANCE,
                 koef_loop_impotance = gl.DCS_KOEF_LOOP_IMPOTANCE):
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     dis = [0] * (gl.MAX_DCS_LEVEL + 1)
     sum_w_task = 0
     for taskname, proc_list in procs_dic.iteritems():
@@ -262,13 +264,13 @@ def get_dcs_dis(procs_dic,
             w_proc = weight.proc(time_proc_dic[procname])
             w_proc /= sum_time
             
-            for lv in gl.DCS_LEVELS:
+            for lv in dcs_levels:
                 tdis[lv] += w_proc * pdis[lv]
         
-        for lv in gl.DCS_LEVELS:
+        for lv in dcs_levels:
             dis[lv] += w_task * tdis[lv]
             
-    for lv in gl.DCS_LEVELS:
+    for lv in dcs_levels:
         dis[lv] /= sum_w_task
     
     return dis

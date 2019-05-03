@@ -13,6 +13,20 @@ except:
 # Internal imports
 import global_vars as gl
 
+def get_globals_names(types = None):
+    '''
+    Получение имен всех глобальных переменных проекта, тип данных которых находится среди types
+    '''
+    def filterfunc(objname, filertypes = types):
+        if type(gl.__dict__[objname]) in types:
+            return True
+        else:
+            return False
+    if types != None:
+        return filter(filterfunc, gl.__dict__.keys())
+    else:
+        return filter(lambda x: x[0] != '_', gl.__dict__.keys())
+
 # Расположение конфигурационного файла
 DEFAULT_CONFIGURE_FILE_PATH = './bin/configuration.txt'
 
@@ -60,16 +74,41 @@ try:
 except:
     import_draw_module = False
 
-help(gl)
 
-exit()
+# Тесты.
+
+s1 = set(get_globals_names([int, str, float, bool]))
+s2 = set(get_globals_names())
+print 'int, str, float, bool - without _:', s1 - s2
+print 'without _ - int, str, float, bool:', s2 - s1
+
 
 def print_dict(my_dict):
     print 'Start print --------------------------------'
+    print 
     for item in my_dict.iteritems():
-        print item[0]
+        if item[0][0] != '_':
+            print item[0], '=', item[1]
+        else:
+            print item[0]
+
+#print gl.__dict__['ZERO_LIMIT_FOR_ERF']
+#gl.__dict__['ZERO_LIMIT_FOR_ERF'] = 0.2
+#print gl.ZERO_LIMIT_FOR_ERF
+#print_dict(gl.__dict__)
+#print gl.__dict__['__package__']
+#print gl.__dict__['__doc__']
+#print print_dict(gl.__dict__['__builtins__'])
+#print gl.__dict__['__file__']
+#print gl.__dict__['__name__']
+#print __name__
+
+
+exit()
     
 loc = locals()
+
+
 
 #!!! names = opt.read.__dict__
 # print_dict(names)

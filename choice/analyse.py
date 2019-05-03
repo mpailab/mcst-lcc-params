@@ -309,9 +309,10 @@ def dcs_information_print():
     '''
     Печатает процент мертвых узлов, ребер и циклов в каждом спеке
     '''
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for task in read.task_list():
         print task
-        print ' lv:  ', reduce(lambda x, y: x + y, map(lambda x: str(x).rjust(4) + ' ', gl.DCS_LEVELS))
+        print ' lv:  ', reduce(lambda x, y: x + y, map(lambda x: str(x).rjust(4) + ' ', dcs_levels))
         dis = get_dcs_dis({task: None}, 1, 0, 0)[1:]
         print ' N:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
         dis = get_dcs_dis({task: None}, 0, 1, 0)[1:]
@@ -324,7 +325,7 @@ def dcs_information_print():
     
     print 'All tasks'
     procs_dic = {task: None for task in read.task_list()}
-    print ' lv:  ', reduce(lambda x, y: x + y, map(lambda x: str(x).rjust(4) + ' ', gl.DCS_LEVELS))
+    print ' lv:  ', reduce(lambda x, y: x + y, map(lambda x: str(x).rjust(4) + ' ', dcs_levels))
     dis = get_dcs_dis(procs_dic, 1, 0, 0)[1:]
     print ' N:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
     dis = get_dcs_dis(procs_dic, 0, 1, 0)[1:]

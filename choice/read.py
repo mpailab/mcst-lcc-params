@@ -178,10 +178,11 @@ def icv_proc_read(procpath):
 def dcs_proc(taskname, procname, difference_from_levels = True):
     procpath = gl.STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
     proc = [None] # proc[0] = None -> нет нулевого уровня оптимизации
-    for lv in gl.DCS_LEVELS:
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+    for lv in dcs_levels:
         proc.append(dcs_level(procpath, lv)) # proc[lv] -- результат оптимизации на уровне lv
     if difference_from_levels == True:
-        for lv in gl.DCS_LEVELS[1:].__reversed__(): # перебираем все пары (уровень, предыдущий уровень), начиная с последнего уровня
+        for lv in dcs_levels[1:].__reversed__(): # перебираем все пары (уровень, предыдущий уровень), начиная с последнего уровня
             lv_pr = lv - 1
             #if (proc[lv_pr].n_num != proc[lv].n_num) or (proc[lv_pr].e_num != proc[lv].e_num) or (proc[lv_pr].l_num != proc[lv].l_num):
             #    print 'In ', taskname + '.' + procname + '.dcs_' + str(lv), 'difference in nums'
