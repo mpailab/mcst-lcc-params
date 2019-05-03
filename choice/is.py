@@ -13,35 +13,66 @@ except:
 # Internal imports
 import global_vars as gl
 
+# Расположение конфигурационного файла
+DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
+
 def get_globals_names(types = None):
-    '''
-    Получение имен всех глобальных переменных проекта, тип данных которых находится среди types
-    '''
-    def filterfunc(objname, filertypes = types):
+    """ Получение имен всех глобальных переменных проекта, [тип данных которых находится среди types]
+    """
+    def filterfunc(objname):
         if type(gl.__dict__[objname]) in types:
             return True
         else:
             return False
+        
+    result = filter(lambda x: x[0] != '_', gl.__dict__.keys())
     if types != None:
-        return filter(filterfunc, gl.__dict__.keys())
+        return filter(filterfunc, result)
     else:
-        return filter(lambda x: x[0] != '_', gl.__dict__.keys())
-
-# Расположение конфигурационного файла
-DEFAULT_CONFIGURE_FILE_PATH = './bin/configuration.txt'
+        return result
 
 def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
     '''
-    Считывание данных из конфигурационного файла
+    Считывание данных из конфигурационного файла и инициализация глобальных переменных
     '''
+    gnames = get_globals_names() # получаем имена всех глобальных переменных проекта
+    def gtype(gname):
+        """ Получить по имени глобальной переменной тип ее данных
+        """
+        return type(gl.__dict__[gname])
+    
     if not os.path.exists(configure_file_path):
         print 'There is not file:', configure_file_path
         print 'Warning! Configuration file was not found.'
-        print 'Default values for all parametors of intellectual system will be used.'
-        return []
+        print 'Default values for all parametors of IS will be used.'
+        return 0
+    else:
+        print 'Read configuration file:', configure_file_path
     
-    pass
-
+    cfile = open(configure_file_path)
+    for line in cfile:
+        line = line[:-1] # откусываем от строки последний символ (символ перехода на новую строку)
+        line = line.split('#', 1)[0] # все, начиная с символа '#' в строке считаем комментарием
+        # игнорируем пустые строки
+        if line == '':
+            continue
+        # игнорируем строки, состоящие из любого числа любых пробельных символов
+        if line.isspace():
+            continue
+        
+        # строки без присваивания игнорируем
+        if not '=' in line:
+            print 'Warning! Line in configuration file is not in format \"parname = value\" :',
+            print '\'' + line + '\''
+            continue
+        
+        varname, value = line.split('=', 1)
+        varname = varname.strip() # обрезаем имя глобальной переменной от возможных лишних пробелов
+        if not varname in gnames:
+            print 'Warning! There is not parametor of IS with name :',
+            print '\'' + varname + '\''
+            continue
+        
 # Читаем конфигурационный файл и инициализацием глобальные переменные
 read_configure()
 # Проверяем корректность значений глобальных переменных
@@ -75,13 +106,12 @@ except:
     import_draw_module = False
 
 
-# Тесты.
+exit()
 
-s1 = set(get_globals_names([int, str, float, bool]))
-s2 = set(get_globals_names())
-print 'int, str, float, bool - without _:', s1 - s2
-print 'without _ - int, str, float, bool:', s2 - s1
-
+# globals_names = get_globals_names([int, str, float, bool])
+globals_names = get_globals_names([str])
+for gname in globals_names:
+    print gname, '=', gl.__dict__[gname]
 
 def print_dict(my_dict):
     print 'Start print --------------------------------'
