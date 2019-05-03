@@ -11,6 +11,7 @@ from sys import maxsize
 import global_vars as gl
 from calculate_TcTeMem import calculate_abs_values
 import par
+import weight
 import smooth_stat as sm
 import stat_adaptation as stat
 
@@ -290,13 +291,13 @@ def optimize(procs_dic, par_names,
     if len(reg_parnames) != 0:
         if dis_regpar == None:
             dis_regpar = stat.get_dis_regpar(procs_dic)
-            stat.weight.normolize_dict(dis_regpar)
+            weight.normolize_dict(dis_regpar)
     
     # вычисление функции весов характеристик, отвечающим заданным параметрам фазы if_conv
     if len(icv_parnames) != 0:
         if dis_icvpar == None:
             dis_icvpar = stat.get_dis_icvpar(procs_dic)
-            stat.weight.normolize_dict(dis_icvpar)
+            weight.normolize_dict(dis_icvpar)
     
     # вычисление распределений параметров 
     value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
@@ -352,10 +353,10 @@ def optimize(procs_dic, par_names,
             if F_run_result[2][ind] == None: # если нет информации о распределении параметра в базе данных
                 if len(reg_parnames) != 0:
                     dis_regpar = stat.get_dis_regpar(procs_dic)
-                    stat.weight.normolize_dict(dis_regpar)
+                    weight.normolize_dict(dis_regpar)
                 if len(icv_parnames) != 0:
                     dis_icvpar = stat.get_dis_icvpar(procs_dic)
-                    stat.weight.normolize_dict(dis_icvpar)
+                    weight.normolize_dict(dis_icvpar)
                 value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
                 sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
                 if gl.PAR_DISTRIBUTION_DATABASE == True:

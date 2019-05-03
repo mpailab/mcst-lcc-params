@@ -35,7 +35,6 @@ def get_dis_regpar(procs_dic):
                 continue
             for key in dis_par_proc.iterkeys():
                 dis_par_proc[key] = (dis_par_proc[key] / sum_tmp) * w_proc * w_task
-            #dis_par = sum_dics(dis_par, dis_par_proc)
             add_dic(dis_par, dis_par_proc)
     return dis_par
             
