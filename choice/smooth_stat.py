@@ -99,8 +99,8 @@ class ItrBlocks:
 
 def return_weights(pr, sdis, bls, array, w_dis):
     '''
-    Процедура возвращает процент pr весов элементов блоков bls массива array
-    sdis --- форимируемое распределение весов
+    Процедура уменьшает на процент pr веса элементов блоков bls массива array
+    Результирующее распределение весов записывается в sdis
     '''
     for bl in bls:
         for pos in xrange(bl.pl, bl.pr):
@@ -168,6 +168,7 @@ def smooth_dis(array, coord, w_dis, erff):
     blocks = get_blocks(array, coord, w_dis)
     for bl_center in blocks:
         w_amount = bl_center.wsum
+        # если распределяемый вес маленький, то распределять нечего
         if w_amount < gl.ZERO_LIMIT_FOR_WEIGHT:
             return_weights(1, sdis, (bl_center,), array, w_dis)
             sdis[key] = w_amount
@@ -183,9 +184,12 @@ def smooth_dis(array, coord, w_dis, erff):
             give_weight(pr * w_amount, sdis, bls, array)
             
             pr_rest = 1 - er_dist_next
+            # если доля оставшегося для распределения веса пренебрежимо мала, то прерываем распределение веса
             if pr_rest < gl.ZERO_LIMIT_FOR_ERF:
-                # доля оставшегося для распределения веса пренебрежимо мала
+                # тут тоже надо вернуть вес?
+                # return_weights(pr_rest, sdis, (bl_center,), array, w_dis)
                 break
+            # если абсолютное значение оставшегося для распределения веса мало, то прекращаем распределение веса
             if w_amount * pr_rest < gl.ZERO_LIMIT_FOR_WEIGHT:
                 return_weights(pr_rest, sdis, (bl_center,), array, w_dis)
                 break

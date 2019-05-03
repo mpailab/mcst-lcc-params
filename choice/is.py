@@ -60,7 +60,7 @@ try:
 except:
     import_draw_module = False
 
-print import_draw_module
+help(gl)
 
 exit()
 

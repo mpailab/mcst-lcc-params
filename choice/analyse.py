@@ -355,38 +355,10 @@ def resultfile_to_picture(filepath, taskname):
         parvalue = itr[4]
         x_array.append(parvalue)
         
-        y_value = (Fvalue - 7) * 100
+        Fvalue_default = gl.TIME_COMP_IMPOTANCE + gl.TIME_EXEC_IMPOTANCE + gl.MEMORY_IMPOTANCE
+        y_value = (Fvalue - Fvalue_default) * 100
         if y_value > 100:
             y_value = 100
         y_array.append(y_value)
         
     return x_array, y_array
-
-#def old_ver_resultfile_to_picture(filepath):
-    #cmd = 'grep -A 2 bin ' + filepath + ' | grep -v "#" > tmpfile'
-    #proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    #proc.wait()
-    
-    #ffile = open('tmpfile')
-    #iterations = ffile.read().split('--\n')
-    
-    #x_array = []
-    #y_array = []
-    #for itr in iterations:
-        #str_x = itr.split('\n')[0]
-        
-        #parname = str_x.split('=')[1].split(':')[0]
-        #x_value_str = str_x.split('\"')[1].split(':')[1]
-        ##type_parname_id = str_x.split('\"')[1].split('=')[0]
-        
-        #x_array.append(par.val_type[parname](x_value_str))
-        
-        #str_y = itr.split('\n')[1]
-        #Fvalue = float(str_y.split()[2])
-        
-        #y_value = (Fvalue - 7) * 100
-        #if y_value > 100:
-            #y_value = 100
-        #y_array.append(y_value)
-        
-    #return x_array, y_array

@@ -56,6 +56,9 @@ else:
         return random.gauss(0, T)
             
 def F(list_trio):
+    """
+    Минимизируемый функционал
+    """
     len_list_trio = len(list_trio)
     if len_list_trio == 0:
         raise BaseException('list_trio is empty')
@@ -75,15 +78,19 @@ def F(list_trio):
         mul_delta_T_exec *= delta_T_exec
         
         delta_V = trio[2]
-        if delta_V > 1. + gl.MEMEMORY_INCREASE_ALLOWABLE_PERCENT:
+        if delta_V > 1. + gl.MEMORY_INCREASE_ALLOWABLE_PERCENT:
             return maxsize
         mul_delta_V *= delta_V
     
     mul_delta_T_exec = mul_delta_T_exec ** (1. / len_list_trio)
     mul_delta_T_comp = mul_delta_T_comp ** (1. / len_list_trio)
     mul_delta_V = mul_delta_V ** (1. / len_list_trio)
-        
-    return gl.KOEF_TIME_EXEC_IMPOTANCE * mul_delta_T_exec + mul_delta_T_comp + mul_delta_V
+    
+    result = gl.TIME_EXEC_IMPOTANCE * mul_delta_T_exec
+    result += gl.TIME_COMP_IMPOTANCE * mul_delta_T_comp
+    result += gl.MEMORY_IMPOTANCE * mul_delta_V
+    
+    return result
 
 def calculate_F(values, values_default):
     list_rel_trio = []
@@ -609,7 +616,7 @@ def seq_optimize(procs_dic, pargroup_seq,
         
     return par_current_value, val_F_current, result_current
 
-def dcs_optimize(procs_dic, dcs_zero_limit = gl.DSC_ZERO_LIMIT, result_default = None, output = None, nesting_off_attempt = False):
+def dcs_optimize(procs_dic, dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT, result_default = None, output = None, nesting_off_attempt = False):
     
     j_for_exec_run = 0
     if result_default == None:
