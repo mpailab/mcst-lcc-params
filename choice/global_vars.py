@@ -118,9 +118,9 @@ MAX_DCS_LEVEL = 4
 # где nd -- процент найденных мертвых узлов,
 #     ed -- процент найденных мертвых циклов,
 #     ld -- процент найденных мертвых циклов.
-DCS_KOEF_NODE_IMPOTANCE = 1
-DCS_KOEF_EDGE_IMPOTANCE = 1
-DCS_KOEF_LOOP_IMPOTANCE = 1
+DCS_KOEF_NODE_IMPOTANCE = 1.
+DCS_KOEF_EDGE_IMPOTANCE = 1.
+DCS_KOEF_LOOP_IMPOTANCE = 1.
 
 # Если полезность dcs оптимизации <= DSC_IMPOTANCE_LIMIT, то dcs оптимизация считается бесполезной
 DSC_IMPOTANCE_LIMIT = 0.001
@@ -142,7 +142,7 @@ DEVIATION_PERCENT_OF_TcTeMemF = 0.01
 # Сглаживать статистику? {0, 1}
 SMOOTH_STAT = True
 # Чем меньше следующие коэффиценты, тем сильнее сглаживание
-ERF_KOEF_FOR_CONTINUOUS_PAR = 20 # коэффициент сглаживания для вещественных параметров
+ERF_KOEF_FOR_CONTINUOUS_PAR = 20. # коэффициент сглаживания для вещественных параметров
 ERF_KOEF_FOR_DISCRETE_PAR = 0.5 # коэффициент сглаживания для целичисленных параметров
 
 # Чем ниже следующие параметры, тем качественнее сглаживание
@@ -238,9 +238,9 @@ USE_RELATIONS_OF_PARAMETORS = True
     то значение F(dT_c, dT_e, dV) полагается равным +бесконечности
 """
 # Значения коэффицентов минимизируемого функционала
-TIME_EXEC_IMPOTANCE = 5
-TIME_COMP_IMPOTANCE = 1
-MEMORY_IMPOTANCE = 1
+TIME_EXEC_IMPOTANCE = 5.
+TIME_COMP_IMPOTANCE = 1.
+MEMORY_IMPOTANCE = 1.
 # Допустимый процент увеличения времени компиляции
 COMP_TIME_INCREASE_ALLOWABLE_PERCENT = 0.25
 # Допустимый процент увеличения времени исполнения
