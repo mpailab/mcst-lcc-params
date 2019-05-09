@@ -189,4 +189,5 @@ cond = {
     }
 
 # список параметров с конечным числом значений
-finite = ['disable_regions_nesting', 'dcs_kill', 'dcs_level']
+dcs = ['dcs_kill', 'dcs_level']
+nesting = ['disable_regions_nesting']

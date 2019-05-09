@@ -222,13 +222,38 @@ def get_strategy(print_strategy = True):
             return False
             
     def group_filt(group):
-        return bool(group)
+        if bool(group): # если группа параметров не пустая
+            dcs_par_exist = reduce(lambda x, y: x or y, [parname in par.dcs + ['dcs'] for parname in group])
+            nesting_par_exist = reduce(lambda x, y: x or y, [parname in par.nesting for parname in group])
+            reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in par.reg_seq + par.icv_seq for parname in group])
+            if reg_or_icv_par_exist:
+                if dcs_par_exist:
+                    print 'Warning! Wrong parametors group :', group
+                    print '         dcs-parametors must be in separated group'
+                    print '         The wrong parametors group will be ignored :', group
+                    return False
+                if nesting_par_exist:
+                    print 'Warning! Wrong parametors group :', group
+                    print '         parametor \'' + par.nesting[0] + '\' must be in separated group'
+                    print '         The wrong parametors group will be ignored :', group
+                    return False
+            else:
+                if dcs_par_exist and nesting_par_exist:
+                    print 'Warning! Wrong parametors group :', group
+                    print '         dcs-parametors and parametor \'' + par.nesting[0] + '\' must be in separated groups'
+                    print '         The wrong parametors group will be ignored :', group
+                    return False
+            return True
+        else:
+            return False
     
     groups = gl.OPTIMIZATION_STRATEGY.split(';')
     result = filter(group_filt, map(lambda x: filter(par_filt, x.split()), groups))
     
     if bool(result) == False: # если список пустой
-        print 'Error! The optimization strategy is empty or there is not any valid parametor of LCC in the strategy'
+        print 'Error! The optimization strategy is empty'
+        print 'Posible reason: there is not any valid parametor of LCC in the strategy or'
+        print '                all parametors group in the strategy are not valid'
         print_format()
         sys.exit()
     
@@ -243,6 +268,9 @@ def get_specs():
     """
         Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
     """
+
+
+get_strategy()
 
 exit()
 
