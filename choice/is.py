@@ -10,11 +10,27 @@ try:
 except:
     pass
 
-# Internal imports
+
 import global_vars as gl
 
 # Расположение конфигурационного файла
 DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
+
+## Считываем опции
+# -c <pathname> путь до конфигурационного файла
+# -a анализ логов
+# -d рисование диограмм
+# -s поиск оптимального значений параметра при помощи метода отжига
+# --<parname of IS>='new_value' новое значение для глобальной переменной
+pass
+# Что сильнее опции или конфигурационный файл?
+
+
+import par
+# Считываем значения по-умолчанию для параметров par.default_value
+pass
+
+
 
 def get_globals_names(types = None):
     """ Получение имен всех глобальных переменных проекта, [тип данных которых находится среди types]
@@ -25,7 +41,7 @@ def get_globals_names(types = None):
         else:
             return False
         
-    result = filter(lambda x: x[0] != '_', gl.__dict__.keys())
+    result = filter(lambda x: x[0] != '_', gl.__dict__.keys()) # игнорируем переменные, которые начинаются с символа '_'
     if types != None:
         return filter(filterfunc, result)
     else:
@@ -36,10 +52,6 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
     Считывание данных из конфигурационного файла
     '''
     gnames = get_globals_names() # получаем имена всех глобальных переменных проекта
-    def gtype(gname):
-        """ Получить по имени глобальной переменной тип ее данных
-        """
-        return type(gl.__dict__[gname])
     
     if not os.path.exists(configure_file_path):
         print 'There is not file:', configure_file_path
@@ -63,7 +75,7 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
         
         # строки без присваивания игнорируем
         if not '=' in line:
-            print 'Warning! Line in configuration file is not in format \"parname = value\" :',
+            print 'Warning! Line in the configuration file is not in format \"parname = value\" :',
             print '\'' + line + '\''
             continue
         
@@ -74,13 +86,16 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
             print '\'' + varname + '\''
             continue
         
-        tvar = gtype(varname) # получить тип переменной varname {bool, int, float, str}
+        tvar = type(gl.__dict__[varname]) # получить тип переменной varname {bool, int, float, str}
         if tvar == bool:
             # {0, 1}
             value = value.strip() # обрезаем пробельные символы с двух сторон
             if value in ('0', '1'):
                 value = bool(value)
-                # gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
+                if result.has_key(varname):
+                    print 'Warning! Several definitions in the configuration file for parametor :', varname
+                    print '         The first value for parametor', varname ,'will be used :', int(result[varname])
+                    continue
                 result[varname] = value
             else:
                 print 'Warning! Incorrect value for bool parametor', varname ,':', value
@@ -91,7 +106,10 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
             value = value.strip() # обрезаем пробельные символы с двух сторон
             if value.isdigit():
                 value = int(value)
-                # gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
+                if result.has_key(varname):
+                    print 'Warning! Several definitions in the configuration file for parametor :', varname
+                    print '         The first value for parametor', varname ,'will be used :', result[varname]
+                    continue
                 result[varname] = value
             else:
                 print 'Warning! Incorrect value for parametor', varname ,':', value
@@ -106,8 +124,13 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
                 print '         The type of', varname, 'is float'
                 print '         Default value for', varname, 'will be used ', gl.__dict__[varname] 
                 continue
+            if result.has_key(varname):
+                    print 'Warning! Several definitions in the configuration file for parametor :', varname
+                    print '         The first value for parametor', varname ,'will be used :', result[varname]
+                    continue
             result[varname] = value
         elif tvar == str:
+            value = value.lstrip()
             result[varname] = value
         else:
             try:
@@ -117,12 +140,41 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
                 print '         The type of', varname, 'is', tvar
                 print '         Default value for', varname, 'will be used ', gl.__dict__[varname] 
                 continue
+            if result.has_key(varname):
+                    print 'Warning! Several definitions in the configuration file for parametor :', varname
+                    print '         The first value for parametor', varname ,'will be used :', result[varname]
+                    continue
             result[varname] = value
         
     return result
+
+def change_globals(gval_dict):
+    """
+        Изменение значений глобальных переменных при помощи словаря gval_dict
+        gval_dict : переменная -> ее новое значение
+    """
+    for varname, value in gval_dict.iteritems():
+        gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
+        
+def print_globals(types = None):
+    """
+        Печать текущей конфигурации проекта
+    """
+            
+        
+    for var, val in gl.__dict__.iteritems():
+        if var[0] == '_':
+            continue
+        if types != None:
+            if not type(val) in types:
+                continue
+        print var, '=', val
+        
         
 # Читаем конфигурационный файл и инициализацием глобальные переменные
-read_configure()
+gval_dict = read_configure()
+change_globals(gval_dict)
+print_globals([str])
 # Проверяем корректность значений глобальных переменных
 #cheak_globals()
    
@@ -135,7 +187,7 @@ read_configure()
 # Подключаем модули ИС
 import def_classes as dcl
 import weight as wht
-import par
+
 
 import read as rd
 import stat_adaptation as adt
