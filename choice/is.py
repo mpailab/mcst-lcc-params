@@ -5,15 +5,15 @@
 import os, sys
 from subprocess import Popen, PIPE
 try:
-    # пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
+    # Пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
     import matplotlib.pyplot as plt
 except:
     pass
 
-
+# Подключаем модуль, хранящий значения параметров интеллектуальной системы
 import global_vars as gl
 
-# Расположение конфигурационного файла
+# Путь по-умолчанию до конфигурационного файла
 DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
 
 ## Считываем опции
@@ -25,15 +25,14 @@ DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
 pass
 # Что сильнее опции или конфигурационный файл?
 
-
+# Подключаем модуль, содержащий данные о параметрах оптимизационных преобразований компилятора
 import par
-# Считываем значения по-умолчанию для параметров par.default_value
+# Считываем значения по-умолчанию для параметров оптимизационных преобразований в par.default_value
 pass
 
 
-
 def get_globals_names(types = None):
-    """ Получение имен всех глобальных переменных проекта, [тип данных которых находится среди types]
+    """ Получить имена всех глобальных переменных проекта, [тип данных которых находится среди types]
     """
     def filterfunc(objname):
         if type(gl.__dict__[objname]) in types:
@@ -48,9 +47,9 @@ def get_globals_names(types = None):
         return result
 
 def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
-    '''
-    Считывание данных из конфигурационного файла
-    '''
+    """
+        Считать данные из конфигурационного файла
+    """
     gnames = get_globals_names() # получаем имена всех глобальных переменных проекта
     
     if not os.path.exists(configure_file_path):
@@ -150,18 +149,16 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
 
 def change_globals(gval_dict):
     """
-        Изменение значений глобальных переменных при помощи словаря gval_dict
-        gval_dict : переменная -> ее новое значение
+        Измененить значение глобальных переменных при помощи словаря gval_dict
+        gval_dict : переменная -> новое значение
     """
     for varname, value in gval_dict.iteritems():
         gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
         
 def print_globals(types = None):
     """
-        Печать текущей конфигурации проекта
+        Вывести на экран текущую конфигурацию параметров интеллектуальной системы
     """
-            
-        
     for var, val in gl.__dict__.iteritems():
         if var[0] == '_':
             continue
@@ -171,12 +168,14 @@ def print_globals(types = None):
         print var, '=', val
         
         
-# Читаем конфигурационный файл и инициализацием глобальные переменные
+# Читаем конфигурационный файл
 gval_dict = read_configure()
+# Инициализацием глобальные переменные
 change_globals(gval_dict)
-print_globals([str])
+# Выводим на экран значения глобальных переменных
+# print_globals()
 # Проверяем корректность значений глобальных переменных
-#cheak_globals()
+# cheak_globals()
    
 # Импортировать модули надо начинать с модулей низкого уровня и заканчивать модулями высокого уровня.
 # Непосредственно после импортирования каждого модуля следует изменять его глобальные переменные в соответствии с конфигурационным файлом.
@@ -187,7 +186,6 @@ print_globals([str])
 # Подключаем модули ИС
 import def_classes as dcl
 import weight as wht
-
 
 import read as rd
 import stat_adaptation as adt
@@ -201,51 +199,50 @@ import analyse as anl
 try:
     # Импортирование модуля draw вызовет ошибку, если в системе нет необходимых библиотек (matplotlib для Python 2.7)
     import draw as dr
-    import_draw_module = True
+    draw_module_is_imported = True
 except:
-    import_draw_module = False
+    draw_module_is_imported = False
 
-
-exit()
-
-# globals_names = get_globals_names([int, str, float, bool])
-globals_names = get_globals_names([str])
-for gname in globals_names:
-    print gname, '=', gl.__dict__[gname]
-
-def print_dict(my_dict):
-    print 'Start print --------------------------------'
-    print 
-    for item in my_dict.iteritems():
-        if item[0][0] != '_':
-            print item[0], '=', item[1]
-        else:
-            print item[0]
-
-#print gl.__dict__['ZERO_LIMIT_FOR_ERF']
-#gl.__dict__['ZERO_LIMIT_FOR_ERF'] = 0.2
-#print gl.ZERO_LIMIT_FOR_ERF
-#print_dict(gl.__dict__)
-#print gl.__dict__['__package__']
-#print gl.__dict__['__doc__']
-#print print_dict(gl.__dict__['__builtins__'])
-#print gl.__dict__['__file__']
-#print gl.__dict__['__name__']
-#print __name__
-
-
-exit()
+def get_strategy(print_strategy = True):
+    """
+        Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
+    """
+    def print_format():
+        print 'The strategy must be in the next format :',
+        print '<group> [; <group>]'
+        print '     where <group> is a string in the next format :',
+        print '<parname> [<parname>]'
     
-loc = locals()
+    def par_filt(parname):
+        if parname in par.val_type.keys() or parname == 'dcs':
+            return True
+        else:
+            print 'Warning! Unknown parname of LCC in the strategy :', parname
+            print '         The unknown parname \'' + parname + '\' will be ignored'
+            return False
+            
+    def group_filt(group):
+        return bool(group)
+    
+    groups = gl.OPTIMIZATION_STRATEGY.split(';')
+    result = filter(group_filt, map(lambda x: filter(par_filt, x.split()), groups))
+    
+    if bool(result) == False: # если список пустой
+        print 'Error! The optimization strategy is empty or there is not any valid parametor of LCC in the strategy'
+        print_format()
+        sys.exit()
+    
+    if print_strategy:
+        print 'Using optimization strategy: '
+        print '   ', reduce(lambda x, y: x + '; ' + y, map(lambda group: reduce(lambda x, y: x + ' ' + y, group), result))
+            
+    
+    return result
 
+def get_specs():
+    """
+        Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
+    """
 
+exit()
 
-#!!! names = opt.read.__dict__
-# print_dict(names)
-
-for item in loc.items():
-    itype = type(item[1])
-    if itype == int or itype == float or itype == bool or itype == str:
-        pass
-    else:
-        print item[0], itype

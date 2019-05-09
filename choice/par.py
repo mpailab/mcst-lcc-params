@@ -187,3 +187,6 @@ cond = {
     'ifconv_opers_num' : less_eq,
     'ifconv_calls_num' : less_eq
     }
+
+# список параметров с конечным числом значений
+finite = ['disable_regions_nesting', 'dcs_kill', 'dcs_level']

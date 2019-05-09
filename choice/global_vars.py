@@ -257,4 +257,35 @@ MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION = 10
 # Уменьшать значение температуры после итераций, на которых не был осуществлен переход к лучшему значению? {0, 1}
 DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS = True
 
+##
+# Глобалы-опции
+##
 
+OPTIMIZATION_STRATEGY = """ regn_max_proc_op_sem_size;
+                            regn_opers_limit;
+                            regn_heur1 regn_heur2 regn_heur3 regn_heur4;
+                            ifconv_opers_num ifconv_calls_num ifconv_merge_heur
+                        """
+
+specs = """ 519.lbm,
+            541.leela,
+            508.namd,
+            510.parest,
+            521.wrf,
+            505.mcf,
+            549.fotonik3d,
+            525.x264,
+            544.nab,
+            538.imagick,
+            511.povray,
+            503.bwaves,
+            526.blender,
+            523.xalancbmk,
+            531.deepsjeng,
+            548.exchange2,
+            554.roms,
+            500.perlbench,
+            527.cam4,
+            557.xz,
+            502.gcc
+        """
