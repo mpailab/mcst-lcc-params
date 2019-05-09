@@ -58,7 +58,7 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
         print 'Default values for all parametors of IS will be used.'
         return {}
     else:
-        print 'Read configuration file:', configure_file_path
+        print 'Configuration file:', configure_file_path
     
     cfile = open(configure_file_path)
     result = {}
@@ -203,7 +203,7 @@ try:
 except:
     draw_module_is_imported = False
 
-def get_strategy(print_strategy = True):
+def get_strategy(strategy_in_line_format, print_strategy = False):
     """
         Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
     """
@@ -217,8 +217,8 @@ def get_strategy(print_strategy = True):
         if parname in par.val_type.keys() or parname == 'dcs':
             return True
         else:
-            print 'Warning! Unknown parname of LCC in the strategy :', parname
-            print '         The unknown parname \'' + parname + '\' will be ignored'
+            print 'Warning! Unknown parametor of LCC in the strategy :', parname
+            print '         The unknown parametor \'' + parname + '\' will be ignored'
             return False
             
     def group_filt(group):
@@ -247,7 +247,7 @@ def get_strategy(print_strategy = True):
         else:
             return False
     
-    groups = gl.OPTIMIZATION_STRATEGY.split(';')
+    groups = strategy_in_line_format.split(';')
     result = filter(group_filt, map(lambda x: filter(par_filt, x.split()), groups))
     
     if bool(result) == False: # если список пустой
@@ -264,13 +264,30 @@ def get_strategy(print_strategy = True):
     
     return result
 
-def get_specs():
+def get_specs(specs_in_string):
     """
         Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
     """
+    def print_format():
+        print 'The list of specs must be in the next format :',
+        print '<specname>[: <proclist>][, <specname>[: <proclist>]]'
+        print '<proclist> format is :',
+        print '<procname> [<procname>]'
+    
+    result = {}
+    for spec in specs_in_string.split(','):
+        specname, proclist = spec.split(':', 1)
+        specname = specname.strip()
+        proclist = proclist.split()
+        if result.has_key(specname):
+            print 'Warning! There are several occurrences in the speclist for specname :', specname
+            print '         Only the first occurrence of', specname, 'will be used'
+            continue
+        result[specname] = proclist
+    return result
 
-
-get_strategy()
+#get_strategy(gl.OPTIMIZATION_STRATEGY)
+print get_specs('sp1: pr1 pr2, sp2: pr3 pr4')
 
 exit()
 
