@@ -197,20 +197,20 @@ def get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
     for parname in ['regn_heur2', 'regn_heur3', 'regn_heur4']:
         if parname in reg_parnames:
             coord = par.index_in_reg_seq[parname]
-            while value_par[parname][-1][coord] == maxsize: # maxsize > x, где 0 <= x <= 1.
+            while value_par[parname] and value_par[parname][-1][coord] == maxsize: # maxsize > x, где 0 <= x <= 1.
                 value_par[parname].pop()
     for parname in par.reg_unb:
         if parname in reg_parnames:
            coord = par.index_in_reg_seq[parname]
            # пользуемся тем, что None < x для любого x. Так как массив value_par[parname] упорядочен, то все None будут в начале.
-           while value_par[parname][0][coord] == None:
+           while value_par[parname] and value_par[parname][0][coord] == None:
                value_par[parname].pop(0)
     for parname in ['ifconv_merge_heur']:
         if parname in icv_parnames:
             coord = par.index_in_icv_seq[parname]
-            while value_par[parname][0][coord] == None:
+            while value_par[parname] and value_par[parname][0][coord] == None:
                value_par[parname].pop(0)
-            while value_par[parname][-1][coord] == maxsize:
+            while value_par[parname] and value_par[parname][-1][coord] == maxsize:
                 value_par[parname].pop()
     
     return value_par

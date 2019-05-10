@@ -309,6 +309,11 @@ def optimize(procs_dic, par_names,
     # вычисление распределений параметров 
     value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
     
+    # если value_par[parname] == [], то выкинуть parname из reg_parnames (icv_parnames)
+    # Т. е., если нет возможных значений для parname, то оптимизировать по нему не надо
+    reg_parnames = filter(lambda par: value_par[par], reg_parnames)
+    icv_parnames = filter(lambda par: value_par[par], icv_parnames)
+    
     # вычисление сглаженных распределений параметров (если соответстующая опция включена в smooth_stat)
     sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
              
@@ -589,6 +594,12 @@ def seq_optimize(procs_dic, pargroup_seq,
     
     flag = every_proc_is_individual_task
     result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag, output = output)
+    
+    dis_regpar = stat.get_dis_regpar(procs_dic)
+    weight.normolize_dict(dis_regpar)
+    dis_icvpar = stat.get_dis_icvpar(procs_dic)
+    weight.normolize_dict(dis_icvpar)
+    
     par_current_value = None
     val_F_current = None
     result_current = None
@@ -601,8 +612,8 @@ def seq_optimize(procs_dic, pargroup_seq,
              par_start_value = par_current_value,
              rand_par_start_value = False,
              output = output,
-             dis_regpar = None,
-             dis_icvpar = None,
+             dis_regpar = dis_regpar,
+             dis_icvpar = dis_icvpar,
              run_result_default = result_default,
              val_F_start = val_F_current,
              result_start = result_current,
