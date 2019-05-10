@@ -261,11 +261,14 @@ DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS = True
 # Глобалы-опции
 ##
 
+
 OPTIMIZATION_STRATEGY = """ regn_max_proc_op_sem_size;
                             regn_opers_limit;
                             regn_heur1 regn_heur2 regn_heur3 regn_heur4;
                             ifconv_opers_num ifconv_calls_num ifconv_merge_heur
                         """
+SEQ_OPTIMIZATION_WITH_STRATEGY = True
+
 
 specs = """ 519.lbm,
             541.leela,
@@ -289,3 +292,9 @@ specs = """ 519.lbm,
             557.xz,
             502.gcc
         """
+SYNCHRONOUS_OPTIMIZATION_FOR_SPECS = True
+
+OUTPUTDIR = "./doc/test_output"
+
+# Надо сделать возможность не перезаписыать файлы
+REWRITE_OUTPUT_FILES = True

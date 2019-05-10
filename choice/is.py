@@ -17,13 +17,15 @@ import global_vars as gl
 DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
 
 ## Считываем опции
+# -o <outputdir> записывать вывод в файлы каталога
 # -c <pathname> путь до конфигурационного файла
 # -a анализ логов
 # -d рисование диограмм
 # -s поиск оптимального значений параметра при помощи метода отжига
+# -h печать краткой справки
 # --<parname of IS>='new_value' новое значение для глобальной переменной
 pass
-# Что сильнее опции или конфигурационный файл?
+# ?Что сильнее опции или конфигурационный файл?
 
 # Подключаем модуль, содержащий данные о параметрах оптимизационных преобразований компилятора
 import par
@@ -90,7 +92,7 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
             # {0, 1}
             value = value.strip() # обрезаем пробельные символы с двух сторон
             if value in ('0', '1'):
-                value = bool(value)
+                value = bool(int(value))
                 if result.has_key(varname):
                     print 'Warning! Several definitions in the configuration file for parametor :', varname
                     print '         The first value for parametor', varname ,'will be used :', int(result[varname])
@@ -167,22 +169,19 @@ def print_globals(types = None):
                 continue
         print var, '=', val
         
-        
 # Читаем конфигурационный файл
 gval_dict = read_configure()
 # Инициализацием глобальные переменные
+print 'gl.DINUMIC_PROC_OPERS_NUM = ', gl.DINUMIC_PROC_OPERS_NUM
 change_globals(gval_dict)
+print 'gl.DINUMIC_PROC_OPERS_NUM = ', gl.DINUMIC_PROC_OPERS_NUM
 # Выводим на экран значения глобальных переменных
 # print_globals()
 # Проверяем корректность значений глобальных переменных
 # cheak_globals()
-   
-# Импортировать модули надо начинать с модулей низкого уровня и заканчивать модулями высокого уровня.
-# Непосредственно после импортирования каждого модуля следует изменять его глобальные переменные в соответствии с конфигурационным файлом.
-# Если модуль высокого уровня импотрирует модуль низкого уровня через from ___ import *,
-# то необходимо, чтобы все глобальные переменные модуля низкого уровня уже были приведены в соответствие с конфигурационным файлом.
-# Иначе значения глобальных переменных могут сохранить в некоторых местах программы свое значение по-умолчанию
 
+
+# Все изменения глобальных переменных должны быть осуществелны до подключения следующих модулей.
 # Подключаем модули ИС
 import def_classes as dcl
 import weight as wht
@@ -195,7 +194,6 @@ import calculate_TcTeMem as clc
     
 import optimize as opt
 import analyse as anl
-    
 try:
     # Импортирование модуля draw вызовет ошибку, если в системе нет необходимых библиотек (matplotlib для Python 2.7)
     import draw as dr
@@ -276,9 +274,16 @@ def get_specs(specs_in_string):
     
     result = {}
     for spec in specs_in_string.split(','):
-        specname, proclist = spec.split(':', 1)
+        tmp = spec.split(':', 1)
+        if len(tmp) == 1:
+            specname = tmp[0]
+            proclist = None
+        else:
+            specname, proclist = tmp[0], tmp[1]
+            proclist = proclist.split()
         specname = specname.strip()
-        proclist = proclist.split()
+        if not proclist:
+            proclist = None
         if result.has_key(specname):
             print 'Warning! There are several occurrences in the speclist for specname :', specname
             print '         Only the first occurrence of', specname, 'will be used'
@@ -286,8 +291,42 @@ def get_specs(specs_in_string):
         result[specname] = proclist
     return result
 
-#get_strategy(gl.OPTIMIZATION_STRATEGY)
-print get_specs('sp1: pr1 pr2, sp2: pr3 pr4')
+strategy = get_strategy(gl.OPTIMIZATION_STRATEGY)
+spec_procs = get_specs(gl.specs)
+# !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
 
-exit()
+if not os.path.isdir(gl.OUTPUTDIR):
+    print 'Warning! There is not directory: ', gl.OUTPUTDIR
+    print '         The output directory is not given'
+    print '         The output will be on the screen'
+    
 
+if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
+    print 'Synchronous optimization of specs', spec_procs # all
+    print 'Successive optimization with the strategy', strategy # seq
+    
+    if os.path.isdir(gl.OUTPUTDIR):
+        path = os.path.join(gl.OUTPUTDIR, 'all.seq.txt')
+        # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(strategy) + '.txt')
+        ffile = open(path, 'w', 0)
+    else:
+        ffile = None
+    
+    try:
+        opt.seq_optimize(spec_procs, strategy, output = ffile)
+    except clc.ExternalScriptError as error:
+        print 'fail'
+        print 'Error by attempt of giving (t_c, t_e, m) in external script'
+    else:
+        print "ok"
+elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
+    print 'Independent optimization for every spec in', spec_procs # every_spec
+    print 'Successive optimization with the strategy', strategy # seq
+    
+    for specname, proclist in spec_procs.iteritems():
+        print "---------------------------------------------------------------------------"
+        print "Spec procs:", specname,
+        if not proclist:
+            print
+        else:
+            print ':', proclist
