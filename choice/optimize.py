@@ -332,7 +332,7 @@ def optimize(procs_dic, par_names,
         print >> output
         print >> output, 'The best values for parametors are', par_best_value
         print >> output, 'The best values were found for', i_for_best_value, 'iterations of algorithm'
-        print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
+        print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
         print >> output, 'The best (t_c, t_e, m) is', result_best
         print >> output, 'The best value for F is', val_F_best
         return (par_best_value, val_F_best, result_best)
@@ -595,7 +595,7 @@ def optimize(procs_dic, par_names,
     
     print >> output, 'The best values for parametors are', par_best_value
     print >> output, 'The best values were found for', i_for_best_value, 'iterations of algorithm'
-    print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
+    print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
     print >> output, 'The best (t_c, t_e, m) is', result_best
     print >> output, 'The best value for F is', val_F_best
     
@@ -620,19 +620,39 @@ def seq_optimize(procs_dic, pargroup_seq,
     result_current = None
     for par_group in pargroup_seq:
         print >> output, "---------------------------------------------------------------------------"
-        print >> output, "Parameters:" + str(par_group)
-        par_current_value, val_F_current, result_current = \
-        optimize(procs_dic, par_group,
-             every_proc_is_individual_task = flag,
-             par_start_value = par_current_value,
-             output = output,
-             dis_regpar = dis_regpar,
-             dis_icvpar = dis_icvpar,
-             result_default = result_default,
-             val_F_start = val_F_current,
-             result_start = result_current,
-             new_stat_for_every_step = new_stat_for_every_step
-            )
+        print >> output, "Parameters:", str(par_group)
+        
+        is_dcs_pargroup = reduce(lambda x, y: x and y, map(lambda p: p in par.dcs or p == 'dcs', par_group))
+        is_nesting_pargroup = len(par_group) == 1 and par_group[0] in par.nesting
+        
+        if is_dcs_pargroup:
+            par_current_value, val_F_current, result_current = dcs_optimize(procs_dic,
+                                                                            every_proc_is_individual_task = flag,
+                                                                            par_start_value = par_current_value,
+                                                                            output = output,
+                                                                            result_default = result_default,
+                                                                            val_F_start = val_F_current,
+                                                                            result_start = result_current)
+        elif is_nesting_pargroup:
+            par_current_value, val_F_current, result_current = optimize_bool_par(procs_dic,
+                                                                                 par_group[0],
+                                                                                 every_proc_is_individual_task = flag,
+                                                                                 par_start_value = par_current_value,
+                                                                                 output = output,
+                                                                                 result_default = result_default,
+                                                                                 val_F_start = val_F_current,
+                                                                                 result_start = result_current)
+        else:
+            par_current_value, val_F_current, result_current = optimize(procs_dic,
+                                                                        par_group,
+                                                                        every_proc_is_individual_task = flag,
+                                                                        par_start_value = par_current_value,
+                                                                        output = output,
+                                                                        dis_regpar = dis_regpar,
+                                                                        dis_icvpar = dis_icvpar,
+                                                                        result_default = result_default,
+                                                                        val_F_start = val_F_current,
+                                                                        result_start = result_current)
     
     print >> output
     print >> output, 'The final best value for pars is', par_current_value
@@ -645,7 +665,7 @@ def dcs_optimize(procs_dic,
                  dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT,
                  result_default = None,
                  output = None,
-                 par_start_value = None
+                 par_start_value = None,
                  val_F_start = None,
                  result_start = None,
                  every_proc_is_individual_task = False,
@@ -684,10 +704,8 @@ def dcs_optimize(procs_dic,
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
     
-    # инициализация текущего значения функционала
     par_value = dict(par_start_value)
     print >> output, 'F_start = ', val_F_start
-    print >> output
     
     # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
     if val_F_start < val_F_default:
@@ -698,6 +716,13 @@ def dcs_optimize(procs_dic,
         par_best_value = dict(par_default_value)
         result_best = dict(result_default)
         val_F_best = val_F_default
+    
+    if gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+        # собрать статистику по фазе dcs
+        pass
+    else:
+        #? убедиться, что статистика по фазе dcs имеется
+        pass
     
     dis = stat.get_dcs_dis(procs_dic)
     dcs_levels = range(0, gl.MAX_DCS_LEVEL + 1)
@@ -727,7 +752,7 @@ def dcs_optimize(procs_dic,
     
     print >> output
     print >> output, 'The best values for parametors are', par_best_value
-    print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
+    print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
     print >> output, 'The best (t_c, t_e, m) is', result_best
     print >> output, 'The best value for F is', val_F_best
     
@@ -736,7 +761,7 @@ def dcs_optimize(procs_dic,
 def optimize_bool_par(procs_dic, parname,
                  result_default = None,
                  output = None,
-                 par_start_value = None
+                 par_start_value = None,
                  val_F_start = None,
                  result_start = None,
                  every_proc_is_individual_task = False):
@@ -749,7 +774,7 @@ def optimize_bool_par(procs_dic, parname,
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
-    par_default_value = {parname : par.default_value[parname] for parname}
+    par_default_value = {parname : par.default_value[parname]}
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров
@@ -786,7 +811,7 @@ def optimize_bool_par(procs_dic, parname,
     par_value = dict(par_start_value)
     # пробуем другое значение для булевой переменной, по которой хотим произвести оптимизацию
     par_value[parname] = not par_value[parname]
-    print 'Switch parametor', parname, 'to value', par_value[parname]
+    print >> output, 'Switch parametor', parname, 'to value : ', par_value[parname]
     
     result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
     j_for_exec_run += 1
@@ -800,7 +825,7 @@ def optimize_bool_par(procs_dic, parname,
     
     print >> output
     print >> output, 'The best values for parametors are', par_best_value
-    print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
+    print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
     print >> output, 'The best (t_c, t_e, m) is', result_best
     print >> output, 'The best value for F is', val_F_best
     

@@ -352,7 +352,7 @@ if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         opt.seq_optimize(spec_procs, strategy, output = ffile)
     except clc.ExternalScriptError as error:
         print 'fail'
-        print 'An error by attempt of giving (t_c, t_e, m) from external script'
+        print 'An error by giving (t_c, t_e, m) from external script'
     except KeyboardInterrupt:
         print
         exit()
@@ -385,7 +385,7 @@ elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
             opt.seq_optimize({specname: proclist}, strategy, output = ffile)
         except clc.ExternalScriptError as error:
             print 'fail'
-            print 'An error by attempt of giving (t_c, t_e, m) from external script'
+            print 'An error by giving (t_c, t_e, m) from external script'
         except KeyboardInterrupt:
             print
             exit()
@@ -419,24 +419,24 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         else:
             ffile = None
         
-        is_dcs_pargroup = reduce(lambda x, y: x or y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
+        is_dcs_pargroup = reduce(lambda x, y: x and y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
         is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
         
-        if is_dcs_pargroup:
-            pass
-        elif is_nesting_pargroup:
-            pass
-        else:
-            try:
-                opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
-            except clc.ExternalScriptError as error:
-                print 'fail'
-                print 'An error by attempt of giving (t_c, t_e, m) from external script'
-            except KeyboardInterrupt:
-                print
-                exit()
+        try:
+            if is_dcs_pargroup:
+                opt.dcs_optimize(spec_procs, output = ffile)
+            elif is_nesting_pargroup:
+                opt.optimize_bool_par(spec_procs, parnames[0], output = ffile)
             else:
-                print "ok"
+                opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+        except clc.ExternalScriptError as error:
+            print 'fail'
+            print 'An error by giving (t_c, t_e, m) from external script'
+        except KeyboardInterrupt:
+            print
+            exit()
+        else:
+            print "ok"
 elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
     print 'Independent optimization for every spec in' # every_spec
     print_specs(spec_procs)
@@ -470,21 +470,21 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
             else:
                 ffile = None
             
-            is_dcs_pargroup = reduce(lambda x, y: x or y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
+            is_dcs_pargroup = reduce(lambda x, y: x and y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
             is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
-            if is_dcs_pargroup:
-                pass
-            elif is_nesting_pargroup:
-                pass
-            else:
-                try:
-                    opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
-                except clc.ExternalScriptError as error:
-                    print 'fail'
-                    print 'An error by attempt of giving (t_c, t_e, m) from external script'
-                except KeyboardInterrupt:
-                    print
-                    exit()
+            try:
+                if is_dcs_pargroup:
+                    opt.dcs_optimize({specname : proclist}, output = ffile)
+                elif is_nesting_pargroup:
+                    opt.optimize_bool_par({specname : proclist}, parnames[0], output = ffile)
                 else:
-                    print "ok"
+                    opt.optimize({specname : proclist}, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+            except clc.ExternalScriptError as error:
+                print 'fail'
+                print 'An error by giving (t_c, t_e, m) from external script'
+            except KeyboardInterrupt:
+                print
+                exit()
+            else:
+                print "ok"
         
