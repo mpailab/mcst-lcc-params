@@ -215,9 +215,15 @@ def get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar, sm
         for parname in reg_parnames:
             erff = get_erf(parname)
             coord = par.index_in_reg_seq[parname]
-            sm_dis[parname] = smooth_dis(value_par[parname], coord, dis_regpar, erff)
+            if value_par[parname]:
+                sm_dis[parname] = smooth_dis(value_par[parname], coord, dis_regpar, erff)
+            else:
+                sm_dis[parname] = dis_regpar
         for parname in icv_parnames:
             erff = get_erf(parname)
             coord = par.index_in_icv_seq[parname]
-            sm_dis[parname] = smooth_dis(value_par[parname], coord, dis_icvpar, erff)
+            if value_par[parname]:
+                sm_dis[parname] = smooth_dis(value_par[parname], coord, dis_icvpar, erff)
+            else:
+                sm_dis[parname] = dis_icvpar
     return sm_dis

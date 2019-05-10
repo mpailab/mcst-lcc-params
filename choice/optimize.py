@@ -224,11 +224,10 @@ def get_value(parname, value_par, inf_value_par, sup_value_par, position, min_po
 def optimize(procs_dic, par_names,
              every_proc_is_individual_task = False,\
              par_start_value = None,\
-             rand_par_start_value = False,\
              output = None,\
              dis_regpar = None,\
              dis_icvpar = None,
-             run_result_default = None,
+             result_default = None,
              val_F_start = None,
              result_start = None,
              new_stat_for_every_step = gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP
@@ -251,12 +250,24 @@ def optimize(procs_dic, par_names,
     for parname in reg_parnames + icv_parnames:
             par_default_value[parname] = par.default_value[parname]
     
+    # вычисление времени компиляции, времени исполнения и потребляемтой памяти заданных спеков при значении параметров по умолчанию
+    # генерация статистики, если new_stat_for_every_step == True
+    flag = every_proc_is_individual_task
+    if result_default == None:
+        result_default = calculate_abs_values(procs_dic, par_default_value, separate_procs = flag, output = output)
+        j_for_exec_run = 1
+    else:
+        j_for_exec_run = 0
+    
+    # вычисление значения функционала при значении параметров по умолчанию
+    val_F_default = calculate_F(result_default, result_default)
+    
     # установка начальных значений для параметров
+    # вычисление значения функционала при начальном значении параметров
     if par_start_value == None:
-        if rand_par_start_value:
-            raise BaseException('option rand_par_start_value is not work')
-        else:
-            par_start_value = par_default_value
+        par_start_value = dict(par_default_value)
+        result_start = dict(result_default)
+        val_F_start = val_F_default
     else:
         # в par_start_value могут быть заданы значения для тех параметров, которых нет в par_names,
         # и наоборот, не всем параметрам из par_names отображение par_start_value может сопоставлять значения.
@@ -265,34 +276,33 @@ def optimize(procs_dic, par_names,
         tmp_dict = dict(par_default_value)
         tmp_dict.update(par_start_value)
         par_start_value = tmp_dict
-    
-    # вычисление времени компиляции, времени исполнения и потребляемтой памяти заданных спеков при значении параметров по умолчанию
-    # генерация статистики, если new_stat_for_every_step == True
-    flag = every_proc_is_individual_task
-    if run_result_default == None:
-        result_default = calculate_abs_values(procs_dic, par_default_value, separate_procs = flag, output = output)
-        j_for_exec_run = 1
-    else:
-        result_default = run_result_default
-        j_for_exec_run = 0
-    
-    # вычисление значения функционала при значении параметров по умолчанию
-    val_F_default = calculate_F(result_default, result_default)
-    
-    # вычисление значения функционала при начальном значении параметров
-    if par_start_value == par_default_value:
-        val_F_current = val_F_default
-    else:
-        if val_F_start == None:
-            if result_start == None:
-                result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
+        
+        if result_start == None:
+            result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
             j_for_exec_run += 1
-            val_F_current = calculate_F(result_start, result_default)
-        else:
-            val_F_current = val_F_start
+            val_F_start = calculate_F(result_start, result_default)
+            print >> output, 'F(...) = ', val_F_start
+            
+        if val_F_start == None:
+            val_F_start = calculate_F(result_start, result_default)
+    
+    # инициализация текущего значения функционала
+    val_F_current = val_F_start
     par_current_value = dict(par_start_value)
-    print >> output, 'F(...) = ', val_F_current
+    print >> output, 'F_start = ', val_F_current
     print >> output
+    
+    # установка начальных значений для лучшего значения функционала F, лучшего значения параметра
+    # и шага алгоритма, на котором они достигаются
+    i_for_best_value = 0
+    if val_F_current < val_F_default:
+        par_best_value = dict(par_current_value)
+        result_best = dict(result_start)
+        val_F_best = val_F_current
+    else:
+        par_best_value = dict(par_default_value)
+        result_best = dict(result_default)
+        val_F_best = val_F_default
     
     # вычисление функции весов характеристик, отвечающим заданным параметрам фазы regions
     if len(reg_parnames) != 0:
@@ -310,24 +320,25 @@ def optimize(procs_dic, par_names,
     value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
     
     # если value_par[parname] == [], то выкинуть parname из reg_parnames (icv_parnames)
-    # Т. е., если нет возможных значений для parname, то оптимизировать по нему не надо
+    # т.е., если нет возможных значений для parname, то оптимизировать по нему не надо
     reg_parnames = filter(lambda par: value_par[par], reg_parnames)
     icv_parnames = filter(lambda par: value_par[par], icv_parnames)
     
+    # если списки reg_parnames и icv_parnames оба пусты
+    if not reg_parnames and not icv_parnames:
+        print >> output, 'Scale of posible values for parametors is empty'
+        print >> output, 'For solve this problem increase a number of optimizated procedures'
+        print >> output, 'Interrupt optimization'
+        print >> output
+        print >> output, 'The best values for parametors are', par_best_value
+        print >> output, 'The best values were found for', i_for_best_value, 'iterations of algorithm'
+        print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
+        print >> output, 'The best (t_c, t_e, m) is', result_best
+        print >> output, 'The best value for F is', val_F_best
+        return (par_best_value, val_F_best, result_best)
+    
     # вычисление сглаженных распределений параметров (если соответстующая опция включена в smooth_stat)
     sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
-             
-    # установка начальных значений для лучшего значения функционала F, лучшего значения параметра
-    # и шага алгоритма, на котором они достигаются
-    i_for_best_value = 0
-    if val_F_current < val_F_default:
-        par_best_value = dict(par_current_value)
-        result_best = dict(result_start)
-        val_F_best = val_F_current
-    else:
-        par_best_value = dict(par_default_value)
-        result_best = dict(result_default)
-        val_F_best = val_F_default
     
     # инициализация базы данных для хранения всех найденных значений функционала F и распределений параметров
     F_run_result = ([], [], [], [])
@@ -369,7 +380,11 @@ def optimize(procs_dic, par_names,
                 if len(icv_parnames) != 0:
                     dis_icvpar = stat.get_dis_icvpar(procs_dic)
                     weight.normolize_dict(dis_icvpar)
-                value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
+                # вычисляем новую шкалу возможных значений
+                value_par_tmp = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
+                for parname in reg_parnames + icv_parnames:
+                    if value_par_tmp[parname]:
+                        value_par[parname] = value_par_tmp[parname]
                 sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
                 if gl.PAR_DISTRIBUTION_DATABASE == True:
                     F_run_result[2][ind] = deepcopy(value_par)
@@ -610,11 +625,10 @@ def seq_optimize(procs_dic, pargroup_seq,
         optimize(procs_dic, par_group,
              every_proc_is_individual_task = flag,
              par_start_value = par_current_value,
-             rand_par_start_value = False,
              output = output,
              dis_regpar = dis_regpar,
              dis_icvpar = dis_icvpar,
-             run_result_default = result_default,
+             result_default = result_default,
              val_F_start = val_F_current,
              result_start = result_current,
              new_stat_for_every_step = new_stat_for_every_step
@@ -627,28 +641,82 @@ def seq_optimize(procs_dic, pargroup_seq,
         
     return par_current_value, val_F_current, result_current
 
-def dcs_optimize(procs_dic, dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT, result_default = None, output = None, nesting_off_attempt = False):
+def dcs_optimize(procs_dic,
+                 dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT,
+                 result_default = None,
+                 output = None,
+                 par_start_value = None
+                 val_F_start = None,
+                 result_start = None,
+                 nesting_off_attempt = False,
+                 every_proc_is_individual_task = False,
+                 check_zero_level = True):
+    
+    flag = every_proc_is_individual_task
     
     j_for_exec_run = 0
     if result_default == None:
-        #print >> output, 'dcs_level:', 0
-        result_default = calculate_abs_values(procs_dic, {}, output = output)
+        result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag, output = output)
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     print >> output, 'F(...) = ', val_F_default
+    
+    par_default_value = {par.default_value[parname] for parname in par.dcs}
+    
+    # установка начальных значений для параметров
+    # вычисление значения функционала при начальном значении параметров
+    if par_start_value == None:
+        par_start_value = par_default_value
+        result_start = dict(result_default)
+        val_F_start = val_F_default
+    else:
+        # в par_start_value могут быть заданы значения для тех параметров, которых нет в par.dcs,
+        # и наоборот, не всем параметрам из par.dcs отображение par_start_value может сопоставлять значения.
+        # Дополним par_start_value значениями по умолчанию для тех параметров из par.dcs,
+        # которым par_start_value не сопоставлет никакого значения
+        tmp_dict = dict(par_default_value)
+        tmp_dict.update(par_start_value)
+        par_start_value = tmp_dict
         
-    par_best_value = {}
-    result_best = result_default
-    val_F_best = val_F_default
-        
+        if result_start == None:
+            result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
+            j_for_exec_run += 1
+            val_F_start = calculate_F(result_start, result_default)
+            print >> output, 'F(...) = ', val_F_start
+        if val_F_start == None:
+            val_F_start = calculate_F(result_start, result_default)
+    
+    # инициализация текущего значения функционала
+    par_value = dict(par_start_value)
+    print >> output, 'F_start = ', val_F_start
+    print >> output
+    
+    # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
+    if val_F_start < val_F_default:
+        par_best_value = dict(par_start_value)
+        result_best = dict(result_start)
+        val_F_best = val_F_start
+    else:
+        par_best_value = dict(par_default_value)
+        result_best = dict(result_default)
+        val_F_best = val_F_default
+    
     dis = stat.get_dcs_dis(procs_dic)
-    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+    dcs_levels = range(0, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
         print >> output
         print >> output, 'dcs_level:', lv
-        if dis[lv] > dcs_zero_limit:
-            par_value = {'dcs_kill': True, 'dcs_level': lv}
-            result_candidate = calculate_abs_values(procs_dic, par_value, output = output)
+        if lv == 0 or dis[lv] > dcs_zero_limit:
+            if lv == 0:
+                if not check_zero_level:
+                    continue
+                par_value.update({'dcs_kill': False, 'dcs_level': lv})
+            else:
+                par_value.update({'dcs_kill': True, 'dcs_level': lv})
+            if par_value == par_start_value:
+                print >> output, 'Result of dcs optimization in the level', lv, 'is already known'
+                continue
+            result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
             print >> output, 'F(...) = ', val_F_candidate
@@ -657,13 +725,13 @@ def dcs_optimize(procs_dic, dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT, result_defa
                 result_best = dict(result_candidate)
                 val_F_best = val_F_candidate
         else:
-            print >> output, 'Dcs optimization in level', lv, 'will not be effective'
+            print >> output, 'Dcs optimization in the level', lv, 'will not be effective'
     
     if nesting_off_attempt == True:
         print >> output
         print >> output, 'Nesting off attempt'
         par_value = {'disable_regions_nesting' : False}
-        result_candidate = calculate_abs_values(procs_dic, par_value, output = output)
+        result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
         j_for_exec_run += 1
         val_F_candidate = calculate_F(result_candidate, result_default)
         print >> output, 'F(...) = ', val_F_candidate
