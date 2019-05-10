@@ -648,7 +648,6 @@ def dcs_optimize(procs_dic,
                  par_start_value = None
                  val_F_start = None,
                  result_start = None,
-                 nesting_off_attempt = False,
                  every_proc_is_individual_task = False,
                  check_zero_level = True):
     
@@ -659,9 +658,8 @@ def dcs_optimize(procs_dic,
         result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag, output = output)
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
-    print >> output, 'F(...) = ', val_F_default
     
-    par_default_value = {par.default_value[parname] for parname in par.dcs}
+    par_default_value = {parname : par.default_value[parname] for parname in par.dcs}
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров
@@ -727,19 +725,6 @@ def dcs_optimize(procs_dic,
         else:
             print >> output, 'Dcs optimization in the level', lv, 'will not be effective'
     
-    if nesting_off_attempt == True:
-        print >> output
-        print >> output, 'Nesting off attempt'
-        par_value = {'disable_regions_nesting' : False}
-        result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
-        j_for_exec_run += 1
-        val_F_candidate = calculate_F(result_candidate, result_default)
-        print >> output, 'F(...) = ', val_F_candidate
-        if val_F_candidate < val_F_best:
-            par_best_value = dict(par_value)
-            result_best = dict(result_candidate)
-            val_F_best = val_F_candidate
-    
     print >> output
     print >> output, 'The best values for parametors are', par_best_value
     print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
@@ -748,4 +733,76 @@ def dcs_optimize(procs_dic,
     
     return (par_best_value, val_F_best, result_best)
     
+def optimize_bool_par(procs_dic, parname,
+                 result_default = None,
+                 output = None,
+                 par_start_value = None
+                 val_F_start = None,
+                 result_start = None,
+                 every_proc_is_individual_task = False):
+    
+    flag = every_proc_is_individual_task
+    
+    j_for_exec_run = 0
+    if result_default == None:
+        result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag, output = output)
+        j_for_exec_run += 1
+    val_F_default = calculate_F(result_default, result_default)
+    
+    par_default_value = {parname : par.default_value[parname] for parname}
+    
+    # установка начальных значений для параметров
+    # вычисление значения функционала при начальном значении параметров
+    if par_start_value == None:
+        par_start_value = par_default_value
+        result_start = dict(result_default)
+        val_F_start = val_F_default
+    else:
+        tmp_dict = dict(par_default_value)
+        tmp_dict.update(par_start_value)
+        par_start_value = tmp_dict
+        
+        if result_start == None:
+            result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
+            j_for_exec_run += 1
+            val_F_start = calculate_F(result_start, result_default)
+            print >> output, 'F(...) = ', val_F_start
+        if val_F_start == None:
+            val_F_start = calculate_F(result_start, result_default)
+            
+    print >> output, 'F_start = ', val_F_start
+    print >> output
+    
+    # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
+    if val_F_start < val_F_default:
+        par_best_value = dict(par_start_value)
+        result_best = dict(result_start)
+        val_F_best = val_F_start
+    else:
+        par_best_value = dict(par_default_value)
+        result_best = dict(result_default)
+        val_F_best = val_F_default
+    
+    par_value = dict(par_start_value)
+    # пробуем другое значение для булевой переменной, по которой хотим произвести оптимизацию
+    par_value[parname] = not par_value[parname]
+    print 'Switch parametor', parname, 'to value', par_value[parname]
+    
+    result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
+    j_for_exec_run += 1
+    val_F_candidate = calculate_F(result_candidate, result_default)
+    print >> output, 'F(...) = ', val_F_candidate
+    
+    if val_F_candidate < val_F_best:
+        par_best_value = dict(par_value)
+        result_best = dict(result_candidate)
+        val_F_best = val_F_candidate
+    
+    print >> output
+    print >> output, 'The best values for parametors are', par_best_value
+    print >> output, 'The run-scripts was started for', j_for_exec_run, 'times'
+    print >> output, 'The best (t_c, t_e, m) is', result_best
+    print >> output, 'The best value for F is', val_F_best
+    
+    return (par_best_value, val_F_best, result_best)
     
