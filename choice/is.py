@@ -17,10 +17,10 @@ import global_vars as gl
 DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
 
 ## Считываем опции
-# -o <outputdir> записывать вывод в файлы каталога
+# -o <outputdir> записывать вывод в файлы каталога (-) уже есть в конф. файле
 # -c <pathname> путь до конфигурационного файла
-# -a анализ логов
-# -d рисование диограмм
+# -a анализ логов (?)
+# -d рисование диограмм (?)
 # -s поиск оптимального значений параметра при помощи метода отжига
 # -h печать краткой справки
 # --<parname of IS>='new_value' новое значение для глобальной переменной
@@ -172,9 +172,7 @@ def print_globals(types = None):
 # Читаем конфигурационный файл
 gval_dict = read_configure()
 # Инициализацием глобальные переменные
-print 'gl.DINUMIC_PROC_OPERS_NUM = ', gl.DINUMIC_PROC_OPERS_NUM
 change_globals(gval_dict)
-print 'gl.DINUMIC_PROC_OPERS_NUM = ', gl.DINUMIC_PROC_OPERS_NUM
 # Выводим на экран значения глобальных переменных
 # print_globals()
 # Проверяем корректность значений глобальных переменных
@@ -201,7 +199,7 @@ try:
 except:
     draw_module_is_imported = False
 
-def get_strategy(strategy_in_line_format, print_strategy = False):
+def get_strategy(strategy_in_line_format):
     """
         Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
     """
@@ -255,12 +253,20 @@ def get_strategy(strategy_in_line_format, print_strategy = False):
         print_format()
         sys.exit()
     
-    if print_strategy:
-        print 'Using optimization strategy: '
-        print '   ', reduce(lambda x, y: x + '; ' + y, map(lambda group: reduce(lambda x, y: x + ' ' + y, group), result))
-            
-    
     return result
+
+def encode_strategy(strategy):
+    """
+        Преобразовать стратегию оптимизации из рабочего формата интеллектуальной системы в строковой формат 
+    """
+    return reduce(lambda x, y: x + '; ' + y, map(lambda group: reduce(lambda x, y: x + ' ' + y, group), strategy))
+    
+def print_strategy(strategy, output = None):
+    """
+        Напечатать стратегию в красивом многострочном виде
+    """
+    for group in strategy:
+        print >> output, '   ', reduce(lambda x, y: x + ', ' + y, group)
 
 def get_specs(specs_in_string):
     """
@@ -291,6 +297,28 @@ def get_specs(specs_in_string):
         result[specname] = proclist
     return result
 
+def encode_specs(spec_procs):
+    """
+        Преобразовать спеки из рабочего формата в строковой формат
+    """
+    def sp_encode((specname, proclist)):
+        if not proclist:
+            return specname
+        else:
+            return specname + ': ' + reduce(lambda x, y: x + ' ' + y, proclist)
+    return reduce(lambda x, y: x + ', ' + y, map(sp_encode, spec_procs.items()))
+
+def print_specs(spec_procs, output = None):
+    """
+        Напечатать словарь spec_proсs в красивом многострочном виде
+    """
+    for specname, proclist in spec_procs.iteritems():
+        whitespace = '   '
+        if proclist:
+            print >> output, whitespace, specname + ': ' + reduce(lambda x, y: x + ', ' + y, proclist)
+        else:
+            print >> output, whitespace, specname
+    
 strategy = get_strategy(gl.OPTIMIZATION_STRATEGY)
 spec_procs = get_specs(gl.specs)
 # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
@@ -298,17 +326,25 @@ spec_procs = get_specs(gl.specs)
 if not os.path.isdir(gl.OUTPUTDIR):
     print 'Warning! There is not directory: ', gl.OUTPUTDIR
     print '         The output directory is not given'
-    print '         The output will be on the screen'
+    print '         The output is on the screen'
     
 
 if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-    print 'Synchronous optimization of specs', spec_procs # all
-    print 'Successive optimization with the strategy', strategy # seq
+    print 'Synchronous optimization of specs :'  # all
+    print_specs(spec_procs)
+    print 'Successive optimization with the strategy :' # seq
+    print_strategy(strategy)
     
     if os.path.isdir(gl.OUTPUTDIR):
         path = os.path.join(gl.OUTPUTDIR, 'all.seq.txt')
         # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(strategy) + '.txt')
         ffile = open(path, 'w', 0)
+        
+        print >> ffile, 'Synchronous optimization of specs :'  # all
+        print_specs(spec_procs, ffile)
+        print >> ffile, 'Successive optimization with the strategy :' # seq
+        print_strategy(strategy, ffile)
+        print >> ffile, '---------------------------------------------------------------------------'
     else:
         ffile = None
     
@@ -316,17 +352,139 @@ if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         opt.seq_optimize(spec_procs, strategy, output = ffile)
     except clc.ExternalScriptError as error:
         print 'fail'
-        print 'Error by attempt of giving (t_c, t_e, m) in external script'
+        print 'An error by attempt of giving (t_c, t_e, m) from external script'
+    except KeyboardInterrupt:
+        print
+        exit()
     else:
         print "ok"
 elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-    print 'Independent optimization for every spec in', spec_procs # every_spec
-    print 'Successive optimization with the strategy', strategy # seq
+    print 'Independent optimization for every spec in' # every_spec
+    print_specs(spec_procs)
+    print 'Successive optimization with the strategy :' # seq
+    print_strategy(strategy)
     
     for specname, proclist in spec_procs.iteritems():
         print "---------------------------------------------------------------------------"
-        print "Spec procs:", specname,
-        if not proclist:
-            print
+        print "Spec:", specname
+        
+        if os.path.isdir(gl.OUTPUTDIR):
+            path = os.path.join(gl.OUTPUTDIR, specname + '.seq.txt')
+            # path = os.path.join(gl.OUTPUTDIR, str({specname: proclist}) + '.' + str(strategy) + '.txt')
+            ffile = open(path, 'w', 0)
+            
+            print >> ffile, 'Optimization of spec :'  # all
+            print_specs({specname: proclist}, ffile)
+            print >> ffile, 'Successive optimization with the strategy :' # seq
+            print_strategy(strategy, ffile)
+            print >> ffile, '---------------------------------------------------------------------------'
         else:
-            print ':', proclist
+            ffile = None
+        
+        try:
+            opt.seq_optimize({specname: proclist}, strategy, output = ffile)
+        except clc.ExternalScriptError as error:
+            print 'fail'
+            print 'An error by attempt of giving (t_c, t_e, m) from external script'
+        except KeyboardInterrupt:
+            print
+            exit()
+        else:
+            print "ok"
+
+elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
+    print 'Synchronous optimization of specs :'  # all
+    print_specs(spec_procs)
+    print 'Independent optimization on every parametors group in the strategy :' # not seq
+    print_strategy(strategy)
+    
+    dis_regpar = adt.get_dis_regpar(spec_procs)
+    wht.normolize_dict(dis_regpar)
+    dis_icvpar = adt.get_dis_icvpar(spec_procs)
+    wht.normolize_dict(dis_icvpar)
+    
+    for parnames in strategy:
+        print "---------------------------------------------------------------------------"
+        print "Group:", parnames
+        if os.path.isdir(gl.OUTPUTDIR):
+            path = os.path.join(gl.OUTPUTDIR, 'all.' + str(parnames) +'.txt') # ?
+            # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(parnames) + '.txt')
+            ffile = open(path, 'w', 0)
+            
+            print >> ffile, 'Synchronous optimization of specs :'  # all
+            print_specs(spec_procs, ffile)
+            print >> ffile, 'Optimization on the parametors group :'
+            print_strategy([parnames], ffile)
+            print >> ffile, '---------------------------------------------------------------------------'
+        else:
+            ffile = None
+        
+        is_dcs_pargroup = reduce(lambda x, y: x or y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
+        is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
+        
+        if is_dcs_pargroup:
+            pass
+        elif is_nesting_pargroup:
+            pass
+        else:
+            try:
+                opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+            except clc.ExternalScriptError as error:
+                print 'fail'
+                print 'An error by attempt of giving (t_c, t_e, m) from external script'
+            except KeyboardInterrupt:
+                print
+                exit()
+            else:
+                print "ok"
+elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
+    print 'Independent optimization for every spec in' # every_spec
+    print_specs(spec_procs)
+    print 'Independent optimization on every parametors group in the strategy :' # not seq
+    print_strategy(strategy)
+    
+    for specname, proclist in spec_procs.iteritems():
+        print "---------------------------------------------------------------------------"
+        print "---------------------------------------------------------------------------"
+        print "Spec:", specname
+        
+        dis_regpar = adt.get_dis_regpar({specname : proclist})
+        wht.normolize_dict(dis_regpar)
+        dis_icvpar = adt.get_dis_icvpar({specname : proclist})
+        wht.normolize_dict(dis_icvpar)
+        
+        for parnames in strategy:
+            print "---------------------------------------------------------------------------"
+            print "Group:", parnames
+            
+            if os.path.isdir(gl.OUTPUTDIR):
+                path = os.path.join(gl.OUTPUTDIR, specname + '.' + str(parnames) +'.txt')
+                # path = os.path.join(gl.OUTPUTDIR, str({specname : proclist}) + '.' + str(parnames) + '.txt')
+                ffile = open(path, 'w', 0)
+                
+                print >> ffile, 'Optimization of the spec :'  # all
+                print_specs({specname : proclist}, ffile)
+                print >> ffile, 'Optimization on the parametors group :'
+                print_strategy([parnames], ffile)
+                print >> ffile, '---------------------------------------------------------------------------'
+            else:
+                ffile = None
+            
+            is_dcs_pargroup = reduce(lambda x, y: x or y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
+            is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
+            if is_dcs_pargroup:
+                pass
+            elif is_nesting_pargroup:
+                pass
+            else:
+                try:
+                    opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+                except clc.ExternalScriptError as error:
+                    print 'fail'
+                    print 'An error by attempt of giving (t_c, t_e, m) from external script'
+                except KeyboardInterrupt:
+                    print
+                    exit()
+                else:
+                    print "ok"
+        
