@@ -27,17 +27,17 @@ def read(argv, pars, specs):
     try:
         opts, args = getopt.getopt(argv, "h:", ["dataset=", "pars=", "specs=", "interp="])
     except getopt.GetoptError:
-        print usage()
+        print(usage())
         sys.exit(2)
 
     if args != []:
-        print usage()
+        print(usage())
         sys.exit(2)
     
     for opt, arg in opts:
 
         if opt == '-h':
-            print usage()
+            print(usage())
             sys.exit()
 
         elif opt == '--dataset':
@@ -53,7 +53,7 @@ def read(argv, pars, specs):
             if arg in ['linear', 'quadratic', 'cubic']:
                 options.interp = arg
             else:
-                print usage()
+                print(usage())
                 sys.exit()
     
     return options
