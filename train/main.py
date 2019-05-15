@@ -185,17 +185,17 @@ def train (data, delta):
                               keras.layers.Dense(50, activation='relu'),
                               keras.layers.Dense(50, activation='relu'),
                               keras.layers.Dense(101, activation='softmax')])
-    model.compile( optimizer='rmsprop',
+    model.compile( #optimizer='rmsprop',
                    #optimizer='sgd',
                    #optimizer='adagrad',
                    #optimizer='adadelta',
                    #optimizer='adam',
                    #optimizer='adamax',
-                   #optimizer='nadam',
+                   optimizer='nadam',
                    loss='categorical_crossentropy',
                    metrics=['categorical_accuracy'])
-    model.fit(train_X, train_Y, epochs=100, batch_size=100, verbose=0)
-    test_loss, test_acc = model.evaluate(test_X, test_Y, verbose=0)
+    model.fit(train_X, train_Y, epochs=100, batch_size=100, verbose=args.verbose)
+    test_loss, test_acc = model.evaluate(test_X, test_Y, verbose=args.verbose)
 
     # print('Test accuracy:', test_acc)
 
