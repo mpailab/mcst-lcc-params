@@ -111,6 +111,8 @@ Table = {}
 for p in args.pars:
     Table[p] = [0,[]]
 
+MAX_COUNTER = 0
+
 print('Read database:')
 for name in args.specs:
 
@@ -128,6 +130,8 @@ for name in args.specs:
 
     with open(args.dataset + '/Params/' + name + '.txt', 'r') as f:
         spec.procs = [read_proc(line.rstrip('\n')) for line in f]
+
+    MAX_COUNTER = max(MAX_COUNTER, max(map(lambda x: x[0], spec.procs)))
 
     with open(args.dataset + '/Values/' + name + '.txt', 'r') as f:
         rows = [line.rstrip('\n') for line in f]
@@ -223,9 +227,8 @@ for p in Table.keys():
         if max(val) != 0:
             val = np.maximum(val / max (val), 0)
         for proc in spec.procs:
-            # data.append((proc[1:], val / (10000*proc[0] + 1)))
             if proc[0] != 0:
-                data.append((proc[1:], val / proc[0]))
+                data.append((proc[1:], val * np.exp(proc[0] / MAX_COUNTER)))
 
     acc = train(data, 0.7)
     sys.stdout.write('ok (accuracy ' + str(acc) + ')\n')
