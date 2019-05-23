@@ -12,9 +12,10 @@ import par, weight
 from read import task_list
 import smooth_stat as sm
 import stat_adaptation as stat
+from functools import reduce
 
 def hist_dict(dic):
-    plt.hist(dic.keys(), gl.PAR_DIAG_COL_NUM, weights = dic.values())
+    plt.hist(list(dic.keys()), gl.PAR_DIAG_COL_NUM, weights = list(dic.values()))
     plt.show()
 
 def hist(titlename, x_label,
@@ -27,8 +28,8 @@ def hist(titlename, x_label,
     p_range = p_max - p_min
     x_split = min(10, gl.PAR_DIAG_COL_NUM)
     x_step = p_range / x_split
-    x_marks = [p_min + i * x_step for i in xrange(x_split)] + [p_max]
-    x_marks = map(lambda x: float('%.2f' % x), x_marks)
+    x_marks = [p_min + i * x_step for i in range(x_split)] + [p_max]
+    x_marks = [float('%.2f' % x) for x in x_marks]
     
     norm_weights = weight.normolize_to_percents(p_weights)
     
@@ -81,54 +82,54 @@ def hists_for_pars(reg_parnames, icv_parnames, tasknames = None, hist_for_all_pa
         sum_dis_regpars = {}
         sum_dis_icvpars = {}
     
-    print "---------------------------------------------------------------------------"
+    print("---------------------------------------------------------------------------")
     if smooth_stat:
-        print 'Smooth mode: on'
+        print('Smooth mode: on')
     else:
-        print 'Smooth mode: off'
+        print('Smooth mode: off')
     for task in tasknames:
-        print "---------------------------------------------------------------------------"
-        print "Procedure:", task
+        print("---------------------------------------------------------------------------")
+        print("Procedure:", task)
         
-        print 'Get dis_regpar ...'
+        print('Get dis_regpar ...')
         dis_regpar = stat.get_dis_regpar({ task : None })
         if hist_for_all_pars:
             stat.add_dic(sum_dis_regpars, dis_regpar)
-        print 'ok'
+        print('ok')
         weight.normolize_dict(dis_regpar)
         
-        print 'Get dis_icvpar ...'
+        print('Get dis_icvpar ...')
         dis_icvpar = stat.get_dis_icvpar({ task : None })
         if hist_for_all_pars:
             stat.add_dic(sum_dis_icvpars, dis_icvpar)
         weight.normolize_dict(dis_icvpar)
-        print 'ok'
+        print('ok')
         
         
-        print 'Get value_par ...'
+        print('Get value_par ...')
         value_par = stat.get_value_par({ task : None }, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
-        print 'ok'
-        print 'Smoothing stat ...'
+        print('ok')
+        print('Smoothing stat ...')
         sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar, smooth_stat = smooth_stat)
-        print 'ok'
+        print('ok')
         
         for parname in parnames:
             sys.stdout.write( "Parameter:" + parname + "...")
             coord = index_in_own_seq[parname]
-            value_par_proj = map(lambda x: x[coord], value_par[parname])
-            value_par_proj_weights = map(lambda x: sm_dis[parname][x], value_par[parname])
+            value_par_proj = [x[coord] for x in value_par[parname]]
+            value_par_proj_weights = [sm_dis[parname][x] for x in value_par[parname]]
             hist(task,
                     parname,
                     value_par_proj,
                     value_par_proj_weights,
                     sm_dis_flag = smooth_stat
                     )
-            print 'ok'
+            print('ok')
     if not hist_for_all_pars:
         return 0
     
-    print "---------------------------------------------------------------------------"
-    print "Sum_tasks ..."
+    print("---------------------------------------------------------------------------")
+    print("Sum_tasks ...")
     weight.normolize_dict(sum_dis_regpars)
     weight.normolize_dict(sum_dis_icvpars)
     
@@ -139,15 +140,15 @@ def hists_for_pars(reg_parnames, icv_parnames, tasknames = None, hist_for_all_pa
     for parname in parnames:
             sys.stdout.write( "Parameter:" + parname + "...")
             coord = index_in_own_seq[parname]
-            value_par_proj = map(lambda x: x[coord], value_par[parname])
-            value_par_proj_weights = map(lambda x: sm_dis[parname][x], value_par[parname])
+            value_par_proj = [x[coord] for x in value_par[parname]]
+            value_par_proj_weights = [sm_dis[parname][x] for x in value_par[parname]]
             hist('Sum_Tasks',
                     parname,
                     value_par_proj,
                     value_par_proj_weights,
                     sm_dis_flag = smooth_stat
                     )
-            print 'ok'
+            print('ok')
 
 
 if __name__ == '__main__':
@@ -160,9 +161,9 @@ if __name__ == '__main__':
             return True
         else:
             return False
-    reg_parnames = filter(filt_func_par, par.reg_seq)
-    icv_parnames = filter(filt_func_par, par.icv_seq)
-    tasknames = filter(filt_func_task ,task_list())
+    reg_parnames = list(filter(filt_func_par, par.reg_seq))
+    icv_parnames = list(filter(filt_func_par, par.icv_seq))
+    tasknames = list(filter(filt_func_task ,task_list()))
     #hists_for_pars(reg_parnames, icv_parnames, tasknames = tasknames, hist_for_all_pars = False, smooth_stat = True)
     hists_for_pars(reg_parnames, icv_parnames, tasknames = tasknames, hist_for_all_pars = False, smooth_stat = False)
 

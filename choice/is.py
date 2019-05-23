@@ -4,6 +4,7 @@
 # External imports
 import os, sys
 from subprocess import Popen, PIPE
+from functools import reduce
 try:
     # Пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
     import matplotlib.pyplot as plt
@@ -42,9 +43,9 @@ def get_globals_names(types = None):
         else:
             return False
         
-    result = filter(lambda x: x[0] != '_', gl.__dict__.keys()) # игнорируем переменные, которые начинаются с символа '_'
+    result = [x for x in list(gl.__dict__.keys()) if x[0] != '_'] # игнорируем переменные, которые начинаются с символа '_'
     if types != None:
-        return filter(filterfunc, result)
+        return list(filter(filterfunc, result))
     else:
         return result
 
@@ -55,12 +56,12 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
     gnames = get_globals_names() # получаем имена всех глобальных переменных проекта
     
     if not os.path.exists(configure_file_path):
-        print 'There is not file:', configure_file_path
-        print 'Warning! Configuration file was not found.'
-        print 'Default values for all parametors of IS will be used.'
+        print('There is not file:', configure_file_path)
+        print('Warning! Configuration file was not found.')
+        print('Default values for all parametors of IS will be used.')
         return {}
     else:
-        print 'Configuration file:', configure_file_path
+        print('Configuration file:', configure_file_path)
     
     cfile = open(configure_file_path)
     result = {}
@@ -76,15 +77,15 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
         
         # строки без присваивания игнорируем
         if not '=' in line:
-            print 'Warning! Line in the configuration file is not in format \"parname = value\" :',
-            print '\'' + line + '\''
+            print('Warning! Line in the configuration file is not in format \"parname = value\" :', end=' ')
+            print('\'' + line + '\'')
             continue
         
         varname, value = line.split('=', 1)
         varname = varname.strip() # обрезаем имя глобальной переменной от возможных лишних пробелов
         if not varname in gnames:
-            print 'Warning! There is not a parametor of IS with name :',
-            print '\'' + varname + '\''
+            print('Warning! There is not a parametor of IS with name :', end=' ')
+            print('\'' + varname + '\'')
             continue
         
         tvar = type(gl.__dict__[varname]) # получить тип переменной varname {bool, int, float, str}
@@ -93,41 +94,41 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
             value = value.strip() # обрезаем пробельные символы с двух сторон
             if value in ('0', '1'):
                 value = bool(int(value))
-                if result.has_key(varname):
-                    print 'Warning! Several definitions in the configuration file for parametor :', varname
-                    print '         The first value for parametor', varname ,'will be used :', int(result[varname])
+                if varname in result:
+                    print('Warning! Several definitions in the configuration file for parametor :', varname)
+                    print('         The first value for parametor', varname ,'will be used :', int(result[varname]))
                     continue
                 result[varname] = value
             else:
-                print 'Warning! Incorrect value for bool parametor', varname ,':', value
-                print '         The set of valid values for', varname, 'is {0, 1}'
-                print '         Default value for', varname, 'will be used :', int(gl.__dict__[varname])
+                print('Warning! Incorrect value for bool parametor', varname ,':', value)
+                print('         The set of valid values for', varname, 'is {0, 1}')
+                print('         Default value for', varname, 'will be used :', int(gl.__dict__[varname]))
                 continue
         elif tvar == int:
             value = value.strip() # обрезаем пробельные символы с двух сторон
             if value.isdigit():
                 value = int(value)
-                if result.has_key(varname):
-                    print 'Warning! Several definitions in the configuration file for parametor :', varname
-                    print '         The first value for parametor', varname ,'will be used :', result[varname]
+                if varname in result:
+                    print('Warning! Several definitions in the configuration file for parametor :', varname)
+                    print('         The first value for parametor', varname ,'will be used :', result[varname])
                     continue
                 result[varname] = value
             else:
-                print 'Warning! Incorrect value for parametor', varname ,':', value
-                print '         The type of', varname, 'is int'
-                print '         Default value for', varname, 'will be used :', gl.__dict__[varname] 
+                print('Warning! Incorrect value for parametor', varname ,':', value)
+                print('         The type of', varname, 'is int')
+                print('         Default value for', varname, 'will be used :', gl.__dict__[varname]) 
                 continue
         elif tvar == float:
             try:
                 value = float(value)
             except ValueError:
-                print 'Warning! Incorrect value for parametor', varname ,':', value
-                print '         The type of', varname, 'is float'
-                print '         Default value for', varname, 'will be used ', gl.__dict__[varname] 
+                print('Warning! Incorrect value for parametor', varname ,':', value)
+                print('         The type of', varname, 'is float')
+                print('         Default value for', varname, 'will be used ', gl.__dict__[varname]) 
                 continue
-            if result.has_key(varname):
-                    print 'Warning! Several definitions in the configuration file for parametor :', varname
-                    print '         The first value for parametor', varname ,'will be used :', result[varname]
+            if varname in result:
+                    print('Warning! Several definitions in the configuration file for parametor :', varname)
+                    print('         The first value for parametor', varname ,'will be used :', result[varname])
                     continue
             result[varname] = value
         elif tvar == str:
@@ -137,13 +138,13 @@ def read_configure(configure_file_path = DEFAULT_CONFIGURE_FILE_PATH):
             try:
                 value = tvar(value)
             except:
-                print 'Warning! Incorrect value for parametor', varname ,':', value
-                print '         The type of', varname, 'is', tvar
-                print '         Default value for', varname, 'will be used ', gl.__dict__[varname] 
+                print('Warning! Incorrect value for parametor', varname ,':', value)
+                print('         The type of', varname, 'is', tvar)
+                print('         Default value for', varname, 'will be used ', gl.__dict__[varname]) 
                 continue
-            if result.has_key(varname):
-                    print 'Warning! Several definitions in the configuration file for parametor :', varname
-                    print '         The first value for parametor', varname ,'will be used :', result[varname]
+            if varname in result:
+                    print('Warning! Several definitions in the configuration file for parametor :', varname)
+                    print('         The first value for parametor', varname ,'will be used :', result[varname])
                     continue
             result[varname] = value
         
@@ -154,20 +155,20 @@ def change_globals(gval_dict):
         Измененить значение глобальных переменных при помощи словаря gval_dict
         gval_dict : переменная -> новое значение
     """
-    for varname, value in gval_dict.iteritems():
+    for varname, value in gval_dict.items():
         gl.__dict__[varname] = value # инициализация глобальной переменной новым значением
         
 def print_globals(types = None):
     """
         Вывести на экран текущую конфигурацию параметров интеллектуальной системы
     """
-    for var, val in gl.__dict__.iteritems():
+    for var, val in gl.__dict__.items():
         if var[0] == '_':
             continue
         if types != None:
             if not type(val) in types:
                 continue
-        print var, '=', val
+        print(var, '=', val)
         
 # Читаем конфигурационный файл
 gval_dict = read_configure()
@@ -204,17 +205,17 @@ def get_strategy(strategy_in_line_format):
         Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
     """
     def print_format():
-        print 'The strategy must be in the next format :',
-        print '<group> [; <group>]'
-        print '     where <group> is a string in the next format :',
-        print '<parname> [<parname>]'
+        print('The strategy must be in the next format :', end=' ')
+        print('<group> [; <group>]')
+        print('     where <group> is a string in the next format :', end=' ')
+        print('<parname> [<parname>]')
     
     def par_filt(parname):
-        if parname in par.val_type.keys() or parname == 'dcs':
+        if parname in list(par.val_type.keys()) or parname == 'dcs':
             return True
         else:
-            print 'Warning! Unknown parametor of LCC in the strategy :', parname
-            print '         The unknown parametor \'' + parname + '\' will be ignored'
+            print('Warning! Unknown parametor of LCC in the strategy :', parname)
+            print('         The unknown parametor \'' + parname + '\' will be ignored')
             return False
             
     def group_filt(group):
@@ -224,32 +225,32 @@ def get_strategy(strategy_in_line_format):
             reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in par.reg_seq + par.icv_seq for parname in group])
             if reg_or_icv_par_exist:
                 if dcs_par_exist:
-                    print 'Warning! Wrong parametors group :', group
-                    print '         dcs-parametors must be in separated group'
-                    print '         The wrong parametors group will be ignored :', group
+                    print('Warning! Wrong parametors group :', group)
+                    print('         dcs-parametors must be in separated group')
+                    print('         The wrong parametors group will be ignored :', group)
                     return False
                 if nesting_par_exist:
-                    print 'Warning! Wrong parametors group :', group
-                    print '         parametor \'' + par.nesting[0] + '\' must be in separated group'
-                    print '         The wrong parametors group will be ignored :', group
+                    print('Warning! Wrong parametors group :', group)
+                    print('         parametor \'' + par.nesting[0] + '\' must be in separated group')
+                    print('         The wrong parametors group will be ignored :', group)
                     return False
             else:
                 if dcs_par_exist and nesting_par_exist:
-                    print 'Warning! Wrong parametors group :', group
-                    print '         dcs-parametors and parametor \'' + par.nesting[0] + '\' must be in separated groups'
-                    print '         The wrong parametors group will be ignored :', group
+                    print('Warning! Wrong parametors group :', group)
+                    print('         dcs-parametors and parametor \'' + par.nesting[0] + '\' must be in separated groups')
+                    print('         The wrong parametors group will be ignored :', group)
                     return False
             return True
         else:
             return False
     
     groups = strategy_in_line_format.split(';')
-    result = filter(group_filt, map(lambda x: filter(par_filt, x.split()), groups))
+    result = list(filter(group_filt, [list(filter(par_filt, x.split())) for x in groups]))
     
     if bool(result) == False: # если список пустой
-        print 'Error! The optimization strategy is empty'
-        print 'Posible reason: there is not any valid parametor of LCC in the strategy or'
-        print '                all parametors group in the strategy are not valid'
+        print('Error! The optimization strategy is empty')
+        print('Posible reason: there is not any valid parametor of LCC in the strategy or')
+        print('                all parametors group in the strategy are not valid')
         print_format()
         sys.exit()
     
@@ -259,24 +260,24 @@ def encode_strategy(strategy):
     """
         Преобразовать стратегию оптимизации из рабочего формата интеллектуальной системы в строковой формат 
     """
-    return reduce(lambda x, y: x + '; ' + y, map(lambda group: reduce(lambda x, y: x + ' ' + y, group), strategy))
+    return reduce(lambda x, y: x + '; ' + y, [reduce(lambda x, y: x + ' ' + y, group) for group in strategy])
     
 def print_strategy(strategy, output = None):
     """
         Напечатать стратегию в красивом многострочном виде
     """
     for group in strategy:
-        print >> output, '   ', reduce(lambda x, y: x + ', ' + y, group)
+        print('   ', reduce(lambda x, y: x + ', ' + y, group), file=output)
 
 def get_specs(specs_in_string):
     """
         Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
     """
     def print_format():
-        print 'The list of specs must be in the next format :',
-        print '<specname>[: <proclist>][, <specname>[: <proclist>]]'
-        print '<proclist> format is :',
-        print '<procname> [<procname>]'
+        print('The list of specs must be in the next format :', end=' ')
+        print('<specname>[: <proclist>][, <specname>[: <proclist>]]')
+        print('<proclist> format is :', end=' ')
+        print('<procname> [<procname>]')
     
     result = {}
     for spec in specs_in_string.split(','):
@@ -290,9 +291,9 @@ def get_specs(specs_in_string):
         specname = specname.strip()
         if not proclist:
             proclist = None
-        if result.has_key(specname):
-            print 'Warning! There are several occurrences in the speclist for specname :', specname
-            print '         Only the first occurrence of', specname, 'will be used'
+        if specname in result:
+            print('Warning! There are several occurrences in the speclist for specname :', specname)
+            print('         Only the first occurrence of', specname, 'will be used')
             continue
         result[specname] = proclist
     return result
@@ -301,38 +302,39 @@ def encode_specs(spec_procs):
     """
         Преобразовать спеки из рабочего формата в строковой формат
     """
-    def sp_encode((specname, proclist)):
+    def sp_encode(xxx_todo_changeme):
+        (specname, proclist) = xxx_todo_changeme
         if not proclist:
             return specname
         else:
             return specname + ': ' + reduce(lambda x, y: x + ' ' + y, proclist)
-    return reduce(lambda x, y: x + ', ' + y, map(sp_encode, spec_procs.items()))
+    return reduce(lambda x, y: x + ', ' + y, list(map(sp_encode, list(spec_procs.items()))))
 
 def print_specs(spec_procs, output = None):
     """
         Напечатать словарь spec_proсs в красивом многострочном виде
     """
-    for specname, proclist in spec_procs.iteritems():
+    for specname, proclist in spec_procs.items():
         whitespace = '   '
         if proclist:
-            print >> output, whitespace, specname + ': ' + reduce(lambda x, y: x + ', ' + y, proclist)
+            print(whitespace, specname + ': ' + reduce(lambda x, y: x + ', ' + y, proclist), file=output)
         else:
-            print >> output, whitespace, specname
+            print(whitespace, specname, file=output)
     
 strategy = get_strategy(gl.OPTIMIZATION_STRATEGY)
 spec_procs = get_specs(gl.specs)
 # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
 
 if not os.path.isdir(gl.OUTPUTDIR):
-    print 'Warning! There is not directory: ', gl.OUTPUTDIR
-    print '         The output directory is not given'
-    print '         The output is on the screen'
+    print('Warning! There is not directory: ', gl.OUTPUTDIR)
+    print('         The output directory is not given')
+    print('         The output is on the screen')
     
 
 if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-    print 'Synchronous optimization of specs :'  # all
+    print('Synchronous optimization of specs :')  # all
     print_specs(spec_procs)
-    print 'Successive optimization with the strategy :' # seq
+    print('Successive optimization with the strategy :') # seq
     print_strategy(strategy)
     
     if os.path.isdir(gl.OUTPUTDIR):
@@ -340,62 +342,62 @@ if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(strategy) + '.txt')
         ffile = open(path, 'w', 0)
         
-        print >> ffile, 'Synchronous optimization of specs :'  # all
+        print('Synchronous optimization of specs :', file=ffile)  # all
         print_specs(spec_procs, ffile)
-        print >> ffile, 'Successive optimization with the strategy :' # seq
+        print('Successive optimization with the strategy :', file=ffile) # seq
         print_strategy(strategy, ffile)
-        print >> ffile, '---------------------------------------------------------------------------'
+        print('---------------------------------------------------------------------------', file=ffile)
     else:
         ffile = None
     
     try:
         opt.seq_optimize(spec_procs, strategy, output = ffile)
     except clc.ExternalScriptError as error:
-        print 'fail'
-        print 'An error by giving (t_c, t_e, m) from external script'
+        print('fail')
+        print('An error by giving (t_c, t_e, m) from external script')
     except KeyboardInterrupt:
-        print
+        print()
         exit()
     else:
-        print "ok"
+        print("ok")
 elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-    print 'Independent optimization for every spec in' # every_spec
+    print('Independent optimization for every spec in') # every_spec
     print_specs(spec_procs)
-    print 'Successive optimization with the strategy :' # seq
+    print('Successive optimization with the strategy :') # seq
     print_strategy(strategy)
     
-    for specname, proclist in spec_procs.iteritems():
-        print "---------------------------------------------------------------------------"
-        print "Spec:", specname
+    for specname, proclist in spec_procs.items():
+        print("---------------------------------------------------------------------------")
+        print("Spec:", specname)
         
         if os.path.isdir(gl.OUTPUTDIR):
             path = os.path.join(gl.OUTPUTDIR, specname + '.seq.txt')
             # path = os.path.join(gl.OUTPUTDIR, str({specname: proclist}) + '.' + str(strategy) + '.txt')
             ffile = open(path, 'w', 0)
             
-            print >> ffile, 'Optimization of spec :'  # all
+            print('Optimization of spec :', file=ffile)  # all
             print_specs({specname: proclist}, ffile)
-            print >> ffile, 'Successive optimization with the strategy :' # seq
+            print('Successive optimization with the strategy :', file=ffile) # seq
             print_strategy(strategy, ffile)
-            print >> ffile, '---------------------------------------------------------------------------'
+            print('---------------------------------------------------------------------------', file=ffile)
         else:
             ffile = None
         
         try:
             opt.seq_optimize({specname: proclist}, strategy, output = ffile)
         except clc.ExternalScriptError as error:
-            print 'fail'
-            print 'An error by giving (t_c, t_e, m) from external script'
+            print('fail')
+            print('An error by giving (t_c, t_e, m) from external script')
         except KeyboardInterrupt:
-            print
+            print()
             exit()
         else:
-            print "ok"
+            print("ok")
 
 elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-    print 'Synchronous optimization of specs :'  # all
+    print('Synchronous optimization of specs :')  # all
     print_specs(spec_procs)
-    print 'Independent optimization on every parametors group in the strategy :' # not seq
+    print('Independent optimization on every parametors group in the strategy :') # not seq
     print_strategy(strategy)
     
     dis_regpar = adt.get_dis_regpar(spec_procs)
@@ -404,22 +406,22 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
     wht.normolize_dict(dis_icvpar)
     
     for parnames in strategy:
-        print "---------------------------------------------------------------------------"
-        print "Group:", parnames
+        print("---------------------------------------------------------------------------")
+        print("Group:", parnames)
         if os.path.isdir(gl.OUTPUTDIR):
             path = os.path.join(gl.OUTPUTDIR, 'all.' + str(parnames) +'.txt') # ?
             # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(parnames) + '.txt')
             ffile = open(path, 'w', 0)
             
-            print >> ffile, 'Synchronous optimization of specs :'  # all
+            print('Synchronous optimization of specs :', file=ffile)  # all
             print_specs(spec_procs, ffile)
-            print >> ffile, 'Optimization on the parametors group :'
+            print('Optimization on the parametors group :', file=ffile)
             print_strategy([parnames], ffile)
-            print >> ffile, '---------------------------------------------------------------------------'
+            print('---------------------------------------------------------------------------', file=ffile)
         else:
             ffile = None
         
-        is_dcs_pargroup = reduce(lambda x, y: x and y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
+        is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
         is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
         
         try:
@@ -430,23 +432,23 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
             else:
                 opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
         except clc.ExternalScriptError as error:
-            print 'fail'
-            print 'An error by giving (t_c, t_e, m) from external script'
+            print('fail')
+            print('An error by giving (t_c, t_e, m) from external script')
         except KeyboardInterrupt:
-            print
+            print()
             exit()
         else:
-            print "ok"
+            print("ok")
 elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-    print 'Independent optimization for every spec in' # every_spec
+    print('Independent optimization for every spec in') # every_spec
     print_specs(spec_procs)
-    print 'Independent optimization on every parametors group in the strategy :' # not seq
+    print('Independent optimization on every parametors group in the strategy :') # not seq
     print_strategy(strategy)
     
-    for specname, proclist in spec_procs.iteritems():
-        print "---------------------------------------------------------------------------"
-        print "---------------------------------------------------------------------------"
-        print "Spec:", specname
+    for specname, proclist in spec_procs.items():
+        print("---------------------------------------------------------------------------")
+        print("---------------------------------------------------------------------------")
+        print("Spec:", specname)
         
         dis_regpar = adt.get_dis_regpar({specname : proclist})
         wht.normolize_dict(dis_regpar)
@@ -454,23 +456,23 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
         wht.normolize_dict(dis_icvpar)
         
         for parnames in strategy:
-            print "---------------------------------------------------------------------------"
-            print "Group:", parnames
+            print("---------------------------------------------------------------------------")
+            print("Group:", parnames)
             
             if os.path.isdir(gl.OUTPUTDIR):
                 path = os.path.join(gl.OUTPUTDIR, specname + '.' + str(parnames) +'.txt')
                 # path = os.path.join(gl.OUTPUTDIR, str({specname : proclist}) + '.' + str(parnames) + '.txt')
                 ffile = open(path, 'w', 0)
                 
-                print >> ffile, 'Optimization of the spec :'  # all
+                print('Optimization of the spec :', file=ffile)  # all
                 print_specs({specname : proclist}, ffile)
-                print >> ffile, 'Optimization on the parametors group :'
+                print('Optimization on the parametors group :', file=ffile)
                 print_strategy([parnames], ffile)
-                print >> ffile, '---------------------------------------------------------------------------'
+                print('---------------------------------------------------------------------------', file=ffile)
             else:
                 ffile = None
             
-            is_dcs_pargroup = reduce(lambda x, y: x and y, map(lambda p: p in par.dcs or p == 'dcs', parnames))
+            is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
             is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
             try:
                 if is_dcs_pargroup:
@@ -480,11 +482,11 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
                 else:
                     opt.optimize({specname : proclist}, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
             except clc.ExternalScriptError as error:
-                print 'fail'
-                print 'An error by giving (t_c, t_e, m) from external script'
+                print('fail')
+                print('An error by giving (t_c, t_e, m) from external script')
             except KeyboardInterrupt:
-                print
+                print()
                 exit()
             else:
-                print "ok"
+                print("ok")
         

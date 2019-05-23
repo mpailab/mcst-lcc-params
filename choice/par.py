@@ -145,7 +145,10 @@ reg_depend_seq = [
     'regn_heur4'
     ] + reg_unb
 reg_seq = ['regn_max_proc_op_sem_size', 'regn_opers_limit'] + reg_depend_seq
-index_in_reg_seq = dict(map(None, reg_seq, range(len(reg_seq))))
+tmp = []
+for i in range(len(reg_seq)):
+    tmp.append((reg_seq[i], i))
+index_in_reg_seq = dict(tmp)
 
 # параметры связанные с добавлением узлов в регион
 reg_extend_regn_list = reg_depend_seq
@@ -155,7 +158,10 @@ icv_seq = [
     'ifconv_calls_num',
     'ifconv_merge_heur'
     ]
-index_in_icv_seq = dict(map(None, icv_seq, range(len(icv_seq))))
+tmp = []
+for i in range(len(icv_seq)):
+    tmp.append((icv_seq[i], i))
+index_in_icv_seq = dict(tmp)
 
 # pv --- значение параметра
 # x --- значение характеристики процедуры (региона, узла), отвечающей параметру

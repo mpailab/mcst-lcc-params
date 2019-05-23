@@ -68,7 +68,7 @@ class ItrBlocks:
         else:
             return None
         
-    def next(self):
+    def __next__(self):
         cand_left =  self.see_left()
         cand_right = self.see_right()
         if cand_left == None:
@@ -103,7 +103,7 @@ def return_weights(pr, sdis, bls, array, w_dis):
     Результирующее распределение весов записывается в sdis
     '''
     for bl in bls:
-        for pos in xrange(bl.pl, bl.pr):
+        for pos in range(bl.pl, bl.pr):
             key = array[pos]
             sdis[key] += pr * w_dis[key]
 
@@ -118,7 +118,7 @@ def give_weight(weight_value, sdis, bls, array):
         w_del += bl.pr - bl.pl
     # распределеляем weight_value равномерно по всем блокам
     for bl in bls:
-        for pos in xrange(bl.pl, bl.pr):
+        for pos in range(bl.pl, bl.pr):
             key = array[pos]
             sdis[key] += weight_value / w_del
         
@@ -134,7 +134,7 @@ def get_blocks(array, coord, w_dis):
     wsum = w_dis[el]
     bl_cnt = 0
     p_left = 0
-    for pos in xrange(1, len(array)):
+    for pos in range(1, len(array)):
         el = array[pos]
         val = el[coord]
         w_el = w_dis[el]
@@ -162,7 +162,7 @@ def smooth_dis(array, coord, w_dis, erff):
     и определяется функцией erff.
     '''
     sdis = {}
-    for key in w_dis.iterkeys():
+    for key in w_dis.keys():
         sdis[key] = 0.
         
     blocks = get_blocks(array, coord, w_dis)

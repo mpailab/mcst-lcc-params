@@ -10,20 +10,21 @@ import global_vars as gl
 import par
 import read
 from stat_adaptation import get_dcs_dis
+from functools import reduce
 
 def eff_all_pars():
     eff = {}
     for parname in par.reg_seq + par.icv_seq:
         eff[parname] = par_eff(parname)
-        print
+        print()
     
-    print 't_c-effectiveness for pars'
+    print('t_c-effectiveness for pars')
     table(eff, 0)
-    print 't_e-effectiveness for pars'
+    print('t_e-effectiveness for pars')
     table(eff, 1)
-    print 'mem-effectiveness for pars'
+    print('mem-effectiveness for pars')
     table(eff, 2)
-    print 'F-effectiveness for pars'
+    print('F-effectiveness for pars')
     table(eff, 3)
 
 def table(eff, coord):
@@ -33,22 +34,22 @@ def table(eff, coord):
     coord = 2 -> mem,
     coord = 3 -> F
     '''
-    array = eff.items()
+    array = list(eff.items())
     array.sort(lambda x, y: cmp(x[1][coord], y[1][coord]))
     for (parname, it) in array:
-        print parname.ljust(26) + ':', it[coord]
-    print
+        print(parname.ljust(26) + ':', it[coord])
+    print()
     
     
 def par_eff(parname):
     '''Функция определяет эффективность параметра'''
-    print 'Parname:', parname
+    print('Parname:', parname)
     ef_Tc_cnt = 0
     ef_Te_cnt = 0
     ef_M_cnt = 0
     ef_F_cnt = 0
     task_cnt = 0
-    print ''.ljust(17) + ' ', 't_c'.rjust(5), 't_e'.rjust(5), 'mem'.rjust(5), 'F'.rjust(5)
+    print(''.ljust(17) + ' ', 't_c'.rjust(5), 't_e'.rjust(5), 'mem'.rjust(5), 'F'.rjust(5))
     for taskname in read.task_list():
         tresult = []
         filepath = gl.RUN_LOGS_PATH + '/' + taskname + '.' + parname + '.txt'
@@ -84,12 +85,12 @@ def par_eff(parname):
                 ef_M_cnt += 1
             if min_F < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
                 ef_F_cnt += 1
-            print taskname.ljust(17) + ':', percent_view(min_Tc), percent_view(min_Te), percent_view(min_M), percent_view(min_F)
+            print(taskname.ljust(17) + ':', percent_view(min_Tc), percent_view(min_Te), percent_view(min_M), percent_view(min_F))
         #else:
         #    print 'There is not result for ', (taskname, parname)
     #print 'task_num =', task_cnt
-    print ('Cnt >=' + percent_view(gl.DEVIATION_PERCENT_OF_TcTeMemF)).ljust(17) + ':',
-    print str(ef_Tc_cnt).rjust(5), str(ef_Te_cnt).rjust(5), str(ef_M_cnt).rjust(5), str(ef_F_cnt).rjust(5)
+    print(('Cnt >=' + percent_view(gl.DEVIATION_PERCENT_OF_TcTeMemF)).ljust(17) + ':', end=' ')
+    print(str(ef_Tc_cnt).rjust(5), str(ef_Te_cnt).rjust(5), str(ef_M_cnt).rjust(5), str(ef_F_cnt).rjust(5))
     return ef_Tc_cnt, ef_Te_cnt, ef_M_cnt, ef_F_cnt
 
 def percent_view(x, ndigits = 1):
@@ -179,7 +180,7 @@ def TcTeMemF(filepath):
         parvalue = par.val_type[parname](parvalue_str)
         
         trio = strs[1][1:].split()
-        t_c, t_e, mem = map(float, trio)
+        t_c, t_e, mem = list(map(float, trio))
         
         Fvalue = float(strs[2].split()[2])
         
@@ -224,7 +225,7 @@ def med_TcTeMemF_default(taskname, print_more = False):
             cnt += 1
             tresult_default = read_logfile_function(filepath, taskname)[0]
             if print_more:
-                print tresult_default
+                print(tresult_default)
             sum_Tc += tresult_default[0]
             sum_Te += tresult_default[1]
             sum_Mem += tresult_default[2]
@@ -232,7 +233,7 @@ def med_TcTeMemF_default(taskname, print_more = False):
     if cnt == 0:
         return None
     else:
-        return map(lambda x: round(x, 2), (sum_Tc / cnt, sum_Te / cnt, sum_Mem / cnt))
+        return [round(x, 2) for x in (sum_Tc / cnt, sum_Te / cnt, sum_Mem / cnt)]
     
 def time_to_human_format(time):
     '''
@@ -255,14 +256,14 @@ def time_to_human_format(time):
 
 def all_tasks_TcTeMem(human_format = False):
     for task in read.task_list():
-        print task
+        print(task)
         TcTeMem_default = med_TcTeMemF_default(task)
         #print '  ', TcTeMem_default
         if TcTeMem_default != None:
-            print '  ', time_to_human_format(TcTeMem_default[0] + TcTeMem_default[1])
+            print('  ', time_to_human_format(TcTeMem_default[0] + TcTeMem_default[1]))
             #print '  ', time_to_human_format(TcTeMem_default[1])
         else:
-            print '  ', None
+            print('  ', None)
     
 #def TcTeMemF_newformat(filepath):
     #'''
@@ -300,7 +301,7 @@ def percent(array):
         return []
     item_default = tuple(array[0])
     for item in array:
-        for ind in xrange(len(item) - 1):
+        for ind in range(len(item) - 1):
             item[ind] /= item_default[ind]
             item[ind] -= 1
     return array
@@ -309,31 +310,31 @@ def dcs_information_print():
     '''
     Печатает процент мертвых узлов, ребер и циклов в каждом спеке
     '''
-    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+    dcs_levels = list(range(1, gl.MAX_DCS_LEVEL + 1))
     for task in read.task_list():
-        print task
-        print ' lv:  ', reduce(lambda x, y: x + y, map(lambda x: str(x).rjust(4) + ' ', dcs_levels))
+        print(task)
+        print(' lv:  ', reduce(lambda x, y: x + y, [str(x).rjust(4) + ' ' for x in dcs_levels]))
         dis = get_dcs_dis({task: None}, 1, 0, 0)[1:]
-        print ' N:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
+        print(' N:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
         dis = get_dcs_dis({task: None}, 0, 1, 0)[1:]
-        print ' E:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
+        print(' E:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
         dis = get_dcs_dis({task: None}, 0, 0, 1)[1:]
-        print ' L:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
+        print(' L:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
         dis = get_dcs_dis({task: None}, 1, 1, 1)[1:]
-        print ' Sum: ', reduce(lambda x, y: x + y, map(percent_view, dis))
-        print
+        print(' Sum: ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+        print()
     
-    print 'All tasks'
+    print('All tasks')
     procs_dic = {task: None for task in read.task_list()}
-    print ' lv:  ', reduce(lambda x, y: x + y, map(lambda x: str(x).rjust(4) + ' ', dcs_levels))
+    print(' lv:  ', reduce(lambda x, y: x + y, [str(x).rjust(4) + ' ' for x in dcs_levels]))
     dis = get_dcs_dis(procs_dic, 1, 0, 0)[1:]
-    print ' N:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
+    print(' N:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
     dis = get_dcs_dis(procs_dic, 0, 1, 0)[1:]
-    print ' E:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
+    print(' E:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
     dis = get_dcs_dis(procs_dic, 0, 0, 1)[1:]
-    print ' L:   ', reduce(lambda x, y: x + y, map(percent_view, dis))
+    print(' L:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
     dis = get_dcs_dis(procs_dic, 1, 1, 1)[1:]
-    print ' Sum: ', reduce(lambda x, y: x + y, map(percent_view, dis))
+    print(' Sum: ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
 
 if __name__ == '__main__':
     #eff_all_pars()
@@ -344,7 +345,7 @@ if __name__ == '__main__':
     #for el in TcTeMemF_from_log_for_several_tasks(filepath, taskname):
     #    print el
     for parname in par.reg_seq + par.icv_seq:
-        print 'default_value_' + parname, '=', par.default_value[parname]
+        print('default_value_' + parname, '=', par.default_value[parname])
     
 def resultfile_to_picture(filepath, taskname):
     iterations = read_logfile_function(filepath, taskname)
