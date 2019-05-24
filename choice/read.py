@@ -6,7 +6,6 @@
 """
 
 # External imports
- # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
 from os import listdir
 
 # Internal imports
@@ -25,26 +24,17 @@ def task_list():
     """
     return listdir(gl.STAT_PATH)
 
-def comp_procs_set(taskname):
+def comp_procs_list(taskname):
     """ 
         Формирует множество компилируемых процедур задачи taskname,
         т.е. таких процедур, которые фигурируют в статистике исполнения задачи taskname
     """
-    return set(listdir(STAT_PATH_FOR_READ + '/' + taskname))
-
-def exec_procs_set(taskname):
-    """
-        Формирует множество исполняемых процедур задачи taskname,
-        т.е. таких процедур, для которых заданы веса в gl.PROC_WEIGHT_PATH/taskname.txt
-    """
-    procs = set()
-    rfile = open(gl.PROC_WEIGHT_PATH + '/' + taskname + '.txt')
-    for line in rfile:
-        procname = line.split()[0]
-        procs.add(procname)
-    return procs
+    return listdir(STAT_PATH_FOR_READ + '/' + taskname)
 
 def weights_of_exec_procs(taskname):
+    """ 
+        Считывает файл, в котором задаются веса процедур
+    """
     res = {}
     rfile = open(gl.PROC_WEIGHT_PATH + '/' + taskname + '.txt')
     for line in rfile:
@@ -54,55 +44,18 @@ def weights_of_exec_procs(taskname):
         res[procname] = w_proc
     return res
 
-def procs_set(taskname, add_all_procs = gl.USE_ALL_PROCS_IN_STAT):
-    """ Получает множество процедур спека taskname
-        add_all_procs == False -> множество всех компилируемых процедур, для которых задан вес в внешнем файле
-        add_all_procs == True  -> множество всех компилируемых процедур
+def task_cnt(taskname):
+    """ Получение веса задачи из внешнего файла
     """
-    all_comp_procs = comp_procs_set(taskname)
-    if add_all_procs:
-        return all_comp_procs
-    else:
-        all_exec_procs = exec_procs_set(taskname)
-        return all_exec_procs.intersection(all_comp_procs)
+    res = {}
+    rfile = open(gl.TASK_WEIGHT_PATH)
+    for line in rfile:
+        sp_line = line.split()
+        task = sp_line[0]
+        w_task = float(sp_line[1])
+        res[task] = w_task
+    return res[taskname]
 
-#def proc_cnt_dic(taskname):
-    #""" Получение для спека taskname словаря: процедура -> вес
-        #Вес процедуры -- время работы процедуры в составе спека, выраженное в некоторых условных единицах
-        #Результат зависит от глобала USE_ALL_PROCS_IN_STAT
-            #используются ли все компилируемые или только те компилируемые процедуры, которые реально исполняются
-    #"""
-    #proc_weight_dir = {}
-    #if gl.USE_ALL_PROCS_IN_STAT:
-        #for procname in proc_list(taskname):
-            #proc_weight_dir[procname] = gl.DEFAULT_WEIGHT_FOR_PROC
-            
-    #ffile = open(gl.PROC_ORDER_PATH + '/' + taskname + '.txt')
-    #for string in ffile:
-        #proc_name, value = string.split()
-        #proc_weight_dir[proc_name] = float(value)
-    #ffile.close()
-                
-    #return proc_weight_dir
-
-#def task_cnt(taskname, num = 1):
-    #""" Получение веса задачи.
-        #Вес задачи --- отношение времени исполнения ее небиблиотечных процедур к общему времени ее работы
-    #"""
-    #path = gl.STATEXEC_PATH + '/' + taskname + '/' + 'run.' + str(num) + '.txt'
-    #ffile = open(path)
-    #plist = proc_list(taskname, add_all_procs = False)
-    #sum_all = 0
-    #sum_own = 0
-    #for string in ffile:
-        #array = string.split()
-        #weight = float(array[2])
-        #sum_all += weight
-        #procname = array[5]
-        #if procname in plist:
-            #sum_own += weight
-    #ffile.close()
-    #return sum_own / sum_all
 
 def proc(taskname, procname):
     procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
@@ -283,14 +236,4 @@ def dcs_level(procpath, lv):
     return Dcs_level(procname, lv, n_num, e_num, l_num, nd_num, ed_num, ld_num, N, E, L)
 
 if __name__ == '__main__':
-    for taskname in task_list():
-        num = 1
-        rfile = open(gl.STATEXEC_PATH + '/' + taskname + '/' + 'run.' + str(num) + '.txt')
-        wfile = open(gl.PROC_WEIGHT_PATH + '/' + taskname + '.txt', 'w')
-        for string in rfile:
-            array = string.split()
-            weight = array[2]
-            procname = array[5]
-            print (procname, weight, file = wfile)
-        wfile.close()
-        rfile.close()
+    pass

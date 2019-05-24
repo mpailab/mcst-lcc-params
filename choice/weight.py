@@ -10,37 +10,46 @@ import read
 
 
 if gl.UNEXEC_PROC_WEIGHT_SETUP == 1:
-    def unexec_proc(taskname):
+    def unexec_proc(exec_proc_weights):
         """ минимум среди весов исполняемых процедур taskname
         """
-        return min(read.weights_of_exec_procs(taskname).values())
+        return min(exec_proc_weights)
     
 elif gl.UNEXEC_PROC_WEIGHT_SETUP == 2:
-    def unexec_proc(taskname):
+    def unexec_proc(exec_proc_weights):
         """ среднее арифметическое весов исполняемых процедур
         """
-        tmp = read.weights_of_exec_procs(taskname).values()
-        return sum(tmp) / len(tmp)
+        return sum(exec_proc_weights) / len(exec_proc_weights)
 else:
-    def unexec_proc(taskname):
+    def unexec_proc(exec_proc_weights):
         return gl.DEFAULT_WEIGHT_FOR_PROC
-
 
 #--------------------------------------------
 #--------------------------------------------
 if gl.PROC_WEIGHT_SETUP == 1:
-    def proc(w_proc):
-        return w_proc
+    def proc(proc_cnt, procname):
+        return proc_cnt[procname]
 else:
-    def proc(w_proc):
+    def proc(proc_cnt, procname):
         return 1.
 #--------------------------------------------
 #--------------------------------------------
-if gl.TASK_WEIGHT_SETUP == 1:    
-    def task(w_task):
-        return w_task
+
+if   gl.TASK_WEIGHT_SETUP == 1:
+    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
+        return read.task_cnt(taskname) # из внешнего файла
+elif gl.TASK_WEIGHT_SETUP == 2:
+    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
+        comp_and_exec_procs = set(exec_proc_list).intersection(set(comp_proc_list))
+        weights = map(lambda x: exec_proc_cnt[x], comp_and_exec_procs)
+        return sum(weights) / sum(exec_proc_weights)
+elif gl.TASK_WEIGHT_SETUP == 3:
+    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
+        exec_procs_in_proc_list = set(proc_list).intersection(set(exec_proc_list))
+        weights = map(lambda x: exec_proc_cnt[x], exec_procs_in_proc_list)
+        return sum(weights) / sum(exec_proc_weights)
 else:
-    def task(w_task):
+    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
         return 1.
 #-------------------------------------------
 #--------------------------------------------
