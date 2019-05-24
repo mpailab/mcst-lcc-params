@@ -16,7 +16,9 @@ PWD = os.getcwd()
 class ExternalScriptError(BaseException):
     pass
 
-def get_cmd_pars(task_name, par_value, procname_list = None, output = None):
+def get_cmd_pars(task_name, par_value, procname_list = None):
+    """ Формирует опции и аргументы для передачи внешнему скрипту
+    """
     cmd = task_name 
     if len(par_value) != 0 or procname_list != None:
         cmd += ' \"'
@@ -40,6 +42,9 @@ def get_cmd_pars(task_name, par_value, procname_list = None, output = None):
     return cmd
     
 def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = None):
+    """ Запускает внешние скипты на задачах из procs_dic со значениями параметров из par_value
+        и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
+    """
     exec_proc = None
     el_pred = None
     result_comp = {}
@@ -71,9 +76,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         
     for el in elements:
         if separate_procs:
-            cmd_pars = get_cmd_pars(el[0], par_value, [el[1]], output)
+            cmd_pars = get_cmd_pars(el[0], par_value, [el[1]])
         else:
-            cmd_pars = get_cmd_pars(el, par_value, procs_dic[el], output)
+            cmd_pars = get_cmd_pars(el, par_value, procs_dic[el])
             
         cmd_comp = SCRIPT_COMP + ' ' + cmd_pars
         print(cmd_comp, file=output)

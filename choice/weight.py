@@ -6,6 +6,25 @@
 
 # Internal imports
 import global_vars as gl
+import read
+
+
+if gl.UNEXEC_PROC_WEIGHT_SETUP == 1:
+    def unexec_proc(taskname):
+        """ минимум среди весов исполняемых процедур taskname
+        """
+        return min(read.weights_of_exec_procs(taskname).values())
+    
+elif gl.UNEXEC_PROC_WEIGHT_SETUP == 2:
+    def unexec_proc(taskname):
+        """ среднее арифметическое весов исполняемых процедур
+        """
+        tmp = read.weights_of_exec_procs(taskname).values()
+        return sum(tmp) / len(tmp)
+else:
+    def unexec_proc(taskname):
+        return gl.DEFAULT_WEIGHT_FOR_PROC
+
 
 #--------------------------------------------
 #--------------------------------------------

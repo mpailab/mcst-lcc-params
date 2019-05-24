@@ -5,11 +5,11 @@
 import os, sys
 from subprocess import Popen, PIPE
 from functools import reduce
-try:
-    # Пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
-    import matplotlib.pyplot as plt
-except:
-    pass
+#try:
+    ## Пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
+    #import matplotlib.pyplot as plt
+#except:
+    #pass
 
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
 import global_vars as gl
@@ -180,13 +180,19 @@ change_globals(gval_dict)
 # ?Проверяем корректность значений глобальных переменных
 # cheak_globals()
 
+def cheak_globals():
+    # надо проверить
+    # для gl.specs:
+    #    - все спеки из gl.specs содержатся в заданном пакете спеков
+    #    - все указанные явно процедуры спеков в gl.specs действительно принадлежат этим спекам
+    pass
 
 # Все изменения глобальных переменных должны быть осуществелны до подключения следующих модулей.
 # Подключаем модули ИС
 import def_classes as dcl
-import weight as wht
-
 import read as rd
+
+import weight as wht
 import stat_adaptation as adt
     
 import smooth_stat as sth
@@ -325,6 +331,15 @@ def print_specs(spec_procs, output = None):
 
 # if __name__ == '__main__':
     # надо далее все сделать под этим if-ом
+
+
+if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+    # если мы сами не собираем статистику, то
+    # следует убедиться, что в папке gl.STAT_PATH она присутствует для всех спеков и их процедур из gl.specs
+    # если ее там нет в должном виде, то надо
+    #       1 вариант -> выдать ошибку
+    #       2 вариант -> собрать статистику в gl.STAT_PATH
+    pass
 
 # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
 strategy = get_strategy(gl.OPTIMIZATION_STRATEGY)

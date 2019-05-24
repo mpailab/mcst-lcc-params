@@ -717,13 +717,6 @@ def dcs_optimize(procs_dic,
         result_best = dict(result_default)
         val_F_best = val_F_default
     
-    if gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
-        # собрать статистику по фазе dcs
-        pass
-    else:
-        #? убедиться, что статистика по фазе dcs имеется
-        pass
-    
     dis = stat.get_dcs_dis(procs_dic)
     dcs_levels = list(range(0, gl.MAX_DCS_LEVEL + 1))
     for lv in dcs_levels:
