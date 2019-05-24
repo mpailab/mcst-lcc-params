@@ -40,7 +40,7 @@ def table(eff, coord):
     print
     
     
-def par_eff(parname):
+def par_eff(parname, mode = 0):
     '''Функция определяет эффективность параметра'''
     print 'Parname:', parname
     ef_Tc_cnt = 0
@@ -48,7 +48,8 @@ def par_eff(parname):
     ef_M_cnt = 0
     ef_F_cnt = 0
     task_cnt = 0
-    print ''.ljust(17) + ' ', 't_c'.rjust(5), 't_e'.rjust(5), 'mem'.rjust(5), 'F'.rjust(5)
+    # print ''.ljust(17) + ' ', 't_c'.rjust(5), 't_e'.rjust(5), 'mem'.rjust(5), 'F'.rjust(5)
+    print ''.ljust(17) + ' ', 't_c'.rjust(5), 't_e'.rjust(5), 'mem'.rjust(5), 'F'.rjust(5), 'parvalue'.rjust(10)
     for taskname in read.task_list():
         tresult = []
         filepath = gl.RUN_LOGS_PATH + '/' + taskname + '.' + parname + '.txt'
@@ -61,39 +62,65 @@ def par_eff(parname):
             #filepath = gl.RUN_LOGS_PATH + '/results_v5/' + taskname + '.' + parname + '.txt'
             #if os.path.exists(filepath):
                 #exist_resultfile = True
+        tresult = filter(lambda it: it[3] < 1. / 7, tresult)
         if len(tresult) != 0:
             task_cnt += 1
-            min_Tc = 0.
-            min_Te = 0.
-            min_M = 0.
-            min_F = 0.
+            min_Tc = tresult[0]
+            min_Te = tresult[0]
+            min_M = tresult[0]
+            min_F = tresult[0]
             for it in tresult:
-                if it[0] < min_Tc:
-                    min_Tc = it[0]
-                if it[1] < min_Te:
-                    min_Te = it[1]
-                if it[2] < min_M:
-                    min_M = it[2]
-                if it[3] < min_F:
-                    min_F = it[3]
-            if min_Tc < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
+                if it[0] < min_Tc[0]:
+                    min_Tc = it
+                if it[1] < min_Te[1]:
+                    min_Te = it
+                if it[2] < min_M[2]:
+                    min_M = it
+                if it[3] < min_F[3]:
+                    min_F = it
+            if min_Tc[0] < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
                 ef_Tc_cnt += 1
-            if min_Te < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
+            if min_Te[1] < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
                 ef_Te_cnt += 1
-            if min_M < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
+            if min_M[2] < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
                 ef_M_cnt += 1
-            if min_F < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
+            if min_F[3] < - gl.DEVIATION_PERCENT_OF_TcTeMemF:
                 ef_F_cnt += 1
-            print taskname.ljust(17) + ':', percent_view(min_Tc), percent_view(min_Te), percent_view(min_M), percent_view(min_F)
+            
+            print taskname.ljust(17) + ':',
+            if mode == -1:
+                 print percent_view(min_Tc[0]), percent_view(min_Te[1]), percent_view(min_M[2]), percent_view(min_F[3]),'  ', min_F[4]
+            elif mode == 0:
+                print percent_view(min_Tc[0]), percent_view(min_Tc[1]), percent_view(min_Tc[2]), percent_view(min_Tc[3]),'  ', min_Tc[4]
+            elif mode == 1:
+                print percent_view(min_Te[0]), percent_view(min_Te[1]), percent_view(min_Te[2]), percent_view(min_Te[3]),'  ', min_Te[4]
+            elif mode == 2:
+                print percent_view(min_M[0]), percent_view(min_M[1]), percent_view(min_M[2]), percent_view(min_M[3]),'  ', min_M[4]
+            elif mode == 3:
+                print percent_view(min_F[0]), percent_view(min_F[1]), percent_view(min_F[2]), percent_view(min_F[3]),'  ', min_F[4]
         #else:
         #    print 'There is not result for ', (taskname, parname)
     #print 'task_num =', task_cnt
-    print ('Cnt >=' + percent_view(gl.DEVIATION_PERCENT_OF_TcTeMemF)).ljust(17) + ':',
-    print str(ef_Tc_cnt).rjust(5), str(ef_Te_cnt).rjust(5), str(ef_M_cnt).rjust(5), str(ef_F_cnt).rjust(5)
+    #print ('Cnt >=' + percent_view(gl.DEVIATION_PERCENT_OF_TcTeMemF)).ljust(17) + ':',
+    #print str(ef_Tc_cnt).rjust(5), str(ef_Te_cnt).rjust(5), str(ef_M_cnt).rjust(5), str(ef_F_cnt).rjust(5)
     return ef_Tc_cnt, ef_Te_cnt, ef_M_cnt, ef_F_cnt
 
+def percent(array):
+    if len(array) == 0:
+        return []
+    item_default = tuple(array[0])
+    for item in array:
+        for ind in xrange(len(item) - 1):
+            item[ind] /= item_default[ind]
+            item[ind] -= 1
+    return array
+
 def percent_view(x, ndigits = 1):
-    tmp_str = str(abs(round(100 * x, ndigits))) + '%'
+    tmp = round(100 * x, ndigits)
+    if tmp != 0:
+        tmp = -tmp
+    tmp_str = str(tmp) + '%'
+    
     return tmp_str.rjust(5)
 
 def TcTeMemF_from_log_for_several_tasks(filepath, taskname):
@@ -295,16 +322,6 @@ def all_tasks_TcTeMem(human_format = False):
     
     #return result
 
-def percent(array):
-    if len(array) == 0:
-        return []
-    item_default = tuple(array[0])
-    for item in array:
-        for ind in xrange(len(item) - 1):
-            item[ind] /= item_default[ind]
-            item[ind] -= 1
-    return array
-
 def dcs_information_print():
     '''
     Печатает процент мертвых узлов, ребер и циклов в каждом спеке
@@ -336,15 +353,15 @@ def dcs_information_print():
     print ' Sum: ', reduce(lambda x, y: x + y, map(percent_view, dis))
 
 if __name__ == '__main__':
-    #eff_all_pars()
+    eff_all_pars()
     #dcs_information_print()
     #all_tasks_TcTeMem()
     #filepath = '/home/konoval/Эльбрус/nir_2018-2019/result_from_real_data/5tasks_some_results/ifconv_merge_heurall_tasks.txt'
     #taskname = '544.nab'
     #for el in TcTeMemF_from_log_for_several_tasks(filepath, taskname):
     #    print el
-    for parname in par.reg_seq + par.icv_seq:
-        print 'default_value_' + parname, '=', par.default_value[parname]
+    #for parname in par.reg_seq + par.icv_seq:
+    #    print 'default_value_' + parname, '=', par.default_value[parname]
     
 def resultfile_to_picture(filepath, taskname):
     iterations = read_logfile_function(filepath, taskname)

@@ -4,17 +4,17 @@
 # External imports
 import os, sys
 from subprocess import Popen, PIPE
-try:
-    # Пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
-    import matplotlib.pyplot as plt
-except:
-    pass
+#try:
+    ## Пробуем подключить библиотеку для отрисовки графики, которой нет в стандартной поставке python
+    #import matplotlib.pyplot as plt
+#except:
+    #pass
 
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
 import global_vars as gl
 
 # Путь по-умолчанию до конфигурационного файла
-DEFAULT_CONFIGURE_FILE_PATH = './choice/configuration.txt'
+DEFAULT_CONFIGURE_FILE_PATH = './choice/.config'
 
 ## Считываем опции
 # -o <outputdir> записывать вывод в файлы каталога (-) уже есть в конф. файле
@@ -168,14 +168,15 @@ def print_globals(types = None):
             if not type(val) in types:
                 continue
         print var, '=', val
-        
+
+
 # Читаем конфигурационный файл
 gval_dict = read_configure()
 # Инициализацием глобальные переменные
 change_globals(gval_dict)
 # Выводим на экран значения глобальных переменных
 # print_globals()
-# Проверяем корректность значений глобальных переменных
+# ?Проверяем корректность значений глобальных переменных
 # cheak_globals()
 
 
@@ -191,13 +192,13 @@ import smooth_stat as sth
 import calculate_TcTeMem as clc
     
 import optimize as opt
-import analyse as anl
-try:
-    # Импортирование модуля draw вызовет ошибку, если в системе нет необходимых библиотек (matplotlib для Python 2.7)
-    import draw as dr
-    draw_module_is_imported = True
-except:
-    draw_module_is_imported = False
+#import analyse as anl
+#try:
+    ## Импортирование модуля draw вызовет ошибку, если в системе нет необходимых библиотек (matplotlib для Python 2.7)
+    #import draw as dr
+    #draw_module_is_imported = True
+#except:
+    #draw_module_is_imported = False
 
 def get_strategy(strategy_in_line_format):
     """
@@ -248,8 +249,8 @@ def get_strategy(strategy_in_line_format):
     
     if bool(result) == False: # если список пустой
         print 'Error! The optimization strategy is empty'
-        print 'Posible reason: there is not any valid parametor of LCC in the strategy or'
-        print '                all parametors group in the strategy are not valid'
+        print 'Posible reason: there is not any valid parametor of LCC in the strategy'
+        print '                or all parametors groups in the strategy are not valid'
         print_format()
         sys.exit()
     
@@ -318,7 +319,12 @@ def print_specs(spec_procs, output = None):
             print >> output, whitespace, specname + ': ' + reduce(lambda x, y: x + ', ' + y, proclist)
         else:
             print >> output, whitespace, specname
-    
+
+
+# if __name__ == '__main__':
+    # надо далее все сделать под этим if-ом
+
+# Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
 strategy = get_strategy(gl.OPTIMIZATION_STRATEGY)
 spec_procs = get_specs(gl.specs)
 # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
