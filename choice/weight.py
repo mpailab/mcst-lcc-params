@@ -1,4 +1,4 @@
-﻿#!/usr/bin/python
+﻿#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """ содержит определения весов
@@ -89,9 +89,9 @@ else:
 def normolize_to_percents(array, norm_value = None):
     if norm_value == None:
         norm_value = sum(array)
-    return map(lambda x: 100 * x / norm_value, array)
+    return [100 * x / norm_value for x in array]
 
 def normolize_dict(dic):
     norm_value = sum(dic.values())
-    for key in dic.keys():
+    for key in list(dic.keys()):
         dic[key] = dic[key] / norm_value

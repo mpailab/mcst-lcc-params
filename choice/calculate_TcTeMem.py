@@ -1,4 +1,4 @@
-﻿#!/usr/bin/python
+﻿#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # External imports
@@ -20,7 +20,7 @@ def get_cmd_pars(task_name, par_value, procname_list = None, output = None):
     cmd = task_name 
     if len(par_value) != 0 or procname_list != None:
         cmd += ' \"'
-        for par_name in par_value.iterkeys():
+        for par_name in par_value.keys():
             if par.val_type[par_name] == float:
                 cmd += '--letf=' + par_name + ':' + str(par_value[par_name]) + ' '
             elif par.val_type[par_name] == int:
@@ -48,13 +48,13 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
     
     if separate_procs:
         elements = []
-        for taskname, procname_list in procs_dic.iteritems():
+        for taskname, procname_list in procs_dic.items():
             if procname_list == None:
                 raise BaseException('Warning: there are many runs for run.sh')
             for procname in procname_list:
                 elements.append((taskname, procname))
     else:
-        elements = procs_dic.keys()
+        elements = list(procs_dic.keys())
         
     
     # Вычисляем абсолютный путь к скриптам SCRIPT_COMP, SCRIPT_EXEC, SCRIPT_COMP_WITH_STAT
@@ -76,13 +76,13 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             cmd_pars = get_cmd_pars(el, par_value, procs_dic[el], output)
             
         cmd_comp = SCRIPT_COMP + ' ' + cmd_pars
-        print >> output, cmd_comp
+        print(cmd_comp, file=output)
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
-        print >> output, "comp_time#" + tmp_result[0],
+        print("comp_time#" + str(tmp_result[0]), end=' ', file=output)
         if comp_proc.returncode:
-            print >> output, 'comp_error#' + tmp_result[1],
+            print('comp_error#' + str(tmp_result[1]), end=' ', file=output)
         try:
             result_comp[el] = float(tmp_result[0])
         except ValueError as error:
@@ -93,9 +93,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         if el != elements[0]:
             exec_proc.wait()
             tmp_result = exec_proc.communicate()
-            print >> output, "exec_time#" + tmp_result[0],
+            print("exec_time#" + str(tmp_result[0]), end=' ', file=output)
             if exec_proc.returncode:
-                print >> output, 'exec_error#' + tmp_result[1]
+                print('exec_error#' + str(tmp_result[1]), file=output)
             try:
                 result_exec[el_pred] = float(tmp_result[0])
             except ValueError as error:
@@ -104,18 +104,18 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
                 raise ExternalScriptError(error)
         
         cmd_exec = SCRIPT_EXEC + ' ' + cmd_pars + ' \"' + tmpdir_path + '\"'
-        print >> output, cmd_exec
+        print(cmd_exec, file=output)
         exec_proc = Popen(cmd_exec, shell=True, stdout=PIPE, stderr=PIPE)
         el_pred = el
         
         cmd_comp = SCRIPT_COMP_WITH_STAT + ' ' + cmd_pars
-        print >> output, cmd_comp
+        print(cmd_comp, file=output)
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
-        print >> output, "max_mem#" + tmp_result[0],
+        print("max_mem#" + str(tmp_result[0]), end=' ', file=output)
         if comp_proc.returncode:
-            print >> output, 'comp_with_stat_error#' + tmp_result[1]
+            print('comp_with_stat_error#' + str(tmp_result[1]), file=output)
         try:
             result_maxmem[el] = float(tmp_result[0])
         except ValueError as error:
@@ -125,9 +125,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         
     exec_proc.wait()
     tmp_result = exec_proc.communicate()
-    print >> output, "exec_time#" + tmp_result[0],
+    print("exec_time#" + str(tmp_result[0]), end=' ', file=output)
     if exec_proc.returncode:
-        print >> output, 'exec_error#' + tmp_result[1]
+        print('exec_error#' + str(tmp_result[1]), file=output)
     try:
         result_exec[el_pred] = float(tmp_result[0])
     except ValueError as error:

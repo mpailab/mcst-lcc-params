@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # External imports
 import sys, getopt
 
@@ -79,7 +80,7 @@ def read(argv):
                                                    "every", "smooth", "group", "dcs",
                                                    "pars=", "specs="])
     except getopt.GetoptError:
-        print usage()
+        print(usage())
         sys.exit(2)
     
     
@@ -90,7 +91,7 @@ def read(argv):
 
     for opt, arg in opts:
         if opt == '-h':
-            print usage()
+            print(usage())
             sys.exit()
 
         elif opt in ("-o", "--odir"):

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/python
+﻿#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """
@@ -6,7 +6,7 @@
 """
 
 # External imports
-from __future__ import division # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
+ # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
 from os import listdir
 
 # Internal imports
@@ -107,7 +107,7 @@ def proc_read(procpath):
                 nodenum = words[1].split(':')[1]
                 if hnum != nodenum:
                     # голову региона не будем добавлять в узлы
-                    if not proc.regions[hnum].nodes.has_key(nodenum):
+                    if nodenum not in proc.regions[hnum].nodes:
                         proc.regions[hnum].nodes[nodenum] = Node()
                     chname = words[2].split(':')[0]
                     if chname == 'v':
@@ -153,7 +153,7 @@ def icv_proc_read(procpath):
             if reg_charname == 'E':
                 # В этом случае в strr записана характеристика участка
                 enum = words[1].split(':')[1]
-                if not proc.regions[hnum].sects.has_key(enum):
+                if enum not in proc.regions[hnum].sects:
                     proc.regions[hnum].sects[enum] = Node() # програмно участок ведет себя как класс Node
                 chname = words[2].split(':')[0]
                 value = words[2].split(':')[1]
@@ -178,7 +178,7 @@ def icv_proc_read(procpath):
 def dcs_proc(taskname, procname, difference_from_levels = True):
     procpath = gl.STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
     proc = [None] # proc[0] = None -> нет нулевого уровня оптимизации
-    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+    dcs_levels = list(range(1, gl.MAX_DCS_LEVEL + 1))
     for lv in dcs_levels:
         proc.append(dcs_level(procpath, lv)) # proc[lv] -- результат оптимизации на уровне lv
     if difference_from_levels == True:

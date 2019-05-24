@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # External imports
@@ -25,13 +25,13 @@ from optimize import optimize, seq_optimize, dcs_optimize
 
 if options.is_seq:
 
-    print 'Group optimization'
+    print('Group optimization')
 
     for spec in options.specs:
 
         if options.outputdir == 'NONE':
-            print "---------------------------------------------------------------------------"
-            print "Spec:", spec
+            print("---------------------------------------------------------------------------")
+            print("Spec:", spec)
             ffile = None
         else:
             sys.stdout.write( "Spec " + spec + " ...")
@@ -53,20 +53,20 @@ if options.is_seq:
                           output = ffile)
 
         except calc.ExternalScriptError as error:
-            print 'fail'
-            print 'calc.ExternalScriptError:', error
+            print('fail')
+            print('calc.ExternalScriptError:', error)
         else:
-            print "ok" 
+            print("ok") 
 
 elif options.is_dcs:
 
-    print 'Dcs optimization'
+    print('Dcs optimization')
 
     for spec in options.specs:
 
         if options.outputdir == 'NONE':
-            print "---------------------------------------------------------------------------"
-            print "Spec:", spec
+            print("---------------------------------------------------------------------------")
+            print("Spec:", spec)
             ffile = None
         else:
             sys.stdout.write( "Spec " + spec + " ...")
@@ -75,20 +75,19 @@ elif options.is_dcs:
         try:
             dcs_optimize( { spec : None },
                           dcs_zero_limit = 0.001,
-                          output = ffile,
-                          nesting_off_attempt = True)
+                          output = ffile)
 
         except calc.ExternalScriptError as error:
-            print 'fail'
-            print 'calc.ExternalScriptError:', error
+            print('fail')
+            print('calc.ExternalScriptError:', error)
         else:
-            print "ok" 
+            print("ok") 
 
 elif options.is_every_proc:
 
     for spec in options.specs:
-        print "---------------------------------------------------------------------------"
-        print "Spec:", spec
+        print("---------------------------------------------------------------------------")
+        print("Spec:", spec)
         
         dis_regpars = get_dis_regpar({ spec : None })
         weight.normolize_dict(dis_regpars)
@@ -99,7 +98,7 @@ elif options.is_every_proc:
         for par in options.pars:
 
             if options.outputdir == 'NONE':
-                print "Parameter:", spec
+                print("Parameter:", spec)
                 ffile = None
             else:
                 sys.stdout.write( "Parameter " + par + " ...")
@@ -113,13 +112,13 @@ elif options.is_every_proc:
                         dis_icvpar = dis_icvpars)
 
             except calc.ExternalScriptError as error:
-                print 'fail'
-                print 'calc.ExternalScriptError:', error
+                print('fail')
+                print('calc.ExternalScriptError:', error)
             else:
-                print "ok"   
+                print("ok")   
 else:
-    print "---------------------------------------------------------------------------"
-    print "All tasks ..."
+    print("---------------------------------------------------------------------------")
+    print("All tasks ...")
 
     sum_dis_regpars = {}
     sum_dis_icvpars = {}
@@ -132,14 +131,14 @@ else:
     for par in options.pars:
 
         if options.outputdir == 'NONE':
-            print "Parameter:", spec
+            print("Parameter:", spec)
             ffile = None
         else:
             sys.stdout.write( "Parameter " + par + " ...")
             ffile = open('./' + options.outputdir + '/' + spec + '.all.txt', 'w', 0)
 
         try:
-            optimize( { options.specs[i] : None for i in xrange(0, len(options.specs)) },
+            optimize( { options.specs[i] : None for i in range(0, len(options.specs)) },
                         [ par ],
                         every_proc_is_individual_task = False, 
                         output = ffile,
@@ -147,7 +146,7 @@ else:
                         dis_icvpar = sum_dis_icvpars)
 
         except calc.ExternalScriptError as error:
-            print 'fail'
-            print 'calc.ExternalScriptError:', error
+            print('fail')
+            print('calc.ExternalScriptError:', error)
         else:
-            print "ok"
+            print("ok")

@@ -1,8 +1,7 @@
-﻿#!/usr/bin/python
+﻿#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # External imports
-from __future__ import division # деление как в питон 3, т.е. вместо 3 / 2 = 1 будет 3 / 2 = 1.5
 from copy import deepcopy
 import math, random
 from sys import maxsize
@@ -14,6 +13,7 @@ import par
 import weight
 import smooth_stat as sm
 import stat_adaptation as stat
+from functools import reduce
 
 
 
@@ -94,7 +94,7 @@ def F(list_trio):
 
 def calculate_F(values, values_default):
     list_rel_trio = []
-    for key in values.iterkeys():
+    for key in values.keys():
         trio = values[key]
         trio_default = values_default[key]
         rel_trio = (trio[0] / trio_default[0], trio[1] / trio_default[1], trio[2] / trio_default[2])
@@ -112,7 +112,7 @@ def condition(x_list, coord, old_pv_list, new_pv_list, index_0_flag, index_1_fla
         x = x_list[1]
         if not (par.cond[parname](x, old_pv_list[1]) and par.cond[parname](x, new_pv_list[1])):
             return False
-    for i in xrange(2, coord):
+    for i in range(2, coord):
         parname = par.reg_seq[i]
         x = x_list[i]
         if not (par.cond[parname](x, old_pv_list[i]) and par.cond[parname](x, new_pv_list[i])):
@@ -120,7 +120,7 @@ def condition(x_list, coord, old_pv_list, new_pv_list, index_0_flag, index_1_fla
     return True
 
 def icv_condition(x_list, coord, old_pv_list, new_pv_list):
-    for i in xrange(coord):
+    for i in range(coord):
         parname = par.icv_seq[i]
         x = x_list[i]
         if not (par.cond[parname](x, old_pv_list[i]) and par.cond[parname](x, new_pv_list[i])):
@@ -168,7 +168,7 @@ def find_position(value, array, coord):
         left = 'left_limit'
         right = 0
         return (left, right)
-    for i in xrange(len_array - 1):
+    for i in range(len_array - 1):
         a_i = array[i][coord]
         a_si = array[i+1][coord]
         if value == a_i:
@@ -203,7 +203,7 @@ def get_icv_parnames(parname_list):
 def pv_list_from_dic(pv_dic, parnames):
     tmp_list = []
     for parname in parnames:
-        if pv_dic.has_key(parname):
+        if parname in pv_dic:
             tmp_list.append(pv_dic[parname])
         else:
             tmp_list.append(par.default_value[parname])
@@ -281,7 +281,7 @@ def optimize(procs_dic, par_names,
             result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print >> output, 'F(...) = ', val_F_start
+            print('F(...) = ', val_F_start, file=output)
             
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
@@ -289,8 +289,8 @@ def optimize(procs_dic, par_names,
     # инициализация текущего значения функционала
     val_F_current = val_F_start
     par_current_value = dict(par_start_value)
-    print >> output, 'F_start = ', val_F_current
-    print >> output
+    print('F_start = ', val_F_current, file=output)
+    print(file=output)
     
     # установка начальных значений для лучшего значения функционала F, лучшего значения параметра
     # и шага алгоритма, на котором они достигаются
@@ -321,20 +321,20 @@ def optimize(procs_dic, par_names,
     
     # если value_par[parname] == [], то выкинуть parname из reg_parnames (icv_parnames)
     # т.е., если нет возможных значений для parname, то оптимизировать по нему не надо
-    reg_parnames = filter(lambda par: value_par[par], reg_parnames)
-    icv_parnames = filter(lambda par: value_par[par], icv_parnames)
+    reg_parnames = [par for par in reg_parnames if value_par[par]]
+    icv_parnames = [par for par in icv_parnames if value_par[par]]
     
     # если списки reg_parnames и icv_parnames оба пусты
     if not reg_parnames and not icv_parnames:
-        print >> output, 'Scale of posible values for parametors is empty'
-        print >> output, 'For solve this problem increase a number of optimizated procedures'
-        print >> output, 'Interrupt optimization'
-        print >> output
-        print >> output, 'The best values for parametors are', par_best_value
-        print >> output, 'The best values were found for', i_for_best_value, 'iterations of algorithm'
-        print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
-        print >> output, 'The best (t_c, t_e, m) is', result_best
-        print >> output, 'The best value for F is', val_F_best
+        print('Scale of posible values for parametors is empty', file=output)
+        print('For solve this problem increase a number of optimizated procedures', file=output)
+        print('Interrupt optimization', file=output)
+        print(file=output)
+        print('The best values for parametors are', par_best_value, file=output)
+        print('The best values were found for', i_for_best_value, 'iterations of algorithm', file=output)
+        print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
+        print('The best (t_c, t_e, m) is', result_best, file=output)
+        print('The best value for F is', val_F_best, file=output)
         return (par_best_value, val_F_best, result_best)
     
     # вычисление сглаженных распределений параметров (если соответстующая опция включена в smooth_stat)
@@ -369,7 +369,7 @@ def optimize(procs_dic, par_names,
     ind = 0
     while (iterr < gl.MAX_NUMBER_ITERATIONS or (iterr < 3 * gl.MAX_NUMBER_ITERATIONS and (iterr <= i_for_best_value + 1))):
         iterr += 1
-        print >> output, 'Iteration ' + str(iterr) + ':'
+        print('Iteration ' + str(iterr) + ':', file=output)
         
         if new_stat_for_every_step and current_to_candidate:
             # ind = F_run_result[0].index(par_candidate_value) # ind уже вычисляли ранее
@@ -422,15 +422,15 @@ def optimize(procs_dic, par_names,
         current_icv_pv_list = pv_list_from_dic(par_current_value, par.icv_seq)
         
         max_step = temperature(j_for_temperature)
-        print >> output, 'Temperature:', str(max_step * 100) + '%'
-        for attempt in xrange(gl.MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION + 1):
+        print('Temperature:', str(max_step * 100) + '%', file=output)
+        for attempt in range(gl.MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION + 1):
             # сдвигаемся в случайную точку, отстоящую не больше чем на max_step
             if attempt != gl.MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION:
                 #step_iterr_sum = abs(random.gauss(0, max_step))
                 step_iterr_sum = abs(distribution(max_step))
             else:
                 step_iterr_sum = max_step
-            print >> output, 'Max sum of steps for all parametors:', str(step_iterr_sum * 100) + '%'
+            print('Max sum of steps for all parametors:', str(step_iterr_sum * 100) + '%', file=output)
                 
             step_iterr = {}
             for parnames in [reg_parnames, icv_parnames]:
@@ -447,19 +447,19 @@ def optimize(procs_dic, par_names,
                 koef_tmp = step_iterr_sum / sum_tmp
                 for parname in parnames:
                     step_iterr[parname] *= koef_tmp
-            print >> output, 'Steps for parametors:'
-            print >> output, ' ', step_iterr
+            print('Steps for parametors:', file=output)
+            print(' ', step_iterr, file=output)
             
-            print >> output, 'Directions for parametors:'
+            print('Directions for parametors:', file=output)
             attempt_is_bad = True
             new_reg_pv_list = []
             par_candidate_value = {}
             position_candidate = {}
             for parname in reg_parnames:
                 coord = par.index_in_reg_seq[parname]
-                for i in xrange(len(new_reg_pv_list), coord):
+                for i in range(len(new_reg_pv_list), coord):
                     tmp_parname = par.reg_seq[i]
-                    if par_start_value.has_key(tmp_parname):
+                    if tmp_parname in par_start_value:
                         new_reg_pv_list.append(par_start_value[tmp_parname])
                     else:
                         new_reg_pv_list.append(par.default_value[tmp_parname])
@@ -477,13 +477,13 @@ def optimize(procs_dic, par_names,
                     right_list = value_par[parname][position[parname]:]
                     position_shift = shift(right_list, step_iterr[parname], sm_dis[parname], cond)
                     position_shift = corr_shift(right_list, position_shift, coord)
-                    print >> output, ' ', parname, ': ->'
+                    print(' ', parname, ': ->', file=output)
                 else:
                     left_list = value_par[parname][:position[parname]]
                     left_list.reverse()
                     position_shift = shift(left_list, step_iterr[parname], sm_dis[parname], cond)
                     position_shift = - corr_shift(left_list, position_shift, coord)
-                    print >> output, ' ', parname, ': <-'
+                    print(' ', parname, ': <-', file=output)
                 if position_shift != 0:
                     attempt_is_bad = False
                     
@@ -497,9 +497,9 @@ def optimize(procs_dic, par_names,
             new_icv_pv_list = []
             for parname in icv_parnames:
                 coord = par.index_in_icv_seq[parname]
-                for i in xrange(len(new_icv_pv_list), coord):
+                for i in range(len(new_icv_pv_list), coord):
                     tmp_parname = par.icv_seq[i]
-                    if par_start_value.has_key(tmp_parname):
+                    if tmp_parname in par_start_value:
                         new_icv_pv_list.append(par_start_value[tmp_parname])
                     else:
                         new_icv_pv_list.append(par.default_value[tmp_parname])
@@ -509,13 +509,13 @@ def optimize(procs_dic, par_names,
                     right_list = value_par[parname][position[parname]:]
                     position_shift = shift(right_list, step_iterr[parname], sm_dis[parname], cond)
                     position_shift = corr_shift(right_list, position_shift, coord)
-                    print >> output, ' ', parname, ': ->'
+                    print(' ', parname, ': ->', file=output)
                 else:
                     left_list = value_par[parname][:position[parname]]
                     left_list.reverse()
                     position_shift = shift(left_list, step_iterr[parname], sm_dis[parname], cond)
                     position_shift = - corr_shift(left_list, position_shift, coord)
-                    print >> output, ' ', parname, ': <-'
+                    print(' ', parname, ': <-', file=output)
                 if position_shift != 0:
                     attempt_is_bad = False
                 position_candidate[parname] = position[parname] + position_shift
@@ -529,8 +529,8 @@ def optimize(procs_dic, par_names,
             else:
                 break
         else:
-            print >> output, 'There is not variants for candidate values in step', iterr, 'of the algorithm'
-            print >> output
+            print('There is not variants for candidate values in step', iterr, 'of the algorithm', file=output)
+            print(file=output)
             #if gl.DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
             #        j_for_temperature += 1
             continue
@@ -541,7 +541,7 @@ def optimize(procs_dic, par_names,
         
         candidate_is_new = False
         if par_candidate_value in F_run_result[0]:
-            print >> output, 'There is F(result of run.sh on par_dict = ' + str(par_candidate_value) + ') in our database'
+            print('There is F(result of run.sh on par_dict = ' + str(par_candidate_value) + ') in our database', file=output)
             ind = F_run_result[0].index(par_candidate_value)
             val_F_candidate = F_run_result[1][ind]
         else:
@@ -554,7 +554,7 @@ def optimize(procs_dic, par_names,
             F_run_result[2].append(None)
             F_run_result[3].append(None)
             ind = -1
-        print >> output, 'F(...) = ', val_F_candidate
+        print('F(...) = ', val_F_candidate, file=output)
         
         if val_F_candidate < val_F_best:
             par_best_value = dict(par_candidate_value)
@@ -573,7 +573,7 @@ def optimize(procs_dic, par_names,
             j_for_temperature += 1
             if not new_stat_for_every_step:
                     position = position_candidate
-            print >> output, 'Moving to the better value'
+            print('Moving to the better value', file=output)
         else:
             delta_val_F = val_F_candidate - val_F_current
             chance_move = math.exp(- delta_val_F / temperature(j_for_temperature))
@@ -584,20 +584,20 @@ def optimize(procs_dic, par_names,
                 j_for_temperature += 1
                 if not new_stat_for_every_step:
                     position = position_candidate
-                print >> output, 'Moving to the not better value with chance_move =', chance_move
+                print('Moving to the not better value with chance_move =', chance_move, file=output)
             else:
                 if gl.DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
                     j_for_temperature += 1
-                print >> output, 'Not moving to the candidate value with chance_move =', chance_move
+                print('Not moving to the candidate value with chance_move =', chance_move, file=output)
         
         # current_to_new_candidate = current_to_candidate and candidate_is_new
-        print >> output
+        print(file=output)
     
-    print >> output, 'The best values for parametors are', par_best_value
-    print >> output, 'The best values were found for', i_for_best_value, 'iterations of algorithm'
-    print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
-    print >> output, 'The best (t_c, t_e, m) is', result_best
-    print >> output, 'The best value for F is', val_F_best
+    print('The best values for parametors are', par_best_value, file=output)
+    print('The best values were found for', i_for_best_value, 'iterations of algorithm', file=output)
+    print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
+    print('The best (t_c, t_e, m) is', result_best, file=output)
+    print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
 
@@ -619,10 +619,10 @@ def seq_optimize(procs_dic, pargroup_seq,
     val_F_current = None
     result_current = None
     for par_group in pargroup_seq:
-        print >> output, "---------------------------------------------------------------------------"
-        print >> output, "Parameters:", str(par_group)
+        print("---------------------------------------------------------------------------", file=output)
+        print("Parameters:", str(par_group), file=output)
         
-        is_dcs_pargroup = reduce(lambda x, y: x and y, map(lambda p: p in par.dcs or p == 'dcs', par_group))
+        is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in par_group])
         is_nesting_pargroup = len(par_group) == 1 and par_group[0] in par.nesting
         
         if is_dcs_pargroup:
@@ -654,10 +654,10 @@ def seq_optimize(procs_dic, pargroup_seq,
                                                                         val_F_start = val_F_current,
                                                                         result_start = result_current)
     
-    print >> output
-    print >> output, 'The final best value for pars is', par_current_value
-    print >> output, 'The final (t_c, t_e, m) is', result_current
-    print >> output, 'The final value for F is', val_F_current
+    print(file=output)
+    print('The final best value for pars is', par_current_value, file=output)
+    print('The final (t_c, t_e, m) is', result_current, file=output)
+    print('The final value for F is', val_F_current, file=output)
         
     return par_current_value, val_F_current, result_current
 
@@ -700,12 +700,12 @@ def dcs_optimize(procs_dic,
             result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print >> output, 'F(...) = ', val_F_start
+            print('F(...) = ', val_F_start, file=output)
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
     
     par_value = dict(par_start_value)
-    print >> output, 'F_start = ', val_F_start
+    print('F_start = ', val_F_start, file=output)
     
     # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
     if val_F_start < val_F_default:
@@ -725,10 +725,10 @@ def dcs_optimize(procs_dic,
         pass
     
     dis = stat.get_dcs_dis(procs_dic)
-    dcs_levels = range(0, gl.MAX_DCS_LEVEL + 1)
+    dcs_levels = list(range(0, gl.MAX_DCS_LEVEL + 1))
     for lv in dcs_levels:
-        print >> output
-        print >> output, 'dcs_level:', lv
+        print(file=output)
+        print('dcs_level:', lv, file=output)
         if lv == 0 or dis[lv] > dcs_zero_limit:
             if lv == 0:
                 if not check_zero_level:
@@ -737,24 +737,24 @@ def dcs_optimize(procs_dic,
             else:
                 par_value.update({'dcs_kill': True, 'dcs_level': lv})
             if par_value == par_start_value:
-                print >> output, 'Result of dcs optimization in the level', lv, 'is already known'
+                print('Result of dcs optimization in the level', lv, 'is already known', file=output)
                 continue
             result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
-            print >> output, 'F(...) = ', val_F_candidate
+            print('F(...) = ', val_F_candidate, file=output)
             if val_F_candidate < val_F_best:
                 par_best_value = dict(par_value)
                 result_best = dict(result_candidate)
                 val_F_best = val_F_candidate
         else:
-            print >> output, 'Dcs optimization in the level', lv, 'will not be effective'
+            print('Dcs optimization in the level', lv, 'will not be effective', file=output)
     
-    print >> output
-    print >> output, 'The best values for parametors are', par_best_value
-    print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
-    print >> output, 'The best (t_c, t_e, m) is', result_best
-    print >> output, 'The best value for F is', val_F_best
+    print(file=output)
+    print('The best values for parametors are', par_best_value, file=output)
+    print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
+    print('The best (t_c, t_e, m) is', result_best, file=output)
+    print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
     
@@ -791,12 +791,12 @@ def optimize_bool_par(procs_dic, parname,
             result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag, output = output)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print >> output, 'F(...) = ', val_F_start
+            print('F(...) = ', val_F_start, file=output)
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
             
-    print >> output, 'F_start = ', val_F_start
-    print >> output
+    print('F_start = ', val_F_start, file=output)
+    print(file=output)
     
     # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
     if val_F_start < val_F_default:
@@ -811,23 +811,23 @@ def optimize_bool_par(procs_dic, parname,
     par_value = dict(par_start_value)
     # пробуем другое значение для булевой переменной, по которой хотим произвести оптимизацию
     par_value[parname] = not par_value[parname]
-    print >> output, 'Switch parametor', parname, 'to value : ', par_value[parname]
+    print('Switch parametor', parname, 'to value : ', par_value[parname], file=output)
     
     result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag, output = output)
     j_for_exec_run += 1
     val_F_candidate = calculate_F(result_candidate, result_default)
-    print >> output, 'F(...) = ', val_F_candidate
+    print('F(...) = ', val_F_candidate, file=output)
     
     if val_F_candidate < val_F_best:
         par_best_value = dict(par_value)
         result_best = dict(result_candidate)
         val_F_best = val_F_candidate
     
-    print >> output
-    print >> output, 'The best values for parametors are', par_best_value
-    print >> output, 'The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times'
-    print >> output, 'The best (t_c, t_e, m) is', result_best
-    print >> output, 'The best value for F is', val_F_best
+    print(file=output)
+    print('The best values for parametors are', par_best_value, file=output)
+    print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
+    print('The best (t_c, t_e, m) is', result_best, file=output)
+    print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
     
