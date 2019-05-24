@@ -80,9 +80,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
-        print("comp_time#" + str(tmp_result[0]), end=' ', file=output)
+        print("comp_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
         if comp_proc.returncode:
-            print('comp_error#' + str(tmp_result[1]), end=' ', file=output)
+            print('comp_error#' + tmp_result[1].decode('utf-8'), file=output)
         try:
             result_comp[el] = float(tmp_result[0])
         except ValueError as error:
@@ -93,9 +93,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         if el != elements[0]:
             exec_proc.wait()
             tmp_result = exec_proc.communicate()
-            print("exec_time#" + str(tmp_result[0]), end=' ', file=output)
+            print("exec_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
             if exec_proc.returncode:
-                print('exec_error#' + str(tmp_result[1]), file=output)
+                print('exec_error#' + tmp_result[1].decode('utf-8'), file=output)
             try:
                 result_exec[el_pred] = float(tmp_result[0])
             except ValueError as error:
@@ -113,9 +113,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
-        print("max_mem#" + str(tmp_result[0]), end=' ', file=output)
+        print("max_mem#" + tmp_result[0].decode('utf-8'), end='', file=output)
         if comp_proc.returncode:
-            print('comp_with_stat_error#' + str(tmp_result[1]), file=output)
+            print('comp_with_stat_error#' + tmp_result[1].decode('utf-8'), file=output)
         try:
             result_maxmem[el] = float(tmp_result[0])
         except ValueError as error:
@@ -125,9 +125,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         
     exec_proc.wait()
     tmp_result = exec_proc.communicate()
-    print("exec_time#" + str(tmp_result[0]), end=' ', file=output)
+    print("exec_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
     if exec_proc.returncode:
-        print('exec_error#' + str(tmp_result[1]), file=output)
+        print('exec_error#' + tmp_result[1].decode('utf-8'), file=output)
     try:
         result_exec[el_pred] = float(tmp_result[0])
     except ValueError as error:
