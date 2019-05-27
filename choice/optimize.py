@@ -718,7 +718,7 @@ def dcs_optimize(procs_dic,
         val_F_best = val_F_default
     
     dis = stat.get_dcs_dis(procs_dic)
-    dcs_levels = list(range(0, gl.MAX_DCS_LEVEL + 1))
+    dcs_levels = range(0, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
         print(file=output)
         print('dcs_level:', lv, file=output)

@@ -121,5 +121,5 @@ def normolize_to_percents(array, norm_value = None):
 
 def normolize_dict(dic):
     norm_value = sum(dic.values())
-    for key in list(dic.keys()):
+    for key in dic.keys():
         dic[key] = dic[key] / norm_value

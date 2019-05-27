@@ -43,7 +43,7 @@ def get_globals_names(types = None):
         else:
             return False
         
-    result = [x for x in list(gl.__dict__.keys()) if x[0] != '_'] # игнорируем переменные, которые начинаются с символа '_'
+    result = [x for x in gl.__dict__.keys() if x[0] != '_'] # игнорируем переменные, которые начинаются с символа '_'
     if types != None:
         return list(filter(filterfunc, result))
     else:
@@ -218,7 +218,7 @@ def get_strategy(strategy_in_line_format):
         print('<parname> [<parname>]')
     
     def par_filt(parname):
-        if parname in list(par.val_type.keys()) or parname == 'dcs':
+        if parname in par.val_type.keys() or parname == 'dcs':
             return True
         else:
             print('Warning! Unknown parametor of LCC in the strategy :', parname)
@@ -315,7 +315,7 @@ def encode_specs(spec_procs):
             return specname
         else:
             return specname + ': ' + reduce(lambda x, y: x + ' ' + y, proclist)
-    return reduce(lambda x, y: x + ', ' + y, list(map(sp_encode, list(spec_procs.items()))))
+    return reduce(lambda x, y: x + ', ' + y, map(sp_encode, spec_procs.items()))
 
 def print_specs(spec_procs, output = None):
     """

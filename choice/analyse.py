@@ -35,7 +35,7 @@ def table(eff, coord):
     coord = 3 -> F
     '''
     array = list(eff.items())
-    array.sort(lambda x, y: cmp(x[1][coord], y[1][coord]))
+    array.sort(key = lambda x: x[1][coord])
     for (parname, it) in array:
         print(parname.ljust(26) + ':', it[coord])
     print()
@@ -210,7 +210,7 @@ def TcTeMemF(filepath):
         parvalue = par.val_type[parname](parvalue_str)
         
         trio = strs[1][1:].split()
-        t_c, t_e, mem = list(map(float, trio))
+        t_c, t_e, mem = map(float, trio)
         
         Fvalue = float(strs[2].split()[2])
         
@@ -331,31 +331,31 @@ def dcs_information_print():
     '''
     Печатает процент мертвых узлов, ребер и циклов в каждом спеке
     '''
-    dcs_levels = list(range(1, gl.MAX_DCS_LEVEL + 1))
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for task in read.task_list():
         print(task)
         print(' lv:  ', reduce(lambda x, y: x + y, [str(x).rjust(4) + ' ' for x in dcs_levels]))
         dis = get_dcs_dis({task: None}, 1, 0, 0)[1:]
-        print(' N:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+        print(' N:   ', reduce(lambda x, y: x + y, map(percent_view, dis)))
         dis = get_dcs_dis({task: None}, 0, 1, 0)[1:]
-        print(' E:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+        print(' E:   ', reduce(lambda x, y: x + y, map(percent_view, dis)))
         dis = get_dcs_dis({task: None}, 0, 0, 1)[1:]
-        print(' L:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+        print(' L:   ', reduce(lambda x, y: x + y, map(percent_view, dis)))
         dis = get_dcs_dis({task: None}, 1, 1, 1)[1:]
-        print(' Sum: ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+        print(' Sum: ', reduce(lambda x, y: x + y, map(percent_view, dis)))
         print()
     
     print('All tasks')
     procs_dic = {task: None for task in read.task_list()}
     print(' lv:  ', reduce(lambda x, y: x + y, [str(x).rjust(4) + ' ' for x in dcs_levels]))
     dis = get_dcs_dis(procs_dic, 1, 0, 0)[1:]
-    print(' N:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+    print(' N:   ', reduce(lambda x, y: x + y, map(percent_view, dis)))
     dis = get_dcs_dis(procs_dic, 0, 1, 0)[1:]
-    print(' E:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+    print(' E:   ', reduce(lambda x, y: x + y, map(percent_view, dis)))
     dis = get_dcs_dis(procs_dic, 0, 0, 1)[1:]
-    print(' L:   ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+    print(' L:   ', reduce(lambda x, y: x + y, map(percent_view, dis)))
     dis = get_dcs_dis(procs_dic, 1, 1, 1)[1:]
-    print(' Sum: ', reduce(lambda x, y: x + y, list(map(percent_view, dis))))
+    print(' Sum: ', reduce(lambda x, y: x + y, map(percent_view, dis)))
 
 if __name__ == '__main__':
     eff_all_pars()

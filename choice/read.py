@@ -154,7 +154,7 @@ def icv_proc_read(procpath):
 def dcs_proc(taskname, procname, difference_from_levels = True):
     procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
     proc = [None] # proc[0] = None -> нет нулевого уровня оптимизации
-    dcs_levels = list(range(1, gl.MAX_DCS_LEVEL + 1))
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
         proc.append(dcs_level(procpath, lv)) # proc[lv] -- результат оптимизации на уровне lv
     if difference_from_levels == True:

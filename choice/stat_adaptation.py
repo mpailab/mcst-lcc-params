@@ -61,15 +61,15 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
             if proc_max_cnt == 0:
                 return {}
             sum_reg_cnt = 0
-            for regn in list(proc.regions.values()):
+            for regn in proc.regions.values():
                 sum_reg_cnt += float(regn.chars['cnt'])
-            for regn in list(proc.regions.values()):
+            for regn in proc.regions.values():
                 reg_cnt = float(regn.chars['cnt'])
                 if not gl.DINUMIC_REGN_OPERS_NUM:
                     reg_opers_num = int(regn.chars['opers_num']) # regn_opers_limit
                 rel_reg_cnt = reg_cnt / sum_reg_cnt
                 w_regn = weight.regn(reg_cnt, rel_reg_cnt)
-                for node in list(regn.nodes.values()):
+                for node in regn.nodes.values():
                     if 'n_cnt' in node.chars:
                         if 's_enter' in node.chars:
                             s_enter = int(node.chars['s_enter'])
@@ -159,7 +159,7 @@ def get_unnorm_dis_icvpar_for_proc(taskname, procname):
             dis_par = {}
             icv_proc = read.icv_proc(taskname, procname)
             sum_reg_cnt = 0
-            for regn in list(icv_proc.regions.values()):
+            for regn in icv_proc.regions.values():
                 sum_reg_cnt += float(regn.chars['cnt'])
             if sum_reg_cnt == 0:
                 return {}
@@ -167,7 +167,7 @@ def get_unnorm_dis_icvpar_for_proc(taskname, procname):
                 reg_cnt = float(regn.chars['cnt'])
                 rel_reg_cnt = reg_cnt / sum_reg_cnt
                 w_regn = weight.icv_regn(reg_cnt, rel_reg_cnt)
-                for sect in list(regn.sects.values()):
+                for sect in regn.sects.values():
                     sect_cnt = float(sect.chars['cnt'])
                     w = weight.icv_sect(sect_cnt) * w_regn
                     key = []
@@ -260,7 +260,7 @@ def get_dcs_proc_dis(dcs_proc,
                     koef_loop_impotance = gl.DCS_KOEF_LOOP_IMPOTANCE):
     
     pdis = [0] # распределение на нулевом уровне
-    dcs_levels = list(range(1, gl.MAX_DCS_LEVEL + 1))
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
         nd = dcs_proc[lv].nd_num / dcs_proc[lv].n_num # процент мертвых узлов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
         ed = dcs_proc[lv].ed_num / dcs_proc[lv].e_num # процент мертвых ребер
@@ -275,7 +275,7 @@ def get_dcs_dis(procs_dic,
                 koef_node_impotance = gl.DCS_KOEF_NODE_IMPOTANCE,
                 koef_edge_impotance = gl.DCS_KOEF_EDGE_IMPOTANCE,
                 koef_loop_impotance = gl.DCS_KOEF_LOOP_IMPOTANCE):
-    dcs_levels = list(range(1, gl.MAX_DCS_LEVEL + 1))
+    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     dis = [0] * (gl.MAX_DCS_LEVEL + 1)
     sum_w_task = 0
     for taskname, proc_list in procs_dic.items():
