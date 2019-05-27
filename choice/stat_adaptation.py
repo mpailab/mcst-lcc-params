@@ -9,41 +9,49 @@ import global_vars as gl
 import par, read, weight
 
 def add_dic(dic, dic_plus):
+    """
+        Объединяет словари dic и dic_plus в один и записывает результат в dic.
+        Если в словарях dic и dic_plus содержится один и тот же ключ key,
+        то в результирующем словаре ключу key будет соответствовать значение dic[key] + dic_plus[key]
+    """
     for key in dic_plus.keys():
         if key in dic:
             dic[key] += dic_plus[key]
         else:
             dic[key] = dic_plus[key]
-    
 
-def get_dis_regpar(procs_dic):
+def get_procs_and_weights(taskname, proc_list):
+    exec_proc_cnt = read.weights_of_exec_procs(taskname)
+    exec_proc_weights = exec_proc_cnt.values()
+    default_unexec_proc_weight = weight.unexec_proc(exec_proc_weights)
+    
+    exec_proc_list = exec_proc_cnt.keys()
+    comp_proc_list = read.comp_procs_list(taskname)
+    
+    if gl.USE_ALL_PROCS_IN_STAT:
+        if proc_list == None:
+            proc_list = read.comp_procs_list(taskname)
+    else:
+        if proc_list == None:
+            proc_list = set(exec_proc_list).intersection(set(comp_proc_list))
+    #    else:
+    #        proc_list = set(proc_list).intersection(set(exec_proc_list))
+            
+    proc_cnt = {procname : default_unexec_proc_weight for procname in proc_list}
+    proc_cnt.update(exec_proc_cnt)
+    weight.normolize_dict(proc_cnt)
+    
+    w_task = weight.task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list)
+    
+    return proc_list, proc_cnt, w_task
+
+def get_dis_par(procs_dic, get_dis_par_for_proc):
     dis_par = {}
     for taskname, proc_list in procs_dic.items():
-        exec_proc_cnt = read.weights_of_exec_procs(taskname)
-        exec_proc_weights = exec_proc_cnt.values()
-        default_unexec_proc_weight = weight.unexec_proc(exec_proc_weights)
-        
-        exec_proc_list = exec_proc_cnt.keys()
-        comp_proc_list = read.comp_procs_list(taskname)
-        
-        if gl.USE_ALL_PROCS_IN_STAT:
-            if proc_list == None:
-                proc_list = read.comp_procs_list(taskname)
-        else:
-            if proc_list == None:
-                proc_list = set(exec_proc_list).intersection(set(comp_proc_list))
-            else:
-                proc_list = set(proc_list).intersection(set(exec_proc_list))
-                
-        proc_cnt = {procname : default_unexec_proc_weight for procname in proc_list}
-        proc_cnt.update(exec_proc_cnt)
-        weight.normolize_dict(proc_cnt)
-        
-        w_task = weight.task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list)
-        
-        for procname in proc_list:
+        procs, proc_cnt, w_task = get_procs_and_weights(taskname, proc_list)
+        for procname in procs:
             w_proc = weight.proc(proc_cnt, procname)
-            dis_par_proc = get_unnorm_dis_regpar_for_proc(taskname, procname)
+            dis_par_proc = get_dis_par_for_proc(taskname, procname)
             sum_tmp = sum(dis_par_proc.values())
             if sum_tmp == 0:
                 continue
@@ -51,6 +59,14 @@ def get_dis_regpar(procs_dic):
                 dis_par_proc[key] = (dis_par_proc[key] / sum_tmp) * w_proc * w_task
             add_dic(dis_par, dis_par_proc)
     return dis_par
+
+
+def get_dis_regpar(procs_dic):
+    return get_dis_par(procs_dic, get_unnorm_dis_regpar_for_proc)
+
+def get_dis_icvpar(procs_dic):
+    return get_dis_par(procs_dic, get_unnorm_dis_icvpar_for_proc)
+    
             
 def get_unnorm_dis_regpar_for_proc(taskname, procname):
             dis_par = {}
@@ -118,42 +134,6 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                         else:
                             dis_par[key] = w
             return dis_par
-
-def get_dis_icvpar(procs_dic):
-    dis_par = {}
-    for taskname, proc_list in procs_dic.items():
-        exec_proc_cnt = read.weights_of_exec_procs(taskname)
-        exec_proc_weights = exec_proc_cnt.values()
-        default_unexec_proc_weight = weight.unexec_proc(exec_proc_weights)
-        
-        exec_proc_list = exec_proc_cnt.keys()
-        comp_proc_list = read.comp_procs_list(taskname)
-        
-        if gl.USE_ALL_PROCS_IN_STAT:
-            if proc_list == None:
-                proc_list = read.comp_procs_list(taskname)
-        else:
-            if proc_list == None:
-                proc_list = set(exec_proc_list).intersection(set(comp_proc_list))
-            else:
-                proc_list = set(proc_list).intersection(set(exec_proc_list))
-                
-        proc_cnt = {procname : default_unexec_proc_weight for procname in proc_list}
-        proc_cnt.update(exec_proc_cnt)
-        weight.normolize_dict(proc_cnt)
-        
-        w_task = weight.task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list)
-        
-        for procname in proc_list:
-            w_proc = weight.proc(proc_cnt, procname)
-            dis_par_proc = get_unnorm_dis_icvpar_for_proc(taskname, procname)
-            sum_tmp = sum(dis_par_proc.values())
-            if sum_tmp == 0:
-                continue
-            for key in dis_par_proc.keys():
-                dis_par_proc[key] = (dis_par_proc[key] / sum_tmp) * w_proc * w_task
-            add_dic(dis_par, dis_par_proc)
-    return dis_par
 
 def get_unnorm_dis_icvpar_for_proc(taskname, procname):
             dis_par = {}
@@ -280,31 +260,11 @@ def get_dcs_dis(procs_dic,
     sum_w_task = 0
     for taskname, proc_list in procs_dic.items():
 
-        exec_proc_cnt = read.weights_of_exec_procs(taskname)
-        exec_proc_weights = exec_proc_cnt.values()
-        default_unexec_proc_weight = weight.unexec_proc(exec_proc_weights)
-        
-        exec_proc_list = exec_proc_cnt.keys()
-        comp_proc_list = read.comp_procs_list(taskname)
-        
-        if gl.USE_ALL_PROCS_IN_STAT:
-            if proc_list == None:
-                proc_list = read.comp_procs_list(taskname)
-        else:
-            if proc_list == None:
-                proc_list = set(exec_proc_list).intersection(set(comp_proc_list))
-            else:
-                proc_list = set(proc_list).intersection(set(exec_proc_list))
-                
-        proc_cnt = {procname : default_unexec_proc_weight for procname in proc_list}
-        proc_cnt.update(exec_proc_cnt)
-        weight.normolize_dict(proc_cnt)
-        
-        w_task = weight.task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list)
+        procs, proc_cnt, w_task = get_procs_and_weights(taskname, proc_list)
         sum_w_task += w_task
         
         tdis = [0] * (gl.MAX_DCS_LEVEL + 1)
-        for procname in proc_list:
+        for procname in procs:
             dcs_proc = read.dcs_proc(taskname, procname)
             pdis = get_dcs_proc_dis(dcs_proc,
                                     koef_node_impotance = koef_node_impotance,

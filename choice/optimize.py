@@ -5,6 +5,7 @@
 from copy import deepcopy
 import math, random
 from sys import maxsize
+from functools import reduce
 
 # Internal imports
 import global_vars as gl
@@ -13,7 +14,7 @@ import par
 import weight
 import smooth_stat as sm
 import stat_adaptation as stat
-from functools import reduce
+
 
 
 

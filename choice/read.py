@@ -6,7 +6,7 @@
 """
 
 # External imports
-from os import listdir
+import os
 
 # Internal imports
 from def_classes import *
@@ -22,18 +22,18 @@ else:
 def task_list():
     """ Формирует список задач, информация по которым присутствует в статистике
     """
-    return listdir(gl.STAT_PATH)
+    return os.listdir(gl.STAT_PATH)
 
 def comp_procs_list(taskname):
     """ 
         Формирует множество компилируемых процедур задачи taskname,
-        т.е. таких процедур, которые фигурируют в статистике исполнения задачи taskname
+        т.е. таких процедур, которые фигурируют в статистике компиляции задачи taskname
     """
-    return listdir(STAT_PATH_FOR_READ + '/' + taskname)
+    return os.listdir(STAT_PATH_FOR_READ + '/' + taskname)
 
 def weights_of_exec_procs(taskname):
     """ 
-        Считывает файл, в котором задаются веса процедур
+        Считывает файл, в котором задаются веса для процедур задачи taskname
     """
     res = {}
     rfile = open(gl.PROC_WEIGHT_PATH + '/' + taskname + '.txt')
@@ -45,8 +45,13 @@ def weights_of_exec_procs(taskname):
     return res
 
 def task_cnt(taskname):
-    """ Получение веса задачи из внешнего файла
+    """ Получение веса задачи taskname из внешнего файла
     """
+    if not os.path.exists(gl.TASK_WEIGHT_PATH):
+        print('There is not file :', gl.TASK_WEIGHT_PATH)
+        print('Warning! The file with information of task weights was not found.')
+        print('         The weight of task', taskname, 'will be equal to :', 1.)
+        return 1.
     res = {}
     rfile = open(gl.TASK_WEIGHT_PATH)
     for line in rfile:
@@ -54,7 +59,13 @@ def task_cnt(taskname):
         task = sp_line[0]
         w_task = float(sp_line[1])
         res[task] = w_task
-    return res[taskname]
+    if taskname in res:
+        return res[taskname]
+    else:
+        print('The file with information of task weights :', gl.TASK_WEIGHT_PATH)
+        print('Warning! There is not weight of task :', taskname)
+        print('         The weight of task', taskname, 'will be equal to :', 1.)
+        return 1.
 
 
 def proc(taskname, procname):

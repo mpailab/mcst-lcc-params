@@ -4,13 +4,14 @@
 # External imports
 import os
 from subprocess import Popen, PIPE
+from functools import reduce
 
 # Internal imports
 import global_vars as gl
 import par
 import read
 from stat_adaptation import get_dcs_dis
-from functools import reduce
+
 
 def eff_all_pars():
     eff = {}

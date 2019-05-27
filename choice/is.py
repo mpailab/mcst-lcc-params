@@ -376,7 +376,7 @@ if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
     except clc.ExternalScriptError as error:
         print('fail')
         print('An error by giving (t_c, t_e, m) from external script')
-    except KeyboardInterrupt:
+    #except KeyboardInterrupt:
         print()
         exit()
     else:
@@ -409,7 +409,7 @@ elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         except clc.ExternalScriptError as error:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
-        except KeyboardInterrupt:
+        #except KeyboardInterrupt:
             print()
             exit()
         else:
@@ -455,7 +455,7 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         except clc.ExternalScriptError as error:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
-        except KeyboardInterrupt:
+        #except KeyboardInterrupt:
             print()
             exit()
         else:
@@ -505,7 +505,7 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
             except clc.ExternalScriptError as error:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
-            except KeyboardInterrupt:
+            #except KeyboardInterrupt:
                 print()
                 exit()
             else:

@@ -4,6 +4,7 @@
 # External imports
 import matplotlib.pyplot as plt
 import os, sys
+from functools import reduce
 
 # Internal imports
 import global_vars as gl
@@ -12,7 +13,7 @@ import par, weight
 from read import task_list
 import smooth_stat as sm
 import stat_adaptation as stat
-from functools import reduce
+
 
 def hist_dict(dic):
     plt.hist(list(dic.keys()), gl.PAR_DIAG_COL_NUM, weights = list(dic.values()))
