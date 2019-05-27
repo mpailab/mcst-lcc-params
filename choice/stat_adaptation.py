@@ -21,6 +21,17 @@ def add_dic(dic, dic_plus):
             dic[key] = dic_plus[key]
 
 def get_procs_and_weights(taskname, proc_list):
+    """
+        Возвращает тройку: 1) procs - итератор процедур задачи taskname
+                           2) для всех процедур из procs словарь proc_cnt : процедура -> ее вес 
+                           3) вес задачи taskname
+        procs определяется аргументом proc_list и глобальной переменной gl.USE_UNEXEC_PROCS_IN_STAT.
+        Всего возможно 4 значения для procs:
+            - procs = все компилируемые и исполняемые процедуры (proc_list == None и gl.USE_UNEXEC_PROCS_IN_STAT == False)
+            - procs = все компилируемые процедуры               (proc_list == None и gl.USE_UNEXEC_PROCS_IN_STAT == True)
+            - procs = proc_list                                 (proc_list != None и gl.USE_UNEXEC_PROCS_IN_STAT == True)
+            - procs = все исполняемые процедуры из proc_list    (proc_list != None и gl.USE_UNEXEC_PROCS_IN_STAT == False)
+    """
     exec_proc_cnt = read.weights_of_exec_procs(taskname)
     
     exec_proc_weights = list(exec_proc_cnt.values())
@@ -37,16 +48,19 @@ def get_procs_and_weights(taskname, proc_list):
     proc_cnt = None
     sumw_exec_proc_in_procs = None
     if proc_list == None:
-        if gl.USE_ALL_PROCS_IN_STAT:
-            procs = comp_proc_set
+        if gl.USE_UNEXEC_PROCS_IN_STAT:
+            procs = comp_proc_set # procs -- все компилируемые процедуры
         else:
             procs = comp_and_exec_proc_cnt.keys()
-            proc_cnt = comp_and_exec_proc_cnt
+            proc_cnt = comp_and_exec_proc_cnt # procs -- все компилируемые и исполняемые процедуры
             sumw_exec_proc_in_procs = sum(comp_and_exec_proc_cnt.values())
     else:
-        procs = proc_list
-    #    if gl.USE_ALL_PROCS_IN_STAT:
-    #        procs = procs.intersection(set(comp_and_exec_proc_cnt.keys()))
+        if not gl.USE_UNEXEC_PROCS_IN_STAT:
+            procs = set(procs).intersection(set(comp_and_exec_proc_cnt.keys())) # procs -- все исполняемые процедуры из всех заданных
+            proc_cnt = {pr : comp_and_exec_proc_cnt[pr] for pr in procs}
+            sumw_exec_proc_in_procs = sum(proc_cnt.values())
+        else:
+            procs = proc_list # procs -- все заданные процедуры
     
     if proc_cnt == None or sumw_exec_proc_in_procs == None:
         proc_cnt = {}
@@ -62,7 +76,7 @@ def get_procs_and_weights(taskname, proc_list):
     
     w_task = weight.task(taskname, sum_exec_proc_weights, comp_and_exec_proc_cnt, sumw_exec_proc_in_procs)
     
-    return procs, proc_cnt, w_task
+    return iter(procs), proc_cnt, w_task
 
 def get_dis_par(procs_dic, get_dis_par_for_proc):
     dis_par = {}

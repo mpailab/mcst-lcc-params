@@ -22,7 +22,7 @@ def hist_dict(dic):
 def hist(titlename, x_label,
          p_values , p_weights,
          save_pic_flag = gl.SAVE_PIC_FLAG, show_flag = gl.SHOW_FLAG,
-         fullstat_flag = gl.USE_ALL_PROCS_IN_STAT, sm_dis_flag = gl.SMOOTH_STAT):
+         fullstat_flag = gl.USE_UNEXEC_PROCS_IN_STAT, sm_dis_flag = gl.SMOOTH_STAT):
     title = titlename
     p_min = min(p_values)
     p_max = max(p_values)

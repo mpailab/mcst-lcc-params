@@ -51,6 +51,23 @@ def get_tex_pattern(varname):
 """
     return res
 
+"""
+Изменились глобальные переменные
+TASK_WEIGHT_SETUP
+
+Новые глобальные переменные
+UNEXEC_PROC_WEIGHT_SETUP
+DEFAULT_WEIGHT_FOR_PROC
+
+PROC_WEIGHT_PATH
+TASK_WEIGHT_PATH
+USE_UNEXEC_PROCS_IN_STAT
+STAT_PATH
+DINUMIC_STAT_PATH
+
+ALLOW_REWRITE_OUTPUT_FILES
+"""
+
 print get_globals_names()
 exit()
 my_gl_vars = []

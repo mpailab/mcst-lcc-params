@@ -182,9 +182,14 @@ change_globals(gval_dict)
 
 def cheak_globals():
     # надо проверить
-    # для gl.specs:
-    #    - все спеки из gl.specs содержатся в заданном пакете спеков
-    #    - все указанные явно процедуры спеков в gl.specs действительно принадлежат этим спекам
+    # для gl.SPECS:
+    #    - все спеки из gl.SPECS содержатся в заданном пакете спеков
+    #    - все указанные явно процедуры спеков в gl.SPECS действительно принадлежат этим спекам
+    #    - в списке процедур в gl.SPECS не повторяются дважды одна и та же процедура
+    # для gl.PROC_WEIGHT_PATH:
+    #    - может быть задан дважды вес для одной и тойже процедуры
+    # для gl.TASK_WEIGHT_PATH:
+    #    - может быть задан дважды вес для одной и тойже задачи
     pass
 
 # Все изменения глобальных переменных должны быть осуществелны до подключения следующих модулей.
@@ -335,7 +340,7 @@ def print_specs(spec_procs, output = None):
 
 if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
     # если мы сами не собираем статистику, то
-    # следует убедиться, что в папке gl.STAT_PATH она присутствует для всех спеков и их процедур из gl.specs
+    # следует убедиться, что в папке gl.STAT_PATH она присутствует для всех спеков и их процедур из gl.SPECS
     # если ее там нет в должном виде, то надо
     #       1 вариант -> выдать ошибку
     #       2 вариант -> собрать статистику в gl.STAT_PATH
@@ -343,7 +348,7 @@ if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
 
 # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
 strategy = get_strategy(gl.OPTIMIZATION_STRATEGY)
-spec_procs = get_specs(gl.specs)
+spec_procs = get_specs(gl.SPECS)
 # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
 
 if not os.path.isdir(gl.OUTPUTDIR):
@@ -359,9 +364,16 @@ if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
     print_strategy(strategy)
     
     if os.path.isdir(gl.OUTPUTDIR):
-        path = os.path.join(gl.OUTPUTDIR, 'all.seq.txt')
-        # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(strategy) + '.txt')
-        ffile = open(path, 'w', 0)
+        filename = 'all.seq'
+        # filename = str(spec_procs) + '.' + str(strategy)
+        path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
+        if not gl.ALLOW_REWRITE_OUTPUT_FILES:
+            num = 0
+            while os.path.exists(path):
+                path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
+                num += 1
+        ffile = open(path, 'w')
+        print('Output to :', path)
         
         print('Synchronous optimization of specs :', file=ffile)  # all
         print_specs(spec_procs, ffile)
@@ -376,7 +388,7 @@ if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
     except clc.ExternalScriptError as error:
         print('fail')
         print('An error by giving (t_c, t_e, m) from external script')
-    #except KeyboardInterrupt:
+    except KeyboardInterrupt:
         print()
         exit()
     else:
@@ -392,9 +404,16 @@ elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         print("Spec:", specname)
         
         if os.path.isdir(gl.OUTPUTDIR):
-            path = os.path.join(gl.OUTPUTDIR, specname + '.seq.txt')
-            # path = os.path.join(gl.OUTPUTDIR, str({specname: proclist}) + '.' + str(strategy) + '.txt')
-            ffile = open(path, 'w', 0)
+            filename = specname + '.seq'
+            # filename = str({specname: proclist}) + '.' + str(strategy)
+            path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
+            if not gl.ALLOW_REWRITE_OUTPUT_FILES:
+                num = 0
+                while os.path.exists(path):
+                    path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
+                    num += 1
+            ffile = open(path, 'w')
+            print('Output to :', path)
             
             print('Optimization of spec :', file=ffile)  # all
             print_specs({specname: proclist}, ffile)
@@ -409,7 +428,7 @@ elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         except clc.ExternalScriptError as error:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
-        #except KeyboardInterrupt:
+        except KeyboardInterrupt:
             print()
             exit()
         else:
@@ -430,9 +449,16 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         print("---------------------------------------------------------------------------")
         print("Group:", parnames)
         if os.path.isdir(gl.OUTPUTDIR):
-            path = os.path.join(gl.OUTPUTDIR, 'all.' + str(parnames) +'.txt') # ?
-            # path = os.path.join(gl.OUTPUTDIR, str(spec_procs) + '.' + str(parnames) + '.txt')
-            ffile = open(path, 'w', 0)
+            filename = 'all.' + str(parnames)
+            # filename = str(spec_procs) + '.' + str(parnames)
+            path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
+            if not gl.ALLOW_REWRITE_OUTPUT_FILES:
+                num = 0
+                while os.path.exists(path):
+                    path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
+                    num += 1
+            ffile = open(path, 'w')
+            print('Output to :', path)
             
             print('Synchronous optimization of specs :', file=ffile)  # all
             print_specs(spec_procs, ffile)
@@ -455,7 +481,7 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
         except clc.ExternalScriptError as error:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
-        #except KeyboardInterrupt:
+        except KeyboardInterrupt:
             print()
             exit()
         else:
@@ -481,9 +507,16 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
             print("Group:", parnames)
             
             if os.path.isdir(gl.OUTPUTDIR):
-                path = os.path.join(gl.OUTPUTDIR, specname + '.' + str(parnames) +'.txt')
-                # path = os.path.join(gl.OUTPUTDIR, str({specname : proclist}) + '.' + str(parnames) + '.txt')
-                ffile = open(path, 'w', 0)
+                filename = specname + '.' + str(parnames)
+                # filename = str({specname : proclist}) + '.' + str(parnames)
+                path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
+                if not gl.ALLOW_REWRITE_OUTPUT_FILES:
+                    num = 0
+                    while os.path.exists(path):
+                        path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
+                        num += 1
+                ffile = open(path, 'w')
+                print('Output to :', path)
                 
                 print('Optimization of the spec :', file=ffile)  # all
                 print_specs({specname : proclist}, ffile)
@@ -505,9 +538,8 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
             except clc.ExternalScriptError as error:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
-            #except KeyboardInterrupt:
+            except KeyboardInterrupt:
                 print()
                 exit()
             else:
                 print("ok")
-        
