@@ -36,20 +36,20 @@ else:
 #--------------------------------------------
 
 if   gl.TASK_WEIGHT_SETUP == 1:
-    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
-        return read.task_cnt(taskname) # из внешнего файла
+    def task(taskname, sum_exec_proc_weights, comp_and_exec_proc_cnt, sumw_exec_proc_in_procs):
+        """ Вес задачи считывается из внешнего файла """
+        return read.task_cnt(taskname)
 elif gl.TASK_WEIGHT_SETUP == 2:
-    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
-        comp_and_exec_procs = set(exec_proc_list).intersection(set(comp_proc_list))
-        weights = map(lambda x: exec_proc_cnt[x], comp_and_exec_procs)
-        return sum(weights) / sum(exec_proc_weights)
+    def task(taskname, sum_exec_proc_weights, comp_and_exec_proc_cnt, sumw_exec_proc_in_procs):
+        """ Вес задачи --- отношение суммы весов ее компилируемых и исполняемых процедур к сумме весов всех ее процедур """
+        weights = comp_and_exec_proc_cnt.values()
+        return sum(weights) / sum_exec_proc_weights
 elif gl.TASK_WEIGHT_SETUP == 3:
-    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
-        exec_procs_in_proc_list = set(proc_list).intersection(set(exec_proc_list))
-        weights = map(lambda x: exec_proc_cnt[x], exec_procs_in_proc_list)
-        return sum(weights) / sum(exec_proc_weights)
+    def task(taskname, sum_exec_proc_weights, comp_and_exec_proc_cnt, sumw_exec_proc_in_procs):
+        """ Вес задачи --- отношение суммы весов ее исполняемых оптимизируемых процедур  к сумме весов всех ее процедур"""
+        return sumw_exec_proc_in_procs / sum_exec_proc_weights
 else:
-    def task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list):
+    def task(taskname, sum_exec_proc_weights, comp_and_exec_proc_cnt, sumw_exec_proc_in_procs):
         return 1.
 #-------------------------------------------
 #--------------------------------------------

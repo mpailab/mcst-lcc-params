@@ -22,28 +22,47 @@ def add_dic(dic, dic_plus):
 
 def get_procs_and_weights(taskname, proc_list):
     exec_proc_cnt = read.weights_of_exec_procs(taskname)
-    exec_proc_weights = exec_proc_cnt.values()
+    
+    exec_proc_weights = list(exec_proc_cnt.values())
+    sum_exec_proc_weights = sum(exec_proc_weights)
     default_unexec_proc_weight = weight.unexec_proc(exec_proc_weights)
     
-    exec_proc_list = exec_proc_cnt.keys()
-    comp_proc_list = read.comp_procs_list(taskname)
     
-    if gl.USE_ALL_PROCS_IN_STAT:
-        if proc_list == None:
-            proc_list = read.comp_procs_list(taskname)
+    comp_proc_set = set(read.comp_procs_list(taskname))
+    comp_and_exec_proc_cnt = {}
+    for procname in exec_proc_cnt:
+        if procname in comp_proc_set:
+            comp_and_exec_proc_cnt[procname] = exec_proc_cnt[procname]
+
+    proc_cnt = None
+    sumw_exec_proc_in_procs = None
+    if proc_list == None:
+        if gl.USE_ALL_PROCS_IN_STAT:
+            procs = comp_proc_set
+        else:
+            procs = comp_and_exec_proc_cnt.keys()
+            proc_cnt = comp_and_exec_proc_cnt
+            sumw_exec_proc_in_procs = sum(comp_and_exec_proc_cnt.values())
     else:
-        if proc_list == None:
-            proc_list = set(exec_proc_list).intersection(set(comp_proc_list))
-    #    else:
-    #        proc_list = set(proc_list).intersection(set(exec_proc_list))
-            
-    proc_cnt = {procname : default_unexec_proc_weight for procname in proc_list}
-    proc_cnt.update(exec_proc_cnt)
+        procs = proc_list
+    #    if gl.USE_ALL_PROCS_IN_STAT:
+    #        procs = procs.intersection(set(comp_and_exec_proc_cnt.keys()))
+    
+    if proc_cnt == None or sumw_exec_proc_in_procs == None:
+        proc_cnt = {}
+        sumw_exec_proc_in_procs = 0
+        for procname in procs:
+            if procname in comp_and_exec_proc_cnt:
+                tmp_weight = exec_proc_cnt[procname]
+                proc_cnt[procname] = tmp_weight
+                sumw_exec_proc_in_procs += tmp_weight
+            else:
+                proc_cnt[procname] = default_unexec_proc_weight
     weight.normolize_dict(proc_cnt)
     
-    w_task = weight.task(taskname, exec_proc_cnt, exec_proc_list, comp_proc_list, proc_list)
+    w_task = weight.task(taskname, sum_exec_proc_weights, comp_and_exec_proc_cnt, sumw_exec_proc_in_procs)
     
-    return proc_list, proc_cnt, w_task
+    return procs, proc_cnt, w_task
 
 def get_dis_par(procs_dic, get_dis_par_for_proc):
     dis_par = {}
@@ -67,7 +86,6 @@ def get_dis_regpar(procs_dic):
 def get_dis_icvpar(procs_dic):
     return get_dis_par(procs_dic, get_unnorm_dis_icvpar_for_proc)
     
-            
 def get_unnorm_dis_regpar_for_proc(taskname, procname):
             dis_par = {}
             proc = read.proc(taskname, procname)
