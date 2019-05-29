@@ -78,7 +78,13 @@ def get_procs_and_weights(taskname, proc_list):
     
     return iter(procs), proc_cnt, w_task
 
-def get_dis_par(procs_dic, get_dis_par_for_proc):
+def get_dis_par(procs_dic, get_dis_par_for_proc, normolize_mode = True):
+    """
+        Формирует суммарное распределение параметров по статистики компиляции процедур procs_dic
+        на основе распределения параметров для каждой процедуры.
+        Распределение параметров для каждой процедуры получается при помощи функции get_dis_par_for_proc.
+        Если normolize_mode == True, то полученное распределение нормируется.
+    """
     dis_par = {}
     for taskname, proc_list in procs_dic.items():
         procs, proc_cnt, w_task = get_procs_and_weights(taskname, proc_list)
@@ -91,16 +97,30 @@ def get_dis_par(procs_dic, get_dis_par_for_proc):
             for key in dis_par_proc.keys():
                 dis_par_proc[key] = (dis_par_proc[key] / sum_tmp) * w_proc * w_task
             add_dic(dis_par, dis_par_proc)
+    if normolize_mode:
+        weight.normolize_dict(dis_par)
     return dis_par
 
 
-def get_dis_regpar(procs_dic):
-    return get_dis_par(procs_dic, get_unnorm_dis_regpar_for_proc)
+def get_dis_regpar(procs_dic, normolize_mode = True):
+    """
+        Формирует суммарное распределение параметров фазы regions по статистики компиляции процедур procs_dic.
+        Если normolize_mode == True, то полученное распределение нормируется.
+    """
+    return get_dis_par(procs_dic, get_unnorm_dis_regpar_for_proc, normolize_mode)
 
-def get_dis_icvpar(procs_dic):
-    return get_dis_par(procs_dic, get_unnorm_dis_icvpar_for_proc)
+def get_dis_icvpar(procs_dic, normolize_mode = True):
+    """
+        Формирует суммарное распределение параметров фазы if_conv по статистики компиляции процедур procs_dic.
+        Если normolize_mode == True, то полученное распределение нормируется.
+    """
+    return get_dis_par(procs_dic, get_unnorm_dis_icvpar_for_proc, normolize_mode)
     
 def get_unnorm_dis_regpar_for_proc(taskname, procname):
+            """
+                Формирует распределение параметров фазы regions по статистике компиляции процедуры procname задачи taskname
+                Полученное распределение не нормируется
+            """
             dis_par = {}
             proc = read.proc(taskname, procname)
             proc_max_cnt = float(proc.chars['max_cnt'])
@@ -168,6 +188,10 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
             return dis_par
 
 def get_unnorm_dis_icvpar_for_proc(taskname, procname):
+            """
+                Формирует распределение параметров фазы if_conv по статистике компиляции процедуры procname задачи taskname
+                Полученное распределение не нормируется
+            """
             dis_par = {}
             icv_proc = read.icv_proc(taskname, procname)
             sum_reg_cnt = 0
@@ -212,7 +236,15 @@ def get_unnorm_dis_icvpar_for_proc(taskname, procname):
             return dis_par
 
 def get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar):
-    # Также считывает при необходимости dis_regpar и dis_icvpar из статистики
+    """
+        Для каждого параметра parname из списков reg_parnames и icv_parnames
+        формирует распределение, упорядоченное по возможным значениям параметра parname.
+        
+        reg_parnames --- список некоторых параметров фазы regions
+        icv_parnames --- список некоторых параметров фазы if_conv
+        dis_regpar --- распределение параметров фазы regions
+        dis_icvpar --- распределение параметров фазы if_conv
+    """
     
     if len(reg_parnames) != 0:
         # получаем все узлы фазы regions процедур из procs_dic в неупорядоченном виде
@@ -270,16 +302,20 @@ def get_dcs_proc_dis(dcs_proc,
                     koef_node_impotance = gl.DCS_KOEF_NODE_IMPOTANCE,
                     koef_edge_impotance = gl.DCS_KOEF_EDGE_IMPOTANCE,
                     koef_loop_impotance = gl.DCS_KOEF_LOOP_IMPOTANCE):
-    
-    pdis = [0] # распределение на нулевом уровне
+    """
+        Определяет значимость каждого уровня оптимизации фазы dcs процедуры dcs_proc
+    """
+    pdis = [0] # значимость 0 уровня dcs-оптимизации (отсутствие dcs-оптимизации) полагаем равным нулю
     dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
-        nd = dcs_proc[lv].nd_num / dcs_proc[lv].n_num # процент мертвых узлов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
-        ed = dcs_proc[lv].ed_num / dcs_proc[lv].e_num # процент мертвых ребер
-        ld = dcs_proc[lv].ld_num / dcs_proc[lv].l_num # процент мертвых циклов
-        impotance = koef_node_impotance * nd + koef_edge_impotance * ed + koef_loop_impotance * ld # значимость уровня lv оптимизации для данной процедуры
-        #if impotance != 0:
-        #    print '  ', dcs_proc[lv].procname, lv
+        # процент мертвых узлов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
+        nd = dcs_proc[lv].nd_num / dcs_proc[lv].n_num
+        # процент мертвых ребер, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
+        ed = dcs_proc[lv].ed_num / dcs_proc[lv].e_num
+        # процент мертвых циклов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
+        ld = dcs_proc[lv].ld_num / dcs_proc[lv].l_num
+        # значимость уровня lv dcs-оптимизации для данной процедуры
+        impotance = koef_node_impotance * nd + koef_edge_impotance * ed + koef_loop_impotance * ld
         pdis.append(impotance)
     return pdis
     
@@ -287,6 +323,9 @@ def get_dcs_dis(procs_dic,
                 koef_node_impotance = gl.DCS_KOEF_NODE_IMPOTANCE,
                 koef_edge_impotance = gl.DCS_KOEF_EDGE_IMPOTANCE,
                 koef_loop_impotance = gl.DCS_KOEF_LOOP_IMPOTANCE):
+    """
+        Определяет значимость каждого уровня оптимизации фазы dcs в среднем для всех процедур из procs_dic
+    """
     dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     dis = [0] * (gl.MAX_DCS_LEVEL + 1)
     sum_w_task = 0

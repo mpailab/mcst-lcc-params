@@ -90,10 +90,7 @@ elif options.is_every_proc:
         print("Spec:", spec)
         
         dis_regpars = get_dis_regpar({ spec : None })
-        weight.normolize_dict(dis_regpars)
-        
         dis_icvpars = get_dis_icvpar({ spec : None })
-        weight.normolize_dict(dis_icvpars)
         
         for par in options.pars:
 
@@ -120,13 +117,8 @@ else:
     print("---------------------------------------------------------------------------")
     print("All tasks ...")
 
-    sum_dis_regpars = {}
-    sum_dis_icvpars = {}
-    for spec in options.specs:
-        add_dic(sum_dis_regpars, get_dis_regpar({ spec : None }))
-        add_dic(sum_dis_icvpars, get_dis_icvpar({ spec : None }))
-    weight.normolize_dict(sum_dis_regpars)
-    weight.normolize_dict(sum_dis_icvpars)
+    sum_dis_regpars = get_dis_regpar({ spec : None for spec in options.specs})
+    sum_dis_icvpars = get_dis_icvpar({ spec : None for spec in options.specs})
 
     for par in options.pars:
 

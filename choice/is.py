@@ -441,9 +441,7 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_S
     print_strategy(strategy)
     
     dis_regpar = adt.get_dis_regpar(spec_procs)
-    wht.normolize_dict(dis_regpar)
     dis_icvpar = adt.get_dis_icvpar(spec_procs)
-    wht.normolize_dict(dis_icvpar)
     
     for parnames in strategy:
         print("---------------------------------------------------------------------------")
@@ -498,9 +496,7 @@ elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_F
         print("Spec:", specname)
         
         dis_regpar = adt.get_dis_regpar({specname : proclist})
-        wht.normolize_dict(dis_regpar)
         dis_icvpar = adt.get_dis_icvpar({specname : proclist})
-        wht.normolize_dict(dis_icvpar)
         
         for parnames in strategy:
             print("---------------------------------------------------------------------------")

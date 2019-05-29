@@ -93,7 +93,7 @@ PROC_WEIGHT_PATH = './spec/stat/exec'
 TASK_WEIGHT_PATH = './spec/stat/exec/spec_weights.txt'
 
 # Учитывать статистику компиляции неисполняемых процедур (т.е. процедур, для которых не заданы веса)? {0, 1}
-USE_UNEXEC_PROCS_IN_STAT = True
+USE_UNEXEC_PROCS_IN_STAT = False
 
 # Каталог со статистикой компиляции спеков при значениях параметров оптимизирующих преобразований по-умолчанию
 STAT_PATH = './spec/stat/comp_all/stat'

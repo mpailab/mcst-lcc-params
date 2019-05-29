@@ -68,13 +68,22 @@ DINUMIC_STAT_PATH
 ALLOW_REWRITE_OUTPUT_FILES
 """
 
-print get_globals_names()
-exit()
-my_gl_vars = []
+gnames = """
+UNEXEC_PROC_WEIGHT_SETUP
+DEFAULT_WEIGHT_FOR_PROC
+PROC_WEIGHT_PATH
+TASK_WEIGHT_PATH
+USE_UNEXEC_PROCS_IN_STAT
+STAT_PATH
+DINUMIC_STAT_PATH
+ALLOW_REWRITE_OUTPUT_FILES
+""".split('\n')[1:-1]
 
+print gnames
 
-outputdir = './doc/tex_patterns/all/'
-for varname in get_globals_names():
+# gnames = get_globals_names()
+outputdir = './doc/tex_patterns/new/'
+for varname in gnames:
     ofile = open(outputdir + varname + '.tex', 'w')
     #ofile = None
     print >> ofile, get_tex_pattern(varname)

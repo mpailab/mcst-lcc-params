@@ -93,14 +93,14 @@ def hists_for_pars(reg_parnames, icv_parnames, tasknames = None, hist_for_all_pa
         print("Procedure:", task)
         
         print('Get dis_regpar ...')
-        dis_regpar = stat.get_dis_regpar({ task : None })
+        dis_regpar = stat.get_dis_regpar({ task : None }, normolize_mode = False)
         if hist_for_all_pars:
             stat.add_dic(sum_dis_regpars, dis_regpar)
-        print('ok')
         weight.normolize_dict(dis_regpar)
+        print('ok')
         
         print('Get dis_icvpar ...')
-        dis_icvpar = stat.get_dis_icvpar({ task : None })
+        dis_icvpar = stat.get_dis_icvpar({ task : None }, normolize_mode = False)
         if hist_for_all_pars:
             stat.add_dic(sum_dis_icvpars, dis_icvpar)
         weight.normolize_dict(dis_icvpar)
