@@ -214,12 +214,11 @@ def get_unnorm_dis_icvpar_for_proc(taskname, procname):
                     if 't_a' in sect.chars:
                         t_a = float(sect.chars['t_a'])
                         t_b = float(sect.chars['t_b'])
-                        d_heur = float(sect.chars['d_heur']) # это адитивная добавка к ifconv_merge_heur?
+                        d_heur = float(sect.chars['d_heur'])
                         if t_b != 0:
                             p = t_a / t_b - d_heur # ifconv_merge_heur
                         else:
                             if t_a == 0:
-                                #p = 0
                                 p = None # пользуемся тем, что None < pv для любого pv
                             else:
                                 p = maxsize # считаем что maxsize > pv для любого возможного значения для pv

@@ -20,7 +20,8 @@ else:
     STAT_PATH_FOR_READ = gl.STAT_PATH
 
 def task_list():
-    """ Формирует список задач, информация по которым присутствует в статистике
+    """
+        Формирует список задач, информация по которым присутствует в статистике
     """
     return os.listdir(gl.STAT_PATH)
 
@@ -45,7 +46,8 @@ def weights_of_exec_procs(taskname):
     return res
 
 def task_cnt(taskname):
-    """ Получение веса задачи taskname из внешнего файла
+    """
+        Получение веса задачи taskname из внешнего файла
     """
     if not os.path.exists(gl.TASK_WEIGHT_PATH):
         print('There is not file :', gl.TASK_WEIGHT_PATH)
@@ -67,17 +69,12 @@ def task_cnt(taskname):
         print('         The weight of task', taskname, 'will be equal to :', 1.)
         return 1.
 
-
 def proc(taskname, procname):
-    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
-    return proc_read(procpath)
-
-def icv_proc(taskname, procname):
-    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
-    return icv_proc_read(procpath)
-
-def proc_read(procpath):
+    """
+        Считывает статистику компиляции процедуры procname задачи taskname на фазе regions
+    """
     proc = Proc()
+    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
     file = open(procpath + '/regions.txt')
     for strr in file:
         ## отрезаем от strr последний символ, который является символом перехода на новую строку
@@ -126,8 +123,12 @@ def proc_read(procpath):
     file.close()
     return proc
 
-def icv_proc_read(procpath):
+def icv_proc(taskname, procname):
+    """
+        Считывает статистику компиляции процедуры procname задачи taskname на фазе if_conv
+    """
     proc = Icv_Proc()
+    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
     file = open(procpath + '/if_conv.txt')
     for strr in file:
         # отрезаем от strr последний символ, который является символом перехода на новую строку
@@ -163,6 +164,9 @@ def icv_proc_read(procpath):
 # DCS -----------------------------------------------------------------------------------------------------
 
 def dcs_proc(taskname, procname, difference_from_levels = True):
+    """
+        Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для всех уровней dcs-оптимизации)
+    """
     procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
     proc = [None] # proc[0] = None -> нет нулевого уровня оптимизации
     dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
@@ -171,38 +175,38 @@ def dcs_proc(taskname, procname, difference_from_levels = True):
     if difference_from_levels == True:
         for lv in dcs_levels[1:].__reversed__(): # перебираем все пары (уровень, предыдущий уровень), начиная с последнего уровня
             lv_pr = lv - 1
-            #if (proc[lv_pr].n_num != proc[lv].n_num) or (proc[lv_pr].e_num != proc[lv].e_num) or (proc[lv_pr].l_num != proc[lv].l_num):
-            #    print 'In ', taskname + '.' + procname + '.dcs_' + str(lv), 'difference in nums'
             proc[lv].nd_num -= proc[lv_pr].nd_num
             proc[lv].ed_num -= proc[lv_pr].ed_num
             proc[lv].ld_num -= proc[lv_pr].ld_num
             proc[lv].N -= proc[lv_pr].N
             proc[lv].E -= proc[lv_pr].E
             proc[lv].L -= proc[lv_pr].L
-            #if (len(proc[lv].N) != proc[lv].nd_num) or (len(proc[lv].E) != proc[lv].ed_num) or (len(proc[lv].L) != proc[lv].ld_num):
-            #    print 'In ', taskname + '.' + procname + '.dcs_' + str(lv), 'difference in lens'
             
             # Вычислим процент метвых узлов, дуг, циклов находимых на каждом уровне
             proc[lv].nd = proc[lv].nd_num / proc[lv].n_num
             proc[lv].ed = proc[lv].ed_num / proc[lv].e_num
             proc[lv].ld = proc[lv].ld_num / proc[lv].l_num
-            #try:
+            
+            # Правильней было бы делать так (чтобы не получить где-нибудь ZeroDivisionError)
+            #if proc[lv].n_num:
                 #proc[lv].nd = proc[lv].nd_num / proc[lv].n_num
-            #except ZeroDivisionError:
+            #else:
                 #proc[lv].nd = 0
-            #try:
+            #if proc[lv].e_num:
                 #proc[lv].ed = proc[lv].ed_num / proc[lv].e_num
-            #except ZeroDivisionError:
+            #else:
                 #proc[lv].ed = 0
-            #try:
+            #if proc[lv].l_num:
                 #proc[lv].ld = proc[lv].ld_num / proc[lv].l_num
-            #except ZeroDivisionError:
+            #else:
                 #proc[lv].ld = 0
     return proc
 
 def dcs_level(procpath, lv):
+    """
+        Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для уровня lv dcs-оптимизации)
+    """
     lvpath = procpath + '/dcs_' + str(lv) + '.txt'
-    #print lvpath
     ffile = open(lvpath)
     
     strr = ffile.readline()[:-1]
