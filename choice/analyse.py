@@ -5,12 +5,16 @@
 import os
 from subprocess import Popen, PIPE
 from functools import reduce
+from scipy import interpolate
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Internal imports
 import global_vars as gl
 import par
 import read
 from stat_adaptation import get_dcs_dis
+from optimize import F
 
 
 def eff_all_pars():
@@ -65,8 +69,8 @@ def par_eff(parname, mode = 0):
             #filepath = gl.RUN_LOGS_PATH + '/results_v5/' + taskname + '.' + parname + '.txt'
             #if os.path.exists(filepath):
                 #exist_resultfile = True
-        tresult = filter(lambda it: it[3] < 1. / 7, tresult)
-        if len(tresult) != 0:
+        tresult = list(filter(lambda it: it[3] < 1. / 7, tresult))
+        if tresult:
             task_cnt += 1
             min_Tc = tresult[0]
             min_Te = tresult[0]
@@ -110,12 +114,12 @@ def par_eff(parname, mode = 0):
     
     return ef_Tc_cnt, ef_Te_cnt, ef_M_cnt, ef_F_cnt
 
-def percent(array):
+def percent(array, num = 4):
     if len(array) == 0:
         return []
     item_default = tuple(array[0])
     for item in array:
-        for ind in xrange(len(item) - 1):
+        for ind in range(num):
             item[ind] /= item_default[ind]
             item[ind] -= 1
     return array
@@ -128,17 +132,61 @@ def percent_view(x, ndigits = 1):
     
     return tmp_str.rjust(5)
 
+def read_TcTeMemF_database(rel_mode = True, bad_points = True, off_F_limit = False, allow_empty = False):
+    """
+        result = [(taskname, parname, tp_result), ...]
+    """
+    result = []
+    for parname in par.reg_seq + par.icv_seq:
+        for taskname in read.task_list():
+            tp_result = []
+            filepath = gl.RUN_LOGS_PATH + '/' + taskname + '.' + parname + '.txt'
+            if os.path.exists(filepath):
+                tp_result += read_logfile_function(filepath, taskname)
+            filepath = gl.RUN_LOGS_PATH + '/5tasks_some_results/' + parname + 'all_tasks.txt'
+            if os.path.exists(filepath):
+                tp_result += read_logfile_function(filepath, taskname)
+            if not tp_result:
+                if allow_empty:
+                    result.append((taskname, parname, tp_result))
+                continue
+            if not bad_points:
+                Tc_0, Te_0, Mem_0 = tp_result[0][0], tp_result[0][1], tp_result[0][2]
+                def not_bad_point(x):
+                    return (
+                        x[0] / Tc_0 <= 1 + gl.COMP_TIME_INCREASE_ALLOWABLE_PERCENT and
+                        x[1] / Te_0 <= 1 + gl.EXEC_TIME_INCREASE_ALLOWABLE_PERCENT and
+                        x[2] / Mem_0 <= 1 + gl.MEMORY_INCREASE_ALLOWABLE_PERCENT
+                        )
+                tp_result = list(filter(not_bad_point, tp_result))
+            if bad_points and off_F_limit:
+                trio_default = tp_result[0][:3]
+                for it in tp_result:
+                    ci = gl.TIME_COMP_IMPOTANCE
+                    ei = gl.TIME_EXEC_IMPOTANCE
+                    mi = gl.MEMORY_IMPOTANCE
+                    it[3] = ci * it[0] / trio_default[0] + ei * it[1] / trio_default[1] + mi * it[2] / trio_default[2]
+            if rel_mode:
+                tp_result = percent(tp_result)
+            result.append((taskname, parname, tp_result))
+    return result
+            
+def print_TcTeMemF_database(data_TcTeMemF):
+    for item in data_TcTeMemF:
+        space = '    '
+        print (item[0], item[1])
+        for x in item[2]:
+            print (space, x)
+
 def TcTeMemF_from_log_for_several_tasks(filepath, taskname):
     cmd = 'grep -C 1 "#" '+ filepath
     proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     proc.wait()
     proc_result = proc.communicate()
     if proc.returncode:
-        raise BaseException(proc_result[1])
+        raise BaseException(proc_result[1].decode('utf-8'))
     
-    from optimize import F
-    
-    iterations = proc_result[0].split('--\n')
+    iterations = proc_result[0].decode('utf-8').split('--\n')
     result = []
     for itr in iterations:
         strs = itr.split('\n')
@@ -198,9 +246,9 @@ def TcTeMemF(filepath):
     proc.wait()
     proc_result = proc.communicate()
     if proc.returncode:
-        raise BaseException(proc_result[1])
+        raise BaseException(proc_result[1].decode('utf-8'))
     
-    iterations = proc_result[0].split('--\n')
+    iterations = proc_result[0].decode('utf-8').split('--\n')
     
     result = []
     for itr in iterations:
@@ -220,19 +268,19 @@ def TcTeMemF(filepath):
     
     return result
 
-def is_logfile_in_newformat(filepath):
+def is_logfile_in_newdata_TcTeMemFformat(filepath):
     cmd = 'grep exec_time ' + filepath
     proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     proc.wait()
     proc_result = proc.communicate()
     if proc.returncode == 2:
-        raise BaseException(proc_result[1])
+        raise BaseException(proc_result[1].decode('utf-8'))
     
-    return bool(proc_result[0])
+    return bool(proc_result[0].decode('utf-8'))
     
 def read_logfile_function(filepath, taskname):
-    if is_logfile_in_newformat(filepath):
-        #return TcTeMemF_newformat(filepath)
+    if is_logfile_in_newdata_TcTeMemFformat(filepath):
+        #return TcTeMemF_newdata_TcTeMemFformat(filepath)
         return TcTeMemF_from_log_for_several_tasks(filepath, taskname)
     else:
         return TcTeMemF(filepath)
@@ -295,37 +343,6 @@ def all_tasks_TcTeMem(human_format = False):
             #print '  ', time_to_human_format(TcTeMem_default[1])
         else:
             print('  ', None)
-    
-#def TcTeMemF_newformat(filepath):
-    #'''
-    #Разбор логов нового форамата
-    #'''
-    #cmd = 'grep -A 2 "#" ' + filepath
-    #proc = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    #proc.wait()
-    #proc_result = proc.communicate()
-    #if proc.returncode:
-        #raise BaseException(proc_result[1])
-    
-    #iterations = proc_result[0].split('--\n')
-    
-    #result = []
-    #for itr in iterations:
-        #strs = itr.split('\n')
-        
-        #parname = strs[2].split('=')[1].split(':')[0]
-        #parvalue_str = strs[2].split('\"')[1].split(':')[1]
-        #parvalue = par.val_type[parname](parvalue_str)
-        
-        #t_c = float(strs[0].split('#')[1])
-        #t_e = float(strs[4].split('#')[1])
-        #mem = float(strs[3].split('#')[1])
-        #Fvalue = float(strs[5].split()[2])
-        
-        #itr_item = [t_c, t_e, mem, Fvalue, parvalue]
-        #result.append(itr_item)
-    
-    #return result
 
 
 def dcs_information_print():
@@ -358,8 +375,121 @@ def dcs_information_print():
     dis = get_dcs_dis(procs_dic, 1, 1, 1)[1:]
     print(' Sum: ', reduce(lambda x, y: x + y, map(percent_view, dis)))
 
+def modename(mode):
+    if mode == 0:
+        return 't_c'
+    elif mode == 1:
+        return 't_e'
+    elif mode == 2:
+        return 'mem'
+    elif mode == 3:
+        return 'F'
+
+def best_points(data_TcTeMemF, mode = 3, limit = 0.01, keyform = 't'):
+    """
+        keyform -> 't', 'p', 'tp'
+    """
+    newdata_TcTeMemF = []
+    for tp_it in data_TcTeMemF:
+        for rs in tp_it[2]:
+            newdata_TcTeMemF.append(rs + [tp_it[0], tp_it[1]])
+    newdata_TcTeMemF.sort(key = lambda x: x[mode], reverse = False)
+    
+    filt = []
+    base = set()
+    for it in newdata_TcTeMemF:
+        if keyform == 'tp':
+            key = (it[-2], it[-1])
+        elif keyform == 't':
+            key = it[-2]
+        elif keyform == 'p':
+            key = it[-1]
+        if not key in base and it[mode] <= -limit:
+            base.add(key)
+            filt.append(it)
+    
+    wtask = max(map(lambda x: len(x[-2]), filt))
+    wpar = max(map(lambda x: len(x[-1]), filt))
+    wval = max(map(lambda x: len(str(x[-3])), filt))
+    print ('Taskname'.ljust(wtask), 'Parname'.ljust(wpar), ' ', 'parvalue'.ljust(wval), modename(mode).center(5))
+    filt.reverse()
+    for it in filt:
+        for i in range(4):
+            it[i] = percent_view(it[i])
+        print (it[-2].ljust(wtask), it[-1].ljust(wpar), ' ', str(it[-3]).ljust(wval), it[mode])
+
+def get_sp(data_TcTeMemF, kind = 'slinear', mode = 3):
+    """
+        [[taskname, parname, f, x_min, x_max, y_default]]
+        kind -> 'linear', 'quadratic', 'cubic'
+    """
+    result = []
+    for item in data_TcTeMemF:
+        #item[2].sort(key = lambda it: it[4])
+        x = list(map(lambda it: it[4], item[2]))
+        y = list(map(lambda it: it[mode], item[2]))
+        f = interpolate.interp1d(x, y, kind=kind, fill_value="extrapolate")
+        y_default = item[2][0][mode]
+        x_min = min(x)
+        x_max = max(x)
+        result.append([item[0], item[1], f, x_min, x_max, y_default])
+    return result
+
+def get_intervals(sp, step_f = 0.01, step_i = 50, draw = False):
+    for parname in par.reg_seq + par.icv_seq:
+        print ('Parname', ':', parname)
+        space = '    '
+        psp = list(filter(lambda it: it[1] == parname, sp))
+        p_min = min(map(lambda it: it[3], psp))
+        p_max = max(map(lambda it: it[4], psp))
+        #tf = map(lambda it: it[2], psp)
+        def good_point_max(pnt):
+            for it in psp:
+                f = it[2]
+                y_default = it[-1]
+                if f(pnt) < y_default:
+                    continue
+                else:
+                    return False
+            return True
+        def good_point_av(pnt):
+            tmp = 1.
+            y_default = psp[0][-1]
+            for it in psp:
+                f = it[2]
+                tmp *= f(pnt)
+            if tmp ** (1 / len(psp)) < y_default:
+                return True
+            else:
+                return False
+        def good_point_mean(pnt):
+            tmp = 0
+            y_default = psp[0][-1]
+            for it in psp:
+                f = it[2]
+                tmp += f(pnt)
+            if tmp  / len(psp) < y_default:
+                return True
+            else:
+                return False
+        if par.val_type[parname] == int:
+            x = np.arange(p_min, p_max + 1, step = step_i, dtype = np.int32)
+            #continue
+        else:
+            x = np.arange(p_min, p_max + step_f, step = step_f)
+        if draw:
+            for it in psp:
+                f = it[2]
+                plt.plot(x, f(x), label = it[0])
+            plt.ylabel(modename(mode))
+            plt.title(parname)
+            # plt.legend()
+            plt.show()
+        print(np.array(list(filter(good_point_max, x))))
+
+
 if __name__ == '__main__':
-    eff_all_pars()
+    #eff_all_pars()
     #dcs_information_print()
     #all_tasks_TcTeMem()
     #filepath = '/home/konoval/Эльбрус/nir_2018-2019/result_from_real_data/5tasks_some_results/ifconv_merge_heurall_tasks.txt'
@@ -368,6 +498,11 @@ if __name__ == '__main__':
     #    print el
     #for parname in par.reg_seq + par.icv_seq:
     #    print('default_value_' + parname, '=', par.default_value[parname])
+    data_TcTeMemF = read_TcTeMemF_database(rel_mode = True, bad_points = True, off_F_limit = True)
+    mode = 2
+    print('Mode:', modename(mode))
+    sp = get_sp(data_TcTeMemF, mode = mode)
+    get_intervals(sp, draw = True)
     
 def resultfile_to_picture(filepath, taskname):
     iterations = read_logfile_function(filepath, taskname)

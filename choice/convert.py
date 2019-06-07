@@ -263,4 +263,13 @@ data = {
 
     }
 
-print (data)
+def gen_sed_script():
+    llist = list(data.items())
+    # сортировка по длине полных имен, нужно, чтобы в начале были длинные имена а потом короткие
+    llist.sort(key = lambda x: len(x[1][0]), reverse = True) 
+    for key, item in llist:
+        pattern = item[0].replace('_', '\\\\_')
+        sub = key.replace('_', '\\\\_')
+        print('s/' + pattern + '/' + sub + '/g')
+
+# gen_sed_script()
