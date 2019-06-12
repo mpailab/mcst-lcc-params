@@ -260,7 +260,23 @@ data = {
         'bool',
         ['0', '1'], None,
         int(gl.__dict__['ALLOW_REWRITE_OUTPUT_FILES']) ),
-
+    
+    'tr_dir' : ('TRAIN_DATA_DIR',
+        'задает каталог, в котором расположены данные для переобучения ИС',
+        'path_to_dir', None, None,
+        gl.__dict__['TRAIN_DATA_DIR'] ),
+    
+    'tr_data' : ('TRAIN_DATA_SETUP',
+        'настройка сбора данных перед обучением',
+        'disc',
+        ['0', '1', '2'], None,
+        gl.__dict__['TRAIN_DATA_SETUP'] ),
+    
+    'verbose' : ('VERBOSE',
+        'задает степень подробности вывода на экран во время работы ИС',
+        'disc',
+        ['0', '1', '2'], None,
+        gl.__dict__['VERBOSE'] ),
     }
 
 def gen_sed_script():

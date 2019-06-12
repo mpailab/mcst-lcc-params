@@ -44,10 +44,11 @@ def hist(titlename, x_label,
         if os.path.exists(res_path):
             x_array, y_array = resultfile_to_picture(res_path, title)
             plt.plot(x_array, y_array, 'o')
-        res_path = gl.RUN_LOGS_PATH + '/5tasks_some_results/' + x_label + 'all_tasks.txt'
-        if os.path.exists(res_path):
-            x_array, y_array = resultfile_to_picture(res_path, title)
-            plt.plot(x_array, y_array, 'o')
+        if gl.GREAN_DOTS:
+            res_path = gl.RUN_LOGS_PATH + '/5tasks_some_results/' + x_label + 'all_tasks.txt'
+            if os.path.exists(res_path):
+                x_array, y_array = resultfile_to_picture(res_path, title)
+                plt.plot(x_array, y_array, 'o')
     if save_pic_flag:
         title_print = reduce(lambda x, y: x + y, titlename.split('.'))
         if gl.SAVE_SUBDIR_STRUCTURE_MODE == 2:
@@ -158,13 +159,13 @@ if __name__ == '__main__':
         #return par.val_type[x] == int
     def filt_func_task(x):
         tnum = int(x[:3])
-        if tnum >= 500:
+        if tnum >= 503:
             return True
         else:
             return False
     reg_parnames = list(filter(filt_func_par, par.reg_seq))
     icv_parnames = list(filter(filt_func_par, par.icv_seq))
     tasknames = list(filter(filt_func_task ,task_list()))
-    #hists_for_pars(reg_parnames, icv_parnames, tasknames = tasknames, hist_for_all_pars = False, smooth_stat = True)
+    hists_for_pars(reg_parnames, icv_parnames, tasknames = tasknames, hist_for_all_pars = False, smooth_stat = True)
     hists_for_pars(reg_parnames, icv_parnames, tasknames = tasknames, hist_for_all_pars = False, smooth_stat = False)
 

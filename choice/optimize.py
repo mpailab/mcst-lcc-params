@@ -255,7 +255,7 @@ def optimize(procs_dic, par_names,
     # генерация статистики, если new_stat_for_every_step == True
     flag = every_proc_is_individual_task
     if result_default == None:
-        result_default = calculate_abs_values(procs_dic, par_default_value, separate_procs = flag, output = output)
+        result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag, output = output)
         j_for_exec_run = 1
     else:
         j_for_exec_run = 0

@@ -9,6 +9,7 @@ from sys import maxsize
 # Internal imports
 import par, read
 import global_vars as gl
+import train_data as tr_data
 
 # Вычилсяем папку, из которой запущен процесс
 PWD = os.getcwd()
@@ -76,10 +77,15 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         
     for el in elements:
         if separate_procs:
-            cmd_pars = get_cmd_pars(el[0], par_value, [el[1]])
+            taskname = el[0]
+            proclist = [el[1]]
         else:
-            cmd_pars = get_cmd_pars(el, par_value, procs_dic[el])
-            
+            taskname = el
+            proclist = procs_dic[el]
+        cmd_pars = get_cmd_pars(taskname, par_value, proclist)
+        
+        
+        # Подсчет времени компиляции для el
         cmd_comp = SCRIPT_COMP + ' ' + cmd_pars
         print(cmd_comp, file=output)
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
@@ -96,6 +102,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             raise ExternalScriptError(error)
         
         if el != elements[0]:
+            # Подсчет времени исполнения для el_pred
             exec_proc.wait()
             tmp_result = exec_proc.communicate()
             print("exec_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
@@ -107,12 +114,23 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
                 os.chdir(PWD)
                 shutil.rmtree(tmpdir_path)
                 raise ExternalScriptError(error)
+            
+            if separate_procs:
+                taskname_pred = el_pred[0]
+                proclist_pred = [el_pred[1]]
+            else:
+                taskname_pred = el_pred
+                proclist_pred = procs_dic[el_pred]
+            # Добавление результата запуска в tr_data для el_pred
+            tr_data.data.add(taskname_pred, proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
         
+        # Запуск на исполнение для el
         cmd_exec = SCRIPT_EXEC + ' ' + cmd_pars + ' \"' + tmpdir_path + '\"'
         print(cmd_exec, file=output)
         exec_proc = Popen(cmd_exec, shell=True, stdout=PIPE, stderr=PIPE)
         el_pred = el
         
+        # Подсчет объема потребляемой памяти для el
         cmd_comp = SCRIPT_COMP_WITH_STAT + ' ' + cmd_pars
         print(cmd_comp, file=output)
         comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
@@ -127,18 +145,21 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             os.chdir(PWD)
             shutil.rmtree(tmpdir_path)
             raise ExternalScriptError(error)
-        
+    
+    # Подсчет времени исполнения для последнего элемента в elements
     exec_proc.wait()
     tmp_result = exec_proc.communicate()
     print("exec_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
     if exec_proc.returncode:
         print('exec_error#' + tmp_result[1].decode('utf-8'), file=output)
     try:
-        result_exec[el_pred] = float(tmp_result[0])
+        result_exec[el] = float(tmp_result[0])
     except ValueError as error:
             os.chdir(PWD)
             shutil.rmtree(tmpdir_path)
             raise ExternalScriptError(error)
+    # Добавление результата запуска в tr_data для последнего элемента в elements
+    tr_data.data.add(taskname, proclist, par_value, result_comp[el], result_exec[el], result_maxmem[el])
     
     os.chdir(PWD)
     shutil.rmtree(tmpdir_path)
@@ -146,5 +167,5 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
     result = {}
     for el in elements:
         result[el] = (result_comp[el], result_exec[el], result_maxmem[el])
-        
+    
     return result

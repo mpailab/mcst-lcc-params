@@ -117,7 +117,7 @@ def print_brief_pars_desc(gnames, output = None):
     #print("\\end{itemize}",file=output)
 
 def print_python_dict(gnames, tab = '    '):
-    rdir = './doc/global describtion/'
+    rdir = './doc/global_describtion/'
     #print("\\begin{itemize}",file=output)
     i = 0
     for var in gnames:
@@ -179,4 +179,4 @@ def get_globals_names(types = None):
     else:
         return result
 
-print_python_dict(list(gnames) + gnames_plus)
+print_python_dict(['VERBOSE', 'TRAIN_DATA_DIR', 'TRAIN_DATA_SETUP'])
