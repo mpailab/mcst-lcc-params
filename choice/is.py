@@ -219,7 +219,7 @@ import optimize as opt
 
 def close_annealing():
     tr_data.data.write_to_files()
-    tr_data.data.write_to_screen()
+    # tr_data.data.write_to_screen()
     exit()
 
 def run_annealing():
@@ -239,10 +239,10 @@ def run_annealing():
     spec_procs = specs.get(gl.SPECS)
     # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
 
-    if not os.path.isdir(gl.OUTPUTDIR):
-        print('Warning! There is not directory: ', gl.OUTPUTDIR)
-        print('         The output directory is not given')
-        print('         The output is on the screen')
+    #if not os.path.isdir(gl.OUTPUTDIR):
+        #print('Warning! There is not directory: ', gl.OUTPUTDIR)
+        #print('         The output directory is not given')
+        #print('         The output is on the screen')
         
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
@@ -251,28 +251,8 @@ def run_annealing():
         print('Successive optimization with the strategy :') # seq
         strat.fprint(strategy)
         
-        if os.path.isdir(gl.OUTPUTDIR):
-            filename = 'all.seq'
-            # filename = str(spec_procs) + '.' + str(strategy)
-            path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
-            if not gl.ALLOW_REWRITE_OUTPUT_FILES:
-                num = 0
-                while os.path.exists(path):
-                    path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
-                    num += 1
-            ffile = open(path, 'w')
-            print('Output to :', path)
-            
-            print('Synchronous optimization of specs :', file=ffile)  # all
-            specs.fprint(spec_procs, ffile)
-            print('Successive optimization with the strategy :', file=ffile) # seq
-            strat.fprint(strategy, ffile)
-            print('---------------------------------------------------------------------------', file=ffile)
-        else:
-            ffile = None
-        
         try:
-            opt.seq_optimize(spec_procs, strategy, output = ffile)
+            opt.seq_optimize(spec_procs, strategy)
         except clc.ExternalScriptError as error:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
@@ -291,28 +271,8 @@ def run_annealing():
             print("---------------------------------------------------------------------------")
             print("Spec:", specname)
             
-            if os.path.isdir(gl.OUTPUTDIR):
-                filename = specname + '.seq'
-                # filename = str({specname: proclist}) + '.' + str(strategy)
-                path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
-                if not gl.ALLOW_REWRITE_OUTPUT_FILES:
-                    num = 0
-                    while os.path.exists(path):
-                        path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
-                        num += 1
-                ffile = open(path, 'w')
-                print('Output to :', path)
-                
-                print('Optimization of spec :', file=ffile)  # all
-                specs.fprint({specname: proclist}, ffile)
-                print('Successive optimization with the strategy :', file=ffile) # seq
-                strat.fprint(strategy, ffile)
-                print('---------------------------------------------------------------------------', file=ffile)
-            else:
-                ffile = None
-            
             try:
-                opt.seq_optimize({specname: proclist}, strategy, output = ffile)
+                opt.seq_optimize({specname: proclist}, strategy)
             except clc.ExternalScriptError as error:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
@@ -334,36 +294,17 @@ def run_annealing():
         for parnames in strategy:
             print("---------------------------------------------------------------------------")
             print("Group:", parnames)
-            if os.path.isdir(gl.OUTPUTDIR):
-                filename = 'all.' + str(parnames)
-                # filename = str(spec_procs) + '.' + str(parnames)
-                path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
-                if not gl.ALLOW_REWRITE_OUTPUT_FILES:
-                    num = 0
-                    while os.path.exists(path):
-                        path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
-                        num += 1
-                ffile = open(path, 'w')
-                print('Output to :', path)
-                
-                print('Synchronous optimization of specs :', file=ffile)  # all
-                specs.fprint(spec_procs, ffile)
-                print('Optimization on the parametors group :', file=ffile)
-                strat.fprint([parnames], ffile)
-                print('---------------------------------------------------------------------------', file=ffile)
-            else:
-                ffile = None
             
             is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
             is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
             
             try:
                 if is_dcs_pargroup:
-                    opt.dcs_optimize(spec_procs, output = ffile)
+                    opt.dcs_optimize(spec_procs)
                 elif is_nesting_pargroup:
-                    opt.optimize_bool_par(spec_procs, parnames[0], output = ffile)
+                    opt.optimize_bool_par(spec_procs, parnames[0])
                 else:
-                    opt.optimize(spec_procs, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+                    opt.optimize(spec_procs, parnames, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
             except clc.ExternalScriptError as error:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
@@ -390,35 +331,15 @@ def run_annealing():
                 print("---------------------------------------------------------------------------")
                 print("Group:", parnames)
                 
-                if os.path.isdir(gl.OUTPUTDIR):
-                    filename = specname + '.' + str(parnames)
-                    # filename = str({specname : proclist}) + '.' + str(parnames)
-                    path = os.path.join(gl.OUTPUTDIR, filename + '.txt')
-                    if not gl.ALLOW_REWRITE_OUTPUT_FILES:
-                        num = 0
-                        while os.path.exists(path):
-                            path = os.path.join(gl.OUTPUTDIR, filename + '_' + str(num) + '.txt')
-                            num += 1
-                    ffile = open(path, 'w')
-                    print('Output to :', path)
-                    
-                    print('Optimization of the spec :', file=ffile)  # all
-                    specs.fprint({specname : proclist}, ffile)
-                    print('Optimization on the parametors group :', file=ffile)
-                    strat.fprint([parnames], ffile)
-                    print('---------------------------------------------------------------------------', file=ffile)
-                else:
-                    ffile = None
-                
                 is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
                 is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
                 try:
                     if is_dcs_pargroup:
-                        opt.dcs_optimize({specname : proclist}, output = ffile)
+                        opt.dcs_optimize({specname : proclist})
                     elif is_nesting_pargroup:
-                        opt.optimize_bool_par({specname : proclist}, parnames[0], output = ffile)
+                        opt.optimize_bool_par({specname : proclist}, parnames[0])
                     else:
-                        opt.optimize({specname : proclist}, parnames, output = ffile, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+                        opt.optimize({specname : proclist}, parnames, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
                 except clc.ExternalScriptError as error:
                     print('fail')
                     print('An error by giving (t_c, t_e, m) from external script')

@@ -4,9 +4,14 @@
 from functools import reduce
 import os
 
+
 import global_vars as gl
 import specs
 import par
+
+use_pickle = False
+if use_pickle:
+    import pickle
 
 class TrData:
     def __init__(self):
@@ -17,23 +22,33 @@ class TrData:
         self.default = {specname : None for specname in spec_list}
         
     def read(self):
-        for specname in self.data.keys():
-            path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
-            if not os.path.exists(path):
-                continue
-            rfile = open(path)
-            for line in rfile:
-                strs = line.split()
-                parnames = tuple(strs[0].split(':'))
-                self.data[specname][parnames] = []
-                for res in strs[1:]:
-                    res = res.split(':')
-                    for i in range(len(parnames)):
-                        res[i] = par.val_type[parnames[i]](res[i])
-                    for i in [-3, -2, -1]:
-                        res[i] = float(res[i])
-                    res = tuple(res)
-                    self.data[specname][parnames].append(res)
+        if use_pickle:
+            for specname in self.data.keys():
+                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.bat')
+                if not os.path.exists(path):
+                    continue
+                rfile = open(path, 'rb')
+                self.data[specname] = pickle.load(rfile)
+                rfile.close()
+        else:
+            for specname in self.data.keys():
+                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
+                if not os.path.exists(path):
+                    continue
+                rfile = open(path)
+                for line in rfile:
+                    strs = line.split()
+                    parnames = tuple(strs[0].split(':'))
+                    self.data[specname][parnames] = []
+                    for res in strs[1:]:
+                        res = res.split(':')
+                        for i in range(len(parnames)):
+                            res[i] = par.val_type[parnames[i]](res[i])
+                        for i in [-3, -2, -1]:
+                            res[i] = float(res[i])
+                        res = tuple(res)
+                        self.data[specname][parnames].append(res)
+                rfile.close()
                 
     
     def add(self, specname, proclist, par_value, t_c, t_e, v_mem):
@@ -77,18 +92,24 @@ class TrData:
             print(file = output)
     
     def write_to_files(self):
-        for specname in self.data.keys():
-            path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
-            ofile = open(path, 'w')
-            self.write(specname, output = ofile)
-            ofile.close()
+        if not use_pickle:
+            for specname in self.data.keys():
+                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
+                ofile = open(path, 'w')
+                self.write(specname, output = ofile)
+                ofile.close()
+        else:
+            for specname in self.data.keys():
+                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.bat')
+                ofile = open(path, 'wb')
+                pickle.dump(self.data[specname], ofile, 2)
+                ofile.close()
             
     def write_to_screen(self):
         for specname in self.data.keys():
             print('Specname: ', specname)
             self.write(specname)
 
-
-# при первом подключении модуля (подключении модуля в main) инициализируем имеющиеся данные о запусках
 data = TrData()
+# при первом подключении модуля (подключении модуля в main) инициализируем имеющиеся данные о запусках
 data.read()

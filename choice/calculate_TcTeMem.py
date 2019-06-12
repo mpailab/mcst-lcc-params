@@ -10,6 +10,7 @@ from sys import maxsize
 import par, read
 import global_vars as gl
 import train_data as tr_data
+import output
 
 # Вычилсяем папку, из которой запущен процесс
 PWD = os.getcwd()
@@ -42,7 +43,7 @@ def get_cmd_pars(task_name, par_value, procname_list = None):
         cmd += '\"'
     return cmd
     
-def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = None):
+def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = output.runs):
     """ Запускает внешние скипты на задачах из procs_dic со значениями параметров из par_value
         и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
     """
