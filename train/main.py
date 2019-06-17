@@ -205,7 +205,7 @@ def train (data, delta):
     # plt.plot(mask, test_Y[0], '-', mask, predictions[0], 'o')
     # plt.show()
 
-    return test_acc
+    return test_loss, test_acc
 
 print('Train neural network:')
 for p in Table.keys():
@@ -230,6 +230,6 @@ for p in Table.keys():
             if proc[0] != 0:
                 data.append((proc[1:], val * np.exp(proc[0] / MAX_COUNTER)))
 
-    acc = train(data, 0.7)
+    _, acc = train(data, 0.7)
     sys.stdout.write('ok (accuracy ' + str(acc) + ')\n')
     

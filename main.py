@@ -4,7 +4,6 @@
 # External imports
 import argparse, os, sys
 from subprocess import Popen, PIPE
-from functools import reduce
 
 # Internal imports
 import globals
@@ -90,7 +89,8 @@ if os.path.exists(args.config):
                 continue
 
             if param in params:
-                print('Warning! Several definitions in the configuration file for parametor ' + param + '. The first value will be used.')
+                print('Warning! Several definitions in the configuration file for parametor ' + param + '.')
+                print('         The first value will be used.')
                 continue
             
             gl = globals.var(param)
@@ -155,7 +155,8 @@ if os.path.exists(args.config):
             else:
                 raise Exception('unsupported type of the global variable ' + gl.param)
 else:
-    print('Warning! Configuration file does not exist. Default values for all parametors of IS will be used.')
+    print('Warning! Configuration file does not exist.')
+    print('         Default values for all parametors of IS will be used.')
 
 #########################################################################################
 # Initialize global variables
@@ -168,3 +169,11 @@ for param, value in params.items():
 
 for param, value in vars(args).items():
     set_global(globals.var(param), value)
+
+#########################################################################################
+# Run intelligent system
+
+import anneal
+
+if __name__ == '__main__':
+    anneal.run()
