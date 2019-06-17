@@ -67,8 +67,10 @@ class TrData:
         parnames = tuple(parnames)
         
         values = tuple(map(lambda parname: par_value[parname], parnames))
-        #print(specname, proclist, par_value, t_c, t_e, v_mem)
-        #print(self.default)
+        
+        if self.default[specname] == None:
+            raise Exception('There is not default values for t_e, t_c, mem in TrData')
+        
         results = (t_c / self.default[specname][0], t_e / self.default[specname][1], v_mem / self.default[specname][2])
         
         if parnames in self.data[specname]:
@@ -112,4 +114,5 @@ class TrData:
 
 data = TrData()
 # при первом подключении модуля (подключении модуля в main) инициализируем имеющиеся данные о запусках
+# FIXME подрежим "нейронная сеть" будет использовать этот модуль? Если да, то возможно здесь потребуется корректировка кода.
 data.read()

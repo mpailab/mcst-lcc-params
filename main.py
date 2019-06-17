@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 # External imports
-import argparse, os, sys
-from subprocess import Popen, PIPE
+import argparse, os
+
+#FIXME тут требуется подключение этих модулей?
+#import sys
+#from subprocess import Popen, PIPE
 
 # Internal imports
 import globals
@@ -100,7 +103,7 @@ if os.path.exists(args.config):
                 else:
                     print('Warning! Incorrect value for bool parametor', param ,':', value)
                     print('         The set of valid values for', param, 'is {0, 1}')
-                    print('         Default value for', param, 'will be used :', int(gl.default))
+                    # print('         Default value for', param, 'will be used :', int(gl.default))
                     continue
 
             elif gl.isDisc():
@@ -109,7 +112,7 @@ if os.path.exists(args.config):
                 else:
                     print('Warning! Incorrect value for parametor', param ,':', value)
                     print('         The set of valid values for', param, 'is', gl.values)
-                    print('         Default value for', param, 'will be used :', gl.default) 
+                    # print('         Default value for', param, 'will be used :', gl.default) 
                     continue
 
             elif gl.isInt():
@@ -118,7 +121,7 @@ if os.path.exists(args.config):
                 else:
                     print('Warning! Incorrect value for parametor', param ,':', value)
                     print('         The type of', param, 'is int')
-                    print('         Default value for', param, 'will be used :', gl.default) 
+                    # print('         Default value for', param, 'will be used :', gl.default) 
                     continue
 
             elif gl.isFloat():
@@ -127,7 +130,7 @@ if os.path.exists(args.config):
                 except ValueError:
                     print('Warning! Incorrect value for parametor', param ,':', value)
                     print('         The type of', param, 'is float')
-                    print('         Default value for', param, 'will be used ', gl.default) 
+                    # print('         Default value for', param, 'will be used ', gl.default) 
                     continue
                 params[param] = value
 
@@ -137,7 +140,7 @@ if os.path.exists(args.config):
                 else:
                     print('Warning! Incorrect value for parametor', param ,':', value)
                     print('         File', value, 'does not exist')
-                    print('         Default value for', param, 'will be used :', gl.default) 
+                    # print('         Default value for', param, 'will be used :', gl.default) 
                     continue
 
             elif gl.isDir():
@@ -146,7 +149,7 @@ if os.path.exists(args.config):
                 else:
                     print('Warning! Incorrect value for parametor', param ,':', value)
                     print('         Directory', value, 'does not exist')
-                    print('         Default value for', param, 'will be used :', gl.default) 
+                    # print('         Default value for', param, 'will be used :', gl.default) 
                     continue
 
             elif gl.isFormat():
@@ -156,7 +159,7 @@ if os.path.exists(args.config):
                 raise Exception('unsupported type of the global variable ' + gl.param)
 else:
     print('Warning! Configuration file does not exist.')
-    print('         Default values for all parametors of IS will be used.')
+    # print('         Default values for all parametors of IS will be used.')
 
 #########################################################################################
 # Initialize global variables

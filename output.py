@@ -9,7 +9,12 @@ devnull = open(devnull, 'w')
 
 import globals as gl
 
+
+
 ## Виды информации, выводимой на экнан
+## если = devnull -> не печатать на экран
+## если = None -> печатать на экран
+
 # F(...) = ...
 F = devnull
 
