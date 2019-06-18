@@ -5,7 +5,7 @@ from functools import reduce
 import os
 
 
-import globals as gl
+import options as gl
 import specs
 import par
 

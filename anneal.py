@@ -5,7 +5,7 @@
 from functools import reduce
 
 # Internal imports
-import globals as gl
+import options as gl
 import specs
 import strategy as strat
 import stat_adaptation as adt

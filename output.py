@@ -7,7 +7,7 @@
 from os import devnull
 devnull = open(devnull, 'w')
 
-import globals as gl
+import options as gl
 
 
 

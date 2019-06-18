@@ -5,7 +5,7 @@
 from sys import maxsize
 
 # Internal imports
-import globals as gl
+import options as gl
 import par, read, weight
 
 def add_dic(dic, dic_plus):

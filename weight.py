@@ -5,7 +5,7 @@
 """
 
 # Internal imports
-import globals as gl
+import options as gl
 import read
 
 

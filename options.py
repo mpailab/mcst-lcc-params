@@ -47,15 +47,6 @@ def exist (param):
 def var (param):
      return GL[param]
 
-# Конфигурационный файл
-CONFIGURE_FILE = './.config'
-GL['config'] = Global(
-     'CONFIGURE_FILE', 'config',
-     'конфигурационный файл',
-     'path_to_file', None, None,
-     CONFIGURE_FILE
-)
-
 #########################################################################################
 # Настройка весов
 # 
@@ -642,7 +633,7 @@ GL['rewrite'] = Global(
 # Модуль tr_data
 
 # Задает каталог, в котором расположены данные для переобучения ИС.
-TRAIN_DATA_DIR = None
+TRAIN_DATA_DIR = '.'
 GL['tr_dir'] = Global(
      'TRAIN_DATA_DIR', 'tr_dir',
      'каталог, в котором расположены данные для переобучения ИС',
@@ -668,18 +659,63 @@ GL['tr_new'] = Global(
      NEW_TRAIN_DATA
 )
 
+# Порядок сплайн-интерполяции данных
+DATA_INTERP = 'linear'
+GL['data_interp'] = Global(
+     'DATA_INTERP', 'data_interp',
+     'порядок сплайн-интерполяции данных',
+     'disc', ['linear', 'quadratic', 'cubic'], None,
+     DATA_INTERP
+)
+
+# Доля данных, выделяемая для обучения искусственной нейронной сети
+TRAIN_DELTA = 0.7
+GL['train_delta'] = Global(
+     'TRAIN_DELTA', 'train_delta',
+     'доля данных, выделяемая для обучения искусственной нейронной сети',
+     'float', None, None,
+     TRAIN_DELTA
+)
+
+# Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
+MODEL_DIR = '.'
+GL['model_dir'] = Global(
+     'MODEL_DIR', 'model_dir',
+     'каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра',
+     'path_to_dir', None, None,
+     MODEL_DIR
+)
+
 #########################################################################################
 # Подсчёт времени компиляции, исполнения и потребления памяти
 # FIXME: Внедрить эти скрипты в код
 
 # Путь до скрипта, который запускает компиляцию спека, и возвращает время компиляции
-SCRIPT_COMP = './choice/run_comp.sh'
+SCRIPT_COMP = None
+GL['comp_scr'] = Global(
+     'SCRIPT_COMP', 'comp_scr',
+     'скрипт, который запускает компиляцию задачи, и возвращает время компиляции',
+     'path_to_file', None, None,
+     SCRIPT_COMP
+)
 
 # Путь до скрипта, который запускает исполнение спека, и возвращает время исполнения
-SCRIPT_EXEC = './choice/run_exec.sh'
+SCRIPT_EXEC = None
+GL['exec_scr'] = Global(
+     'SCRIPT_EXEC', 'exec_scr',
+     'скрипт, который запускает исполнение задачи, и возвращает время исполнения',
+     'path_to_file', None, None,
+     SCRIPT_EXEC
+)
 
 # Путь до скрипта, который запускает компиляцию спека вместе со сбором статистики, и возвращает объем потребляемой памяти
-SCRIPT_COMP_WITH_STAT = './choice/run_comp_with_stat.sh'
+SCRIPT_COMP_WITH_STAT = None
+GL['stat_scr'] = Global(
+     'SCRIPT_COMP_WITH_STAT', 'stat_scr',
+     'скрипт, который запускает компиляцию задачи вместе со сбором статистики, и возвращает объем потребляемой памяти',
+     'path_to_file', None, None,
+     SCRIPT_COMP_WITH_STAT
+)
 
 #########################################################################################
 # Модуль draw

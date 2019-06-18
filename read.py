@@ -10,7 +10,7 @@ import os
 
 # Internal imports
 from def_classes import *
-import globals as gl
+import options as gl
 
 
 # Выбор каталога, из которого будет считываться статистика

@@ -8,7 +8,7 @@ from sys import maxsize
 
 # Internal imports
 import par, read
-import globals as gl
+import options as gl
 import train_data as tr_data
 import output
 

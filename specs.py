@@ -5,18 +5,18 @@
 from functools import reduce
 
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
-import globals as gl
+import options as gl
 
 
 def get(specs_in_string = gl.SPECS):
     """
         Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
     """
-    def print_format():
-        print('The list of specs must be in the next format :', end=' ')
-        print('<specname>[: <proclist>][, <specname>[: <proclist>]]')
-        print('<proclist> format is :', end=' ')
-        print('<procname> [<procname>]')
+    # def print_format():
+    #     print('The list of specs must be in the next format :', end=' ')
+    #     print('<specname>[: <proclist>][, <specname>[: <proclist>]]')
+    #     print('<proclist> format is :', end=' ')
+    #     print('<procname> [<procname>]')
     
     result = {}
     for spec in specs_in_string.split(','):

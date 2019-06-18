@@ -6,7 +6,7 @@ from math import erf
 
 # Internal imports
 import par
-import globals as gl
+import options as gl
 
 def cerf(x):
     '''

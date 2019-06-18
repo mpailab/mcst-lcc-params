@@ -5,10 +5,10 @@
 from functools import reduce
 
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
-import globals as gl
+import options as gl
 import par
 
-def get(strategy_in_line_format):
+def get(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY):
     """
         Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
     """

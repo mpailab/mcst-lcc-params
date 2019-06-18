@@ -10,7 +10,7 @@ from functools import reduce
 import output as out
 
 # Internal imports
-import globals as gl
+import options as gl
 from calculate_TcTeMem import calculate_abs_values
 import par
 import weight
