@@ -15,7 +15,6 @@ import optimize as opt
 import par
 import train_data as tr_data
 
-#FIXME Мы будем перезаписывать par.default на основе значений параметров по-умолчанию выставленных в данном нам компиляторе?
 
 def close():
     print()

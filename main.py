@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # External imports
-import argparse, configargparse, os
+import argparse, configargparse, os, sys
 
 # Internal imports
 import options
@@ -80,6 +80,13 @@ args = parser.parse_args()
 for param, value in vars(args).items():
     if options.exist(param):
         options.__dict__[options.var(param).name] = value
+
+#########################################################################################
+# Cheaking global variables
+if options.dv_dcs_level > options.MAX_DCS_LEVEL:
+    print('Error! default value for parametor dcs_level more then MAX_DCS_LEVEL')
+    sys.exit()
+
 
 #########################################################################################
 # Run intelligent system
