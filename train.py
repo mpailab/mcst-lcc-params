@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from scipy import interpolate
+from functools import reduce
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -73,7 +74,7 @@ FL = F(1.0,1.0,1.0)
 #########################################################################################
 # Read database
 
-pars = list(set([ p for p in g for g in strat.get()]))
+pars = = list(set(reduce(lambda x, y: x + y, strat.get())))
 specs = specs.get().keys()
 dataset = gl.TRAIN_DATA_DIR
 interp = gl.DATA_INTERP

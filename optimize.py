@@ -614,7 +614,7 @@ def seq_optimize(procs_dic, pargroup_seq,
     result_current = None
     for par_group in pargroup_seq:
         print("---------------------------------------------------------------------------", file=output)
-        print("Parameters:", str(par_group), file=output)
+        print("Parameters:", str(par_group))
         
         is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in par_group])
         is_nesting_pargroup = len(par_group) == 1 and par_group[0] in par.nesting

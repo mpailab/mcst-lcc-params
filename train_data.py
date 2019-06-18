@@ -3,15 +3,12 @@
 
 from functools import reduce
 import os
-
+import pickle
 
 import options as gl
 import specs
 import par
 
-use_pickle = False
-if use_pickle:
-    import pickle
 
 class TrData:
     def __init__(self):
@@ -22,33 +19,35 @@ class TrData:
         self.default = {specname : None for specname in spec_list}
         
     def read(self):
-        if use_pickle:
-            for specname in self.data.keys():
-                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.bat')
-                if not os.path.exists(path):
-                    continue
-                rfile = open(path, 'rb')
-                self.data[specname] = pickle.load(rfile)
-                rfile.close()
-        else:
-            for specname in self.data.keys():
-                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
-                if not os.path.exists(path):
-                    continue
-                rfile = open(path)
-                for line in rfile:
-                    strs = line.split()
-                    parnames = tuple(strs[0].split(':'))
-                    self.data[specname][parnames] = []
-                    for res in strs[1:]:
-                        res = res.split(':')
-                        for i in range(len(parnames)):
-                            res[i] = par.val_type[parnames[i]](res[i])
-                        for i in [-3, -2, -1]:
-                            res[i] = float(res[i])
-                        res = tuple(res)
-                        self.data[specname][parnames].append(res)
-                rfile.close()
+        
+        for specname in self.data.keys():
+            path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.pkl')
+            if not os.path.exists(path):
+                continue
+            rfile = open(path, 'rb')
+            self.data[specname] = pickle.load(rfile)
+            rfile.close()
+        
+        ## считывание данных из файла в формате .txt
+        #
+        #for specname in self.data.keys():
+            #path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
+            #if not os.path.exists(path):
+                #continue
+            #rfile = open(path)
+            #for line in rfile:
+                #strs = line.split()
+                #parnames = tuple(strs[0].split(':'))
+                #self.data[specname][parnames] = []
+                #for res in strs[1:]:
+                    #res = res.split(':')
+                    #for i in range(len(parnames)):
+                        #res[i] = par.val_type[parnames[i]](res[i])
+                    #for i in [-3, -2, -1]:
+                        #res[i] = float(res[i])
+                    #res = tuple(res)
+                    #self.data[specname][parnames].append(res)
+            #rfile.close()
                 
     
     def add(self, specname, proclist, par_value, t_c, t_e, v_mem):
@@ -93,16 +92,19 @@ class TrData:
                 print(' ' + res, file = output, end = '')
             print(file = output)
     
-    def write_to_files(self):
-        if not use_pickle:
+    def write_to_files(self, mode = 'all'):
+        """
+            mode -> 'all', 'txt', 'pkl'
+        """
+        if mode == 'all' or mode == 'txt':
             for specname in self.data.keys():
                 path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.txt')
                 ofile = open(path, 'w')
                 self.write(specname, output = ofile)
                 ofile.close()
-        else:
+        if mode == 'all' or mode == 'pkl':
             for specname in self.data.keys():
-                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.bat')
+                path = os.path.join(gl.TRAIN_DATA_DIR, specname + '.pkl')
                 ofile = open(path, 'wb')
                 pickle.dump(self.data[specname], ofile, 2)
                 ofile.close()
@@ -111,8 +113,12 @@ class TrData:
         for specname in self.data.keys():
             print('Specname: ', specname)
             self.write(specname)
+    
+    def close(self):
+        os.chdir(PWD) # возвращаемся в каталог, из которого была запущена программа
+        self.write_to_files()
+        
 
+PWD = os.getcwd()
 data = TrData()
-# при первом подключении модуля (подключении модуля в main) инициализируем имеющиеся данные о запусках
-# FIXME подрежим "нейронная сеть" будет использовать этот модуль? Если да, то возможно здесь потребуется корректировка кода.
-data.read()
+# data.read()

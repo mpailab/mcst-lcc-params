@@ -4,10 +4,6 @@
 # External imports
 import argparse, configargparse, os
 
-#FIXME тут требуется подключение этих модулей?
-#import sys
-#from subprocess import Popen, PIPE
-
 # Internal imports
 import options
 
@@ -47,7 +43,11 @@ for gl in options.list():
         assert(gl.default is not None)
         parser.add( '--' + gl.param, type=int, choices=gl.values, default=gl.default, 
                              help=gl.help + '; Values: %(choices)s; Default: %(default)s')
-
+    elif gl.isDiscStr():
+        assert(gl.values is not None)
+        assert(gl.default is not None)
+        parser.add( '--' + gl.param, type=str, choices=gl.values, default=gl.default, 
+                             help=gl.help + '; Values: %(choices)s; Default: %(default)s')
     elif gl.isInt():
         assert(gl.default is not None)
         parser.add( '--' + gl.param, type=int, default=gl.default, 
@@ -84,20 +84,31 @@ for param, value in vars(args).items():
 #########################################################################################
 # Run intelligent system
 
-import anneal, train
+import anneal
+# import train
+import net
 
 if args.mode == 'data':
 
     if args.force:
-        anneal.run()
+        try:
+            anneal.run()
+        except KeyboardInterrupt:
+            anneal.close()
 
     else:
-        pass
+        try:
+            net.run()
+        except KeyboardInterrupt:
+            net.close()
 
 elif args.mode == 'find':
 
     if args.force:
-        anneal.run()
+        try:
+            anneal.run()
+        except KeyboardInterrupt:
+            anneal.close()
 
     else:
         pass

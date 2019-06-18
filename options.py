@@ -19,7 +19,10 @@ class Global:
 
      def isDisc (self):
           return self.type == 'disc'
-
+     
+     def isDiscStr (self):
+          return self.type == 'disc_str'
+     
      def isInt (self):
           return self.type == 'int'
 
@@ -664,7 +667,7 @@ DATA_INTERP = 'linear'
 GL['data_interp'] = Global(
      'DATA_INTERP', 'data_interp',
      'порядок сплайн-интерполяции данных',
-     'disc', ['linear', 'quadratic', 'cubic'], None,
+     'disc_str', ['linear', 'quadratic', 'cubic'], None,
      DATA_INTERP
 )
 
