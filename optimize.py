@@ -230,7 +230,7 @@ def optimize(procs_dic, par_names,
              result_default = None,
              val_F_start = None,
              result_start = None,
-             new_stat_for_every_step = gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP
+             new_stat_for_every_step = not gl.INHERIT_STAT
             ):
     '''
     procs_dic: taskname -> list_of_some_procnames_of_taskname (for some taskname)
@@ -600,7 +600,7 @@ def optimize(procs_dic, par_names,
 def seq_optimize(procs_dic, pargroup_seq,
              every_proc_is_individual_task = False,
              output = out.default,
-             new_stat_for_every_step = gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP
+             new_stat_for_every_step = not gl.INHERIT_STAT
             ):
     
     flag = every_proc_is_individual_task

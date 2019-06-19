@@ -14,10 +14,10 @@ import options as gl
 
 
 # Выбор каталога, из которого будет считываться статистика
-if gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
-    STAT_PATH_FOR_READ = gl.DINUMIC_STAT_PATH
-else:
+if gl.INHERIT_STAT:
     STAT_PATH_FOR_READ = gl.STAT_PATH
+else:
+    STAT_PATH_FOR_READ = gl.DINUMIC_STAT_PATH
 
 def task_list():
     """

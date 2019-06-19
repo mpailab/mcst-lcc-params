@@ -3,6 +3,16 @@
  
 # Глобальные переменные
 
+# Режимы работы ИС
+modes = {
+    ''       : 'Основная группа параметров',
+    'anneal' : 'Группа параметров для настройки метода имитации отжига',
+    'stat'   : 'Группа параметров для обработки статистики задач/процедур',
+    'train'  : 'Группа параметров для настроки обучение ИС',
+    'func'   : 'Группа параметров для настроки оптимизируемого функционала',
+    'setup'  : 'Установка значений по умолчанию параметров оптимизирующих преобразований'
+    }
+
 # Информационная структура глобальной переменной
 class Global:
      def __init__ (self, name, param, help, type, values, format, default, mode = ''):
@@ -13,7 +23,7 @@ class Global:
           self.values  = values  # возможные значения глобала
           self.format  = format  # формат значения глобала
           self.default = default # значение по умолчанию
-          # mode -> setup, train, anneal, stat, setup, net
+          # mode -> setup, train, anneal, stat, func
           self.mode    = mode    # режим ИС
 
      def isBool (self):
@@ -377,13 +387,13 @@ GL['weight_limit'] = Global(
 #########################################################################################
 # Модуль optimize
 
-# Актуализировать статистику на каждом шаге метода отжига? {0, 1}
-GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP = True
-GL['every'] = Global(
-     'GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP', 'every',
-     'пересчет статистики, собираемой компилятором LCC, при изменении значений параметров оптимизирующих преобразований',
+# Использовать собранную статистику компилятора LCC в не зависимости от значений параметров оптимизирующих преобразований? {0, 1}
+INHERIT_STAT = False
+GL['inherit'] = Global(
+     'INHERIT_STAT', 'inherit',
+     'использовать собранную статистику компилятора LCC в не зависимости от значений параметров оптимизирующих преобразований',
      'bool', ['0', '1'], None,
-     GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP
+     INHERIT_STAT
 )
 
 # Сохранять в оперативной памяти распределения весов для каждого нового набора параметров? {0, 1}
@@ -478,21 +488,21 @@ GL['F_exec'] = Global(
      'TIME_EXEC_IMPOTANCE', 'F_exec',
      'значение множителя при члене относительного увеличении времени исполнения в минимизируемом функционале',
      'float', None, None,
-     TIME_EXEC_IMPOTANCE
+     TIME_EXEC_IMPOTANCE, 'func'
 )
 TIME_COMP_IMPOTANCE = 1.0
 GL['F_comp'] = Global(
      'TIME_COMP_IMPOTANCE', 'F_comp',
      'значение множителя при члене относительного увеличении времени компиляции в минимизируемом функционале',
      'float', None, None,
-     TIME_COMP_IMPOTANCE
+     TIME_COMP_IMPOTANCE, 'func'
 )
 MEMORY_IMPOTANCE = 1.0
 GL['F_mem'] = Global(
      'MEMORY_IMPOTANCE', 'F_mem',
      'значение множителя при члене относительного увеличении объема потребляемой компилятором памяти в минимизируемом функционале',
      'float', None, None,
-     MEMORY_IMPOTANCE
+     MEMORY_IMPOTANCE, 'func'
 )
 
 # Допустимый процент увеличения времени компиляции
@@ -501,7 +511,7 @@ GL['comp_limit'] = Global(
      'COMP_TIME_INCREASE_ALLOWABLE_PERCENT', 'comp_limit',
      'задает допустимое относительное замедление времени компиляции',
      'float', None, None,
-     COMP_TIME_INCREASE_ALLOWABLE_PERCENT
+     COMP_TIME_INCREASE_ALLOWABLE_PERCENT, 'func'
 )
 
 # Допустимый процент увеличения времени исполнения
@@ -510,7 +520,7 @@ GL['exec_limit'] = Global(
      'EXEC_TIME_INCREASE_ALLOWABLE_PERCENT', 'exec_limit',
      'задает допустимое относительное замедление времени исполнения',
      'float', None, None,
-     EXEC_TIME_INCREASE_ALLOWABLE_PERCENT
+     EXEC_TIME_INCREASE_ALLOWABLE_PERCENT, 'func'
 )
 
 # Допустимый процент увеличения объема потребляемой памяти
@@ -519,7 +529,7 @@ GL['mem_limit'] = Global(
      'MEMORY_INCREASE_ALLOWABLE_PERCENT', 'mem_limit',
      'задает допустимое относительное увеличение объема памяти, потребляемой при компиляции',
      'float', None, None,
-     MEMORY_INCREASE_ALLOWABLE_PERCENT
+     MEMORY_INCREASE_ALLOWABLE_PERCENT, 'func'
 )
 
 # Число итераций метода отжига
@@ -638,12 +648,50 @@ GL['verbose'] = Global(
 # Модуль обучения ИС
 
 # Удаляются все накопленные данные для обучения
+TRAIN_PROC_CHARS = None
+GL['proc_chars'] = Global(
+     'TRAIN_PROC_CHARS', 'proc_chars',
+     'характеристики процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc. Данные задаются в следующем формате:\n'
+     '<procs> = <proc> | <proc> <procs>\n'
+     '<proc>  = <weight>;<nodes>;<loops>;<doms>;<pdoms>\n'
+     '<weight> - вес процедуры\n'
+     '<nodes> = <node> | <node>,<nodes>\n'
+     '<node>  = <num>:<type>:<cnt>:<o_num>:<c_num>:<l_num>:<s_num>\n'
+     '<num>   - номер узла управляющего графа\n'
+     '<type>  - его тип (одно из значений Simple, If, Return, Start, Stop, Switch, Hyper, Jump, Tmp)\n'
+     '<o_num> - число всех операций в нём\n'
+     '<c_num> - число операций вызова в нём\n'
+     '<l_num> - число операций чтения в нём\n'
+     '<s_num> - число операций записи в нём\n'
+     '<loops> = <loop> | <loop>,<loops>\n'
+     '<loop>  = <num>:<ovl>:<red>\n'
+     '<num>   - номер цикла управляющего графа\n'
+     '<ovl>   - признак накрученного цикла (0 или 1)\n'
+     '<red>   - признак сводимого цикла (0 или 1)\n'
+     '<(p)doms>  = <(p)dom_height>,<(p)dom_width>,<(p)dom_succs>\n'
+     '<(p)dom_height> - высота дерева (пост)доминаторов\n'
+     '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
+     '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов',
+     'format', None, '<procs>',
+     TRAIN_PROC_CHARS
+)
+
+# Удаляются все накопленные данные для обучения
 TRAIN_CLEAR = False
 GL['clear'] = Global(
      'TRAIN_CLEAR', 'clear',
      'удаление всех накопленных данных для обучения',
      'bool', ['0', '1'], None,
      TRAIN_CLEAR
+)
+
+# Накапливать ли данные для обучения?
+TRAIN_PURE = False
+GL['pure'] = Global(
+     'TRAIN_PURE', 'pure',
+     'не накопливать данные для обучения',
+     'bool', ['0', '1'], None,
+     TRAIN_PURE
 )
 
 # Каталог, в котором расположены данные для обучения ИС
@@ -862,7 +910,7 @@ GL['points_num'] = Global(
      'points_num', 'points_num',
      'задает число точек в сетке',
      'int', None, None,
-     points_num, 'net'
+     points_num, 'train'
 )
 
 #########################################################################################

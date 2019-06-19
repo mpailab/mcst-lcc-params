@@ -15,7 +15,7 @@ import check_stat
 
 def run():
     
-    if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+    if gl.INHERIT_STAT:
         check_stat.check()
     
     parnames = list(set(reduce(lambda x, y: x + y, strat.get())))

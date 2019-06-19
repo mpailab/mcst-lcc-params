@@ -33,18 +33,12 @@ mode_group.add( 'mode', metavar='<mode>', type=str, choices=['data','find','stat
                      'train - обучение ИС;\n'
                      'setup - установка значений параметров по умолчанию.')
 
-modes = {
-    ''      : 'Основная группа параметров',
-    'data'  : 'Группа параметров для сбора данных для обучения',
-    'find'  : 'Группа параметров для поиска оптимальных значений параметров',
-    'stat'  : 'Группа параметров для печати данных для обучения',
-    'train' : 'Группа параметров для обучение ИС',
-    'setup' : 'Установка значений параметров по умолчанию'
-    }
+parser.add( '-c', '--config', metavar='path', type=str, is_config_file=True, help='конфигурационный файл')
+parser.add( '--force', action='store_true', help='запуск метода имитации отжига')
 
-for mode in modes.keys():
+for mode in options.modes.keys():
 
-    group = parser.add_argument_group(modes[mode])
+    group = parser if mode == '' else parser.add_argument_group(options.modes[mode])
     for gl in options.list(mode):
 
         if gl.isBool():
@@ -91,11 +85,6 @@ for mode in modes.keys():
             raise Exception('unsupported type of the global variable ' + gl.param)
 
 args = parser.parse_args()
-# args, argv = parser.parse_known_args()
-# args = parser.parse_args()
-print(args)
-# print(argv)
-sys.exit()
 
 #########################################################################################
 # Initialize global variables
@@ -157,7 +146,7 @@ try:
             anneal.run()
 
         else:
-            pass
+            train.find()
 
     elif args.mode == 'stat':
         print('Warning! Режим stat пока не поддерживается.')

@@ -14,15 +14,19 @@ import calculate_TcTeMem as clc
 import optimize as opt
 import par
 import check_stat
+import train
 
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
+
+    # Подгружаем базу данных для обучения
+    train.DB.load()
 
     # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
     strategy = strat.get(gl.OPTIMIZATION_STRATEGY)
     spec_procs = specs.get(gl.SPECS)
     
-    if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+    if gl.INHERIT_STAT:
         check_stat.check()
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
@@ -116,4 +120,3 @@ def run():
                     print('An error by giving (t_c, t_e, m) from external script')
                 else:
                     print("ok")
-    close()

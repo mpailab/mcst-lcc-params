@@ -72,9 +72,9 @@ class Loop:
         self.is_red = red  # признак сводимиго цикла
 
 class Proc:
-    def __init__ (self, name, t, ns, ls, ds, ps):
+    def __init__ (self, name, w, ns, ls, ds, ps):
         self.name = name           # имя процедуры
-        self.ticks = t             # число тактов исполнения процедуры
+        self.weight = w            # вес процедуры
         self.nodes = ns            # узлы процедуры
         self.loops = ls            # циклы процедуры
         self.dom_height  = ds[0]   # высота дерева доминаторов
@@ -247,7 +247,7 @@ NODE_TYPE = {
     }
 
 CHARS = [
-    (  0, "Число тактов исполнения процедуры", lambda p: p.ticks),
+    (  0, "Вес процедуры", lambda p: p.weight),
     (  1, "Число операций", Proc.opers_num),
     (  2, "Взвешенное число операций", Proc.w_opers_num),
     (  3, "Максимальное число операций в узле", Proc.max_opers_num),
@@ -332,12 +332,12 @@ class DataBase:
         # Default values for current launch
         # Format : (t0_c, t0_e, v0_mem)
         self.default = None
-
-        # Load default database
-        self.load()
     
     # Load database from sourse
     def load (self, sourse = DATA_DIR):
+
+        if gl.TRAIN_PURE:
+            return
 
         if os.path.exists(sourse):
             path = os.path.join(sourse, self.spec + '.bat')
@@ -347,6 +347,9 @@ class DataBase:
     
     # Save database from sourse
     def save (self, sourse = DATA_DIR):
+
+        if gl.TRAIN_PURE:
+            return
 
         if not os.path.exists(sourse):
             os.makedirs(sourse)
@@ -359,6 +362,9 @@ class DataBase:
     # Add value to database
     # Format of pv: {par_1 : val_1, ..., par_n : val_n}
     def add (self, procs, pv, t_c, t_e, v_mem):
+
+        if gl.TRAIN_PURE:
+            return
 
         if bool(pv):
             # TODO Add default values of parameters to database
@@ -386,7 +392,7 @@ class DataBase:
 
             proc_info = read.proc(self.spec, name)
 
-            t = proc_order[name] if name in proc_order else 0.0
+            w = float(proc_order[name]) if name in proc_order else 0.0
 
             nodes = []
             for n in proc_info.nodes:
@@ -406,7 +412,7 @@ class DataBase:
                                   bool(loop['ovl']), 
                                   bool(loop['red'])))
 
-            proc = Proc(name, t, nodes, loops,
+            proc = Proc(name, w, nodes, loops,
                         [int(proc_info.chars['dom_height']),
                          int(proc_info.chars['dom_weight']),
                          int(proc_info.chars['dom_succs'])],
@@ -521,8 +527,8 @@ def run ():
         train_X = np.array([ i for i, j in data[0:N] ])
         train_Y = np.array([ j for i, j in data[0:N] ])
 
-        test_X = np.array([ i for i, j in data[N:] ])
-        test_Y = np.array([ j for i, j in data[N:] ])
+        # test_X = np.array([ i for i, j in data[N:] ])
+        # test_Y = np.array([ j for i, j in data[N:] ])
 
         model = keras.Sequential([keras.layers.Flatten(input_shape=(48,)),
                                 keras.layers.Dense(int(GRID / 2), activation='relu'),
@@ -539,7 +545,8 @@ def run ():
                     metrics=['categorical_accuracy'])
 
         model.fit(train_X, train_Y, epochs=100, batch_size=100, verbose=False)
-        test_loss, test_acc = model.evaluate(test_X, test_Y, verbose=False)
+        
+        # test_loss, test_acc = model.evaluate(test_X, test_Y, verbose=False)
 
         # predictions=model.predict(test_X)
         # print(predictions[0])
@@ -548,4 +555,41 @@ def run ():
         # plt.show()
 
         model.save(MODEL_DIR + '/' + p + '_model.h5')
-    
+
+def init_node (str):
+    h = str.split(':')
+    return Node(int(h[0]), NODE_TYPE[h[1]], float(h[2]), int(h[3]), int(h[4]), int(h[5]), int(h[6]))
+
+def init_loop (str):
+    h = str.split(':')
+    return Loop(int(h[0]), bool(h[1]), bool(h[2]))
+
+def init_proc (str):
+    h = str.split(';')
+    return Proc('tmp', float(h[0]), 
+                list(map(init_node, h[0].split(','))),
+                list(map(init_loop, h[1].split(','))),
+                list(map(int, h[2].split(','))),
+                list(map(int, h[3].split(','))))
+
+# Поиск оптимальные значения параметров компилятора lcc
+def find ():
+
+    if gl.TRAIN_PROC_CHARS is None:
+        print('Error! Не поданы характеристики процедур, для которых необходимо'
+              '       найти оптимальные значения параметров компилятора lcc.')
+        return
+
+    procs = list(map(init_proc, gl.TRAIN_PROC_CHARS.split()))
+    chars = list(map(lambda p: list(map(lambda x: float(calc(x, p)), CHARS)), procs))
+
+    print('Optimal values of parameters')
+    for p in PARS.keys():
+
+        model = keras.models.load_model(MODEL_DIR + '/' + p + '_model.h5')
+        val_grids = list(map(lambda x: model.predict(x), chars))
+        val_grid = np.average(val_grids, weights=np.array(list(map(lambda p: p.weight, procs))))
+        val = np.unravel_index(np.argmax(val_grid), val_grid.shape)
+
+        for i in range(len(p)):
+            print(' ', p[i], '=', val[i])
