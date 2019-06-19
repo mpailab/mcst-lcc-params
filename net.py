@@ -13,11 +13,6 @@ import par
 import train
 import check_stat
 
-def close():
-    print()
-    train.close()
-    sys.exit()
-
 def run():
     
     if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:

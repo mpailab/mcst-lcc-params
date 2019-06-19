@@ -5,7 +5,7 @@
 
 # Информационная структура глобальной переменной
 class Global:
-     def __init__ (self, name, param, help, type, values, format, default):
+     def __init__ (self, name, param, help, type, values, format, default, mode = ''):
           self.name    = name    # имя глобала
           self.param   = param   # имя параметра, соответствующего глобалу
           self.help    = help    # описание глобала
@@ -13,6 +13,7 @@ class Global:
           self.values  = values  # возможные значения глобала
           self.format  = format  # формат значения глобала
           self.default = default # значение по умолчанию
+          self.mode    = mode    # режим ИС
 
      def isBool (self):
           return self.type == 'bool'
@@ -41,8 +42,8 @@ class Global:
 # Таблица глабольных переменных: {param -> Global}
 GL = {}
 
-def list ():
-     return GL.values()
+def list (mode = ''):
+     return [x for x in GL.values() if x.mode == mode]
 
 def exist (param):
      return param in GL
@@ -655,38 +656,38 @@ GL['tr_dir'] = Global(
 
 # Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
 TRAIN_MODEL_DIR = '.'
-GL['tr_model_dir'] = Global(
-     'TRAIN_MODEL_DIR', 'tr_model_dir',
+GL['model_dir'] = Global(
+     'TRAIN_MODEL_DIR', 'model_dir',
      'каталог c предобученными искусственными нейронными сетями',
      'path_to_dir', None, None,
-     TRAIN_MODEL_DIR
+     TRAIN_MODEL_DIR, 'train'
 )
 
 # Доля данных, выделяемая для обучения искусственной нейронной сети
-TRAIN_DELTA = 0.7
-GL['tr_delta'] = Global(
-     'TRAIN_DELTA', 'tr_delta',
+TRAIN_DELTA = 0.5
+GL['delta'] = Global(
+     'TRAIN_DELTA', 'delta',
      'доля данных, выделяемая для обучения искусственной нейронной сети',
      'float', None, None,
-     TRAIN_DELTA
+     TRAIN_DELTA, 'train'
 )
 
 # Размер сетки для интерполяции данных
 TRAIN_GRID = 100
-GL['tr_grid'] = Global(
-     'TRAIN_GRID', 'tr_grid',
+GL['grid'] = Global(
+     'TRAIN_GRID', 'grid',
      'размер сетки для интерполяции данных',
      'float', None, None,
-     TRAIN_GRID
+     TRAIN_GRID, 'train'
 )
 
 # Метод интерполяции данных
 TRAIN_INTERP = 'linear'
-GL['tr_interp'] = Global(
-     'TRAIN_INTERP', 'tr_interp',
+GL['interp'] = Global(
+     'TRAIN_INTERP', 'interp',
      'метод интерполяции данных',
      'disc_str', ['linear', 'cubic'], None,
-     TRAIN_INTERP
+     TRAIN_INTERP, 'train'
 )
 
 #########################################################################################
@@ -725,131 +726,131 @@ GL['stat_scr'] = Global(
 # значения по-умолчанию для параметров
 
 dv_regn_max_proc_op_sem_size = 16000
-GL['dv_regn_max_proc_op_sem_size'] = Global(
-     'dv_regn_max_proc_op_sem_size', 'dv_regn_max_proc_op_sem_size',
+GL['regn_max_proc_op_sem_size'] = Global(
+     'dv_regn_max_proc_op_sem_size', 'regn_max_proc_op_sem_size',
      'значение по-умолчанию для параметра regn_max_proc_op_sem_size',
      'int', None, None,
-     dv_regn_max_proc_op_sem_size
+     dv_regn_max_proc_op_sem_size, 'setup'
 )
 
 dv_regn_heur1 = 0.037
-GL['dv_regn_heur1'] = Global(
-     'dv_regn_heur1', 'dv_regn_heur1',
+GL['regn_heur1'] = Global(
+     'dv_regn_heur1', 'regn_heur1',
      'значение по-умолчанию для параметра regn_heur1',
      'float', ['[0, 1]'], None,
-     dv_regn_heur1
+     dv_regn_heur1, 'setup'
 )
 
 dv_regn_heur2 = 0.06
-GL['dv_regn_heur2'] = Global(
-     'dv_regn_heur2', 'dv_regn_heur2',
+GL['regn_heur2'] = Global(
+     'dv_regn_heur2', 'regn_heur2',
      'значение по-умолчанию для параметра regn_heur2',
      'float', ['[0, 1]'], None,
-     dv_regn_heur2
+     dv_regn_heur2, 'setup'
 )
 
 dv_regn_heur3 = 0.03
-GL['dv_regn_heur3'] = Global(
-     'dv_regn_heur3', 'dv_regn_heur3',
+GL['regn_heur3'] = Global(
+     'dv_regn_heur3', 'regn_heur3',
      'значение по-умолчанию для параметра regn_heur3',
      'float', ['[0, 1]'], None,
-     dv_regn_heur3
+     dv_regn_heur3, 'setup'
 )
 
 dv_regn_heur4 = 0.0
-GL['dv_regn_heur4'] = Global(
-     'dv_regn_heur4', 'dv_regn_heur4',
+GL['regn_heur4'] = Global(
+     'dv_regn_heur4', 'regn_heur4',
      'значение по-умолчанию для параметра regn_heur4',
      'float', ['[0, 1]'], None,
-     dv_regn_heur4
+     dv_regn_heur4, 'setup'
 )
 
 dv_regn_heur_bal1 = 0.0
-GL['dv_regn_heur_bal1'] = Global(
-     'dv_regn_heur_bal1', 'dv_regn_heur_bal1',
+GL['regn_heur_bal1'] = Global(
+     'dv_regn_heur_bal1', 'regn_heur_bal1',
      'значение по-умолчанию для параметра regn_heur_bal1',
      'float', ['[0, 1]'], None,
-     dv_regn_heur_bal1
+     dv_regn_heur_bal1, 'setup'
 )
 
 dv_regn_heur_bal2 = 0.0
-GL['dv_regn_heur_bal2'] = Global(
-     'dv_regn_heur_bal2', 'dv_regn_heur_bal2',
+GL['regn_heur_bal2'] = Global(
+     'dv_regn_heur_bal2', 'regn_heur_bal2',
      'значение по-умолчанию для параметра regn_heur_bal2',
      'float', ['[0, 1]'], None,
-     dv_regn_heur_bal2
+     dv_regn_heur_bal2, 'setup'
 )
 
 dv_regn_opers_limit = 2048
-GL['dv_regn_opers_limit'] = Global(
-     'dv_regn_opers_limit', 'dv_regn_opers_limit',
+GL['regn_opers_limit'] = Global(
+     'dv_regn_opers_limit', 'regn_opers_limit',
      'значение по-умолчанию для параметра regn_opers_limit',
      'int', None, None,
-     dv_regn_opers_limit
+     dv_regn_opers_limit, 'setup'
 )
 
 dv_regn_prob_heur = 0.04
-GL['dv_regn_prob_heur'] = Global(
-     'dv_regn_prob_heur', 'dv_regn_prob_heur',
+GL['regn_prob_heur'] = Global(
+     'dv_regn_prob_heur', 'regn_prob_heur',
      'значение по-умолчанию для параметра regn_prob_heur',
      'float', ['[0, 1]'], None,
-     dv_regn_prob_heur
+     dv_regn_prob_heur, 'setup'
 )
 
 dv_regn_disb_heur = 9
-GL['dv_regn_disb_heur'] = Global(
-     'dv_regn_disb_heur', 'dv_regn_disb_heur',
+GL['regn_disb_heur'] = Global(
+     'dv_regn_disb_heur', 'regn_disb_heur',
      'значение по-умолчанию для параметра regn_disb_heur',
      'int', None, None,
-     dv_regn_disb_heur
+     dv_regn_disb_heur, 'setup'
 )
 
 dv_ifconv_merge_heur = 1.0
-GL['dv_ifconv_merge_heur'] = Global(
-     'dv_ifconv_merge_heur', 'dv_ifconv_merge_heur',
+GL['ifconv_merge_heur'] = Global(
+     'dv_ifconv_merge_heur', 'ifconv_merge_heur',
      'значение по-умолчанию для параметра ifconv_merge_heur',
      'float', None, None,
-     dv_ifconv_merge_heur
+     dv_ifconv_merge_heur, 'setup'
 )
 
 dv_ifconv_opers_num = 200
-GL['dv_ifconv_opers_num'] = Global(
-     'dv_ifconv_opers_num', 'dv_ifconv_opers_num',
+GL['ifconv_opers_num'] = Global(
+     'dv_ifconv_opers_num', 'ifconv_opers_num',
      'значение по-умолчанию для параметра ifconv_opers_num',
      'int', None, None,
-     dv_ifconv_opers_num
+     dv_ifconv_opers_num, 'setup'
 )
 
 dv_ifconv_calls_num = 6
-GL['dv_ifconv_calls_num'] = Global(
-     'dv_ifconv_calls_num', 'dv_ifconv_calls_num',
+GL['ifconv_calls_num'] = Global(
+     'dv_ifconv_calls_num', 'ifconv_calls_num',
      'значение по-умолчанию для параметра ifconv_calls_num',
      'int', None, None,
-     dv_ifconv_calls_num
+     dv_ifconv_calls_num, 'setup'
 )
 
 dv_disable_regions_nesting = True
-GL['dv_disable_regions_nesting'] = Global(
-     'dv_disable_regions_nesting', 'dv_disable_regions_nesting',
+GL['disable_regions_nesting'] = Global(
+     'dv_disable_regions_nesting', 'disable_regions_nesting',
      'значение по-умолчанию для параметра disable_regions_nesting',
      'bool', ['0','1'], None,
-     dv_disable_regions_nesting
+     dv_disable_regions_nesting, 'setup'
 )
 
 dv_dcs_kill = False
-GL['dv_dcs_kill'] = Global(
-     'dv_dcs_kill', 'dv_dcs_kill',
+GL['dcs_kill'] = Global(
+     'dv_dcs_kill', 'dcs_kill',
      'значение по-умолчанию для параметра dcs_kill',
      'bool', ['0','1'], None,
-     dv_dcs_kill
+     dv_dcs_kill, 'setup'
 )
 
 dv_dcs_level = 0
-GL['dv_dcs_level'] = Global(
-     'dv_dcs_level', 'dv_dcs_level',
+GL['dcs_level'] = Global(
+     'dv_dcs_level', 'dcs_level',
      'значение по-умолчанию для параметра dcs_level',
      'int', None, None,
-     dv_dcs_level
+     dv_dcs_level, 'setup'
 )
 
 #########################################################################################

@@ -3,7 +3,8 @@
 
 def check():
     if not os.path.exists(gl.STAT_PATH):
-        print('Error!')
+        print('Error! The statictic was not found')
+        print('       There is not path :', gl.STAT_PATH)
         sys.exit()
     for specname, proclist in spec_procs.items():
         specpath = os.path.join(gl.STAT_PATH, specname)
