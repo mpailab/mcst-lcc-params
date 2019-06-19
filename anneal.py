@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # External imports
-import sys
+import sys, os
 from functools import reduce
 
 # Internal imports
@@ -13,20 +13,17 @@ import stat_adaptation as adt
 import calculate_TcTeMem as clc
 import optimize as opt
 import par
+import check_stat
 
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
 
-    if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
-        # FIXME: если мы сами не собираем статистику, то
-        # следует убедиться, что в папке gl.STAT_PATH она присутствует для всех спеков и их процедур из gl.SPECS
-        # если ее там нет в должном виде, то надо выдать ошибку
-        pass
-
     # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
     strategy = strat.get(gl.OPTIMIZATION_STRATEGY)
     spec_procs = specs.get(gl.SPECS)
-    # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
+    
+    if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+        check_stat.check()
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all

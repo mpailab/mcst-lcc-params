@@ -105,11 +105,20 @@ for param, value in vars(args).items():
         options.__dict__[options.var(param).name] = value
 
 #########################################################################################
-# Cheaking global variables
+# Checking global variables
 if options.dv_dcs_level > options.MAX_DCS_LEVEL:
     print('Error! default value for parametor dcs_level more then MAX_DCS_LEVEL')
     sys.exit()
-
+for gl in options.list():
+    gval = options.__dict__[gl.name]
+    if gval == None:
+        print ('Error! The value of parametor', gl.param, 'was not defined')
+        sys.exit()
+    if gl.isFile() or gl.isDir():
+        if not os.path.exists(options.__dict__[gl.name]):
+            print('Error! Wrong value for parametor', gl.param, ':', gl.default)
+            print('       Incorrect path :', gl.default)
+            sys.exit()
 
 #########################################################################################
 # Run intelligent system
@@ -126,6 +135,9 @@ if args.mode == 'setup':
     sys.exit()
 
 import anneal, train, net
+
+# каталог, из которого запущен процесс
+PWD = os.getcwd()
 
 try:
     if args.mode == 'data':
@@ -155,4 +167,5 @@ try:
         train.run()
 
 except KeyboardInterrupt:
+    os.chdir(PWD)
     train.close()

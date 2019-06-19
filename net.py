@@ -11,8 +11,12 @@ import stat_adaptation as adt # требуется для нахождения �
 import calculate_TcTeMem as clc
 import par
 import train
+import check_stat
 
 def run():
+    
+    if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+        check_stat.check()
     
     parnames = list(set(reduce(lambda x, y: x + y, strat.get())))
     spec_procs = specs.get(gl.SPECS)
@@ -43,7 +47,7 @@ def run():
                 create_net({specname: proclist}, parname)
 
     
-def create_net(procs_dic, parname, points_num = 5):
+def create_net(procs_dic, parname, points_num = gl.points_num):
     
     # получаем минимальное и максимальное значения для параметра
     if parname == 'dcs_level' or parname == 'dcs':
