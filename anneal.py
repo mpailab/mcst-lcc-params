@@ -13,13 +13,6 @@ import stat_adaptation as adt
 import calculate_TcTeMem as clc
 import optimize as opt
 import par
-import train
-
-
-def close():
-    print()
-    train.close()
-    sys.exit()
 
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():

@@ -12,11 +12,6 @@ import calculate_TcTeMem as clc
 import par
 import train
 
-def close():
-    print()
-    train.close()
-    sys.exit()
-
 def run():
     
     parnames = list(set(reduce(lambda x, y: x + y, strat.get())))
