@@ -419,6 +419,10 @@ class DataBase:
 
 # Database
 DB = {spec : DataBase(spec) for spec in SPECS.keys()}
+    
+# Close database
+def close ():
+    map(lambda spec: DB[spec].save(), SPECS.keys())
 
 # Models directory
 MODEL_DIR = gl.TRAIN_MODEL_DIR

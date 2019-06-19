@@ -61,23 +61,7 @@
 
 '''
 
-# Соответсвтие level не используется
-#level = {
-    #'regn_max_proc_op_sem_size' : 'proc',
-    #'regn_heur1' : 'node',
-    #'regn_heur2' : 'node',
-    #'regn_heur3' : 'node',
-    #'regn_heur4' : 'node',
-    #'regn_heur_bal1' : 'regn',
-    #'regn_heur_bal2' : 'node',
-    #'regn_opers_limit' : 'regn',
-    #'regn_prob_heur' : 'node',
-    #'regn_disb_heur' : 'node',
-    #'ifconv_merge_heur' : 'sect',
-    #'ifconv_opers_num' : 'sect',
-    #'ifconv_calls_num' : 'sect',
-    #'disable_regions_nesting': 'proc'
-    #}
+import options as gl
 
 val_type = {
     'regn_max_proc_op_sem_size' : int,
@@ -99,22 +83,22 @@ val_type = {
     }
 
 default_value = {
-    'regn_max_proc_op_sem_size' : 16000,
-    'regn_heur1' : 0.037,
-    'regn_heur2' : 0.06,
-    'regn_heur3' : 0.03,
-    'regn_heur4' : 0.0,
-    'regn_heur_bal1' : 0.0,
-    'regn_heur_bal2' : 0.0,
-    'regn_opers_limit' : 2048,
-    'regn_prob_heur' : 0.04,
-    'regn_disb_heur' : 9,
-    'ifconv_merge_heur' : 1.0,
-    'ifconv_opers_num' : 200,
-    'ifconv_calls_num' : 6,
-    'disable_regions_nesting' : True,
-    'dcs_kill': False,
-    'dcs_level': 0
+    'regn_max_proc_op_sem_size' : gl.dv_regn_max_proc_op_sem_size,
+    'regn_heur1' : gl.dv_regn_heur1,
+    'regn_heur2' : gl.dv_regn_heur2,
+    'regn_heur3' : gl.dv_regn_heur3,
+    'regn_heur4' : gl.dv_regn_heur4,
+    'regn_heur_bal1' : gl.dv_regn_heur_bal1,
+    'regn_heur_bal2' : gl.dv_regn_heur_bal2,
+    'regn_opers_limit' : gl.dv_regn_opers_limit,
+    'regn_prob_heur' : gl.dv_regn_prob_heur,
+    'regn_disb_heur' : gl.dv_regn_disb_heur,
+    'ifconv_merge_heur' : gl.dv_ifconv_merge_heur,
+    'ifconv_opers_num' : gl.dv_ifconv_opers_num,
+    'ifconv_calls_num' : gl.dv_ifconv_calls_num,
+    'disable_regions_nesting' : gl.dv_disable_regions_nesting,
+    'dcs_kill' : gl.dv_dcs_kill,
+    'dcs_level' : gl.dv_dcs_level
     }
 
 # список параметров, связанных с дублированием узлов

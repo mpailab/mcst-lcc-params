@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # External imports
+import sys
 from functools import reduce
 
 # Internal imports
@@ -12,14 +13,13 @@ import stat_adaptation as adt
 import calculate_TcTeMem as clc
 import optimize as opt
 import par
-import train_data as tr_data
+import train
 
-#FIXME Мы будем перезаписывать par.default на основе значений параметров по-умолчанию выставленных в данном нам компиляторе?
 
-def close_annealing():
-    tr_data.data.write_to_files()
-    # tr_data.data.write_to_screen()
-    exit()
+def close():
+    print()
+    train.close()
+    sys.exit()
 
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
@@ -27,21 +27,13 @@ def run():
     if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
         # FIXME: если мы сами не собираем статистику, то
         # следует убедиться, что в папке gl.STAT_PATH она присутствует для всех спеков и их процедур из gl.SPECS
-        # если ее там нет в должном виде, то надо
-        #       1 вариант -> выдать ошибку
-        #       2 вариант -> собрать статистику в gl.STAT_PATH
+        # если ее там нет в должном виде, то надо выдать ошибку
         pass
 
     # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
     strategy = strat.get(gl.OPTIMIZATION_STRATEGY)
     spec_procs = specs.get(gl.SPECS)
     # !надо проверить, что спеки и процедуры в spec_procs взяты не с потолка
-
-    #if not os.path.isdir(gl.OUTPUTDIR):
-        #print('Warning! There is not directory: ', gl.OUTPUTDIR)
-        #print('         The output directory is not given')
-        #print('         The output is on the screen')
-        
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all
@@ -54,9 +46,6 @@ def run():
         except clc.ExternalScriptError:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
-        except KeyboardInterrupt:
-            print()
-            close_annealing()
         else:
             print("ok")
     elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
@@ -74,9 +63,6 @@ def run():
             except clc.ExternalScriptError:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
-            except KeyboardInterrupt:
-                print()
-                close_annealing()
             else:
                 print("ok")
 
@@ -106,9 +92,6 @@ def run():
             except clc.ExternalScriptError:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
-            except KeyboardInterrupt:
-                print()
-                close_annealing()
             else:
                 print("ok")
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
@@ -141,9 +124,6 @@ def run():
                 except clc.ExternalScriptError:
                     print('fail')
                     print('An error by giving (t_c, t_e, m) from external script')
-                except KeyboardInterrupt:
-                    print()
-                    close_annealing()
                 else:
                     print("ok")
-    close_annealing()
+    close()

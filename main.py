@@ -2,11 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # External imports
-import argparse, configargparse, os
-
-#FIXME тут требуется подключение этих модулей?
-#import sys
-#from subprocess import Popen, PIPE
+import argparse, configargparse, os, sys
 
 # Internal imports
 import options
@@ -47,7 +43,11 @@ for gl in options.list():
         assert(gl.default is not None)
         parser.add( '--' + gl.param, type=int, choices=gl.values, default=gl.default, 
                              help=gl.help + '; Values: %(choices)s; Default: %(default)s')
-
+    elif gl.isDiscStr():
+        assert(gl.values is not None)
+        assert(gl.default is not None)
+        parser.add( '--' + gl.param, type=str, choices=gl.values, default=gl.default, 
+                             help=gl.help + '; Values: %(choices)s; Default: %(default)s')
     elif gl.isInt():
         assert(gl.default is not None)
         parser.add( '--' + gl.param, type=int, default=gl.default, 
@@ -82,9 +82,16 @@ for param, value in vars(args).items():
         options.__dict__[options.var(param).name] = value
 
 #########################################################################################
+# Cheaking global variables
+if options.dv_dcs_level > options.MAX_DCS_LEVEL:
+    print('Error! default value for parametor dcs_level more then MAX_DCS_LEVEL')
+    sys.exit()
+
+
+#########################################################################################
 # Run intelligent system
 
-import anneal, train
+import anneal, train, net
 
 if args.mode == 'data':
 
@@ -92,15 +99,24 @@ if args.mode == 'data':
         train.clear()
 
     if args.force:
-        anneal.run()
+        try:
+            anneal.run()
+        except KeyboardInterrupt:
+            anneal.close()
 
     else:
-        pass
+        try:
+            net.run()
+        except KeyboardInterrupt:
+            net.close()
 
 elif args.mode == 'find':
 
     if args.force:
-        anneal.run()
+        try:
+            anneal.run()
+        except KeyboardInterrupt:
+            anneal.close()
 
     else:
         pass
