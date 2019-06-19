@@ -10,8 +10,6 @@ import options
 #########################################################################################
 # Read script options
 
-cmd_line_params = {}
-
 parser = configargparse.ArgParser( prog = 'intsys',
                                    description='Запуск интеллектуальной системы для настройки параметров фаз regions, if_conv, dcs.',
                                    default_config_files=['./.config'],
@@ -86,7 +84,12 @@ for param, value in vars(args).items():
 if options.dv_dcs_level > options.MAX_DCS_LEVEL:
     print('Error! default value for parametor dcs_level more then MAX_DCS_LEVEL')
     sys.exit()
-
+for gl in options.list():
+    if gl.isFile() or gl.isDir():
+        if not os.path.exists(options.__dict__[gl.name]):
+            print('Error! Wrong value for parametor', gl.param, ':', gl.default)
+            print('       Incorrect path :', gl.default)
+            sys.exit()
 
 #########################################################################################
 # Run intelligent system
