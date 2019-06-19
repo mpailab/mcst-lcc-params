@@ -10,90 +10,92 @@ import options
 #########################################################################################
 # Read script options
 
-cmd_line_params = {}
+DEFAULT_CONFIG_FILE = './.config'
+SETUP_CONFIG_FILE = './.setup_config'
+
+class Formatter(configargparse.HelpFormatter):
+    def _split_lines(self, text, width):
+        import textwrap
+        return [x for l in text.splitlines() for x in textwrap.wrap(l, width) ]
 
 parser = configargparse.ArgParser( prog = 'intsys',
                                    description='Запуск интеллектуальной системы для настройки параметров фаз regions, if_conv, dcs.',
-                                   default_config_files=['./.config', './.setup_config'])
+                                   formatter_class=Formatter,
+                                   default_config_files=[DEFAULT_CONFIG_FILE, SETUP_CONFIG_FILE])
 
-parser.add( '-c', '--config', type=str, is_config_file=True, help='конфигурационный файл')
-parser.add( '--force', action='store_true', help='запуск метода имитации отжига')
 
-subparsers = parser.add_subparsers(help='режим работы ИС')
+mode_group = parser.add_argument_group('Выбор режима работы ИС')
+mode_group.add( 'mode', metavar='<mode>', type=str, choices=['data','find','stat','train'], 
+                help='режим работы ИС. Values:\n'
+                     ' data - получение данных для обучения;\n'
+                     ' find - поиск оптимальных значений параметров;\n'
+                     ' stat - печать имеющихся данных для обучения;\n'
+                     'train - обучение ИС;\n'
+                     'setup - установка значений параметров по умолчанию.')
 
-parser_data = subparsers.add_parser('data', help='получение данных для обучения')
-parser_data.set_defaults(mode='data')
-
-parser_find = subparsers.add_parser('find', help='поиск оптимальных значений параметров')
-parser_find.set_defaults(mode='find')
-
-parser_stat = subparsers.add_parser('stat', help='печать имеющихся данных для обучения')
-parser_stat.set_defaults(mode='stat')
-
-parser_train = subparsers.add_parser('train', help='обучение ИС')
-parser_train.set_defaults(mode='train')
-
-parser_setup = subparsers.add_parser('setup', help='установка значений параметров по умолчанию ИС')
-parser_setup.set_defaults(mode='setup')
-
-parsers = {
-    ''      : parser,
-    'data'  : parser_data,
-    'find'  : parser_find,
-    'stat'  : parser_stat,
-    'train' : parser_train,
-    'setup' : parser_setup
+modes = {
+    ''      : 'Основная группа параметров',
+    'data'  : 'Группа параметров для сбора данных для обучения',
+    'find'  : 'Группа параметров для поиска оптимальных значений параметров',
+    'stat'  : 'Группа параметров для печати данных для обучения',
+    'train' : 'Группа параметров для обучение ИС',
+    'setup' : 'Установка значений параметров по умолчанию'
     }
 
-for mode in parsers.keys():
+for mode in modes.keys():
 
-    add = parsers[mode].add
+    group = parser.add_argument_group(modes[mode])
     for gl in options.list(mode):
 
         if gl.isBool():
             assert(gl.default is not None)
             if gl.default:
-                add( '--no-' + gl.param, dest=gl.param, action='store_false', help=gl.help)
+                group.add( '--no-' + gl.param, dest=gl.param, action='store_false', help=gl.help)
             else:
-                add( '--' + gl.param, action='store_true', help=gl.help)
+                group.add( '--' + gl.param, action='store_true', help=gl.help)
 
         elif gl.isDisc():
             assert(gl.values is not None)
             assert(gl.default is not None)
-            add( '--' + gl.param, type=int, choices=gl.values, default=gl.default, 
+            group.add( '--' + gl.param, type=int, choices=gl.values, default=gl.default, 
                  help=gl.help + '; Values: %(choices)s; Default: %(default)s')
 
         elif gl.isDiscStr():
             assert(gl.values is not None)
             assert(gl.default is not None)
-            add( '--' + gl.param, type=str, choices=gl.values, default=gl.default, 
+            group.add( '--' + gl.param, type=str, choices=gl.values, default=gl.default, 
                  help=gl.help + '; Values: %(choices)s; Default: %(default)s')
 
         elif gl.isInt():
             assert(gl.default is not None)
-            add( '--' + gl.param, metavar='int', type=int, default=gl.default, 
+            group.add( '--' + gl.param, metavar='int', type=int, default=gl.default, 
                  help=gl.help + '; Default: %(default)s')
 
         elif gl.isFloat():
             assert(gl.default is not None)
             if gl.values is None:
-                add( '--' + gl.param, metavar='float', type=float, default=gl.default, 
+                group.add( '--' + gl.param, metavar='float', type=float, default=gl.default, 
                      help=gl.help + '; Default: %(default)s')
             else:
                 assert(len(gl.values) == 1)
-                add( '--' + gl.param, metavar='float', type=float, default=gl.default, 
+                group.add( '--' + gl.param, metavar='float', type=float, default=gl.default, 
                      help=gl.help + '; Values: ' + gl.values[0] + '; Default: %(default)s')
 
         elif gl.isFile() or gl.isDir():
-            add( '--' + gl.param, metavar='path', type=str, default=gl.default, help=gl.help)
+            group.add( '--' + gl.param, metavar='path', type=str, default=gl.default, help=gl.help)
 
         elif gl.isFormat():
-            add( '--' + gl.param, metavar=gl.format, type=str, default=gl.default, help=gl.help)
+            group.add( '--' + gl.param, metavar=gl.format, type=str, default=gl.default, help=gl.help)
 
         else:
             raise Exception('unsupported type of the global variable ' + gl.param)
 
 args = parser.parse_args()
+# args, argv = parser.parse_known_args()
+# args = parser.parse_args()
+print(args)
+# print(argv)
+sys.exit()
 
 #########################################################################################
 # Initialize global variables
@@ -111,6 +113,17 @@ if options.dv_dcs_level > options.MAX_DCS_LEVEL:
 
 #########################################################################################
 # Run intelligent system
+
+if args.mode == 'setup':
+
+    with open(SETUP_CONFIG_FILE, 'w') as f:
+        f.write('# Configure default values of parameters\n\n')
+        for gl in options.list('setup'):
+            if not getattr(args, gl.param) == gl.default:
+                f.write('# ' + gl.help + '\n')
+                f.write(gl.param + ' = ' + str(getattr(args, gl.param)))
+
+    sys.exit()
 
 import anneal, train, net
 
@@ -138,7 +151,7 @@ try:
         print('Warning! Режим stat пока не поддерживается.')
         pass
 
-    else: # args.mode == 'train'
+    else: # args.mode == 'train':
         train.run()
 
 except KeyboardInterrupt:
