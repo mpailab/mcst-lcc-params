@@ -10,16 +10,14 @@ import strategy as strat
 import stat_adaptation as adt # требуется для нахождения минимального и максимального значений параметров
 import calculate_TcTeMem as clc
 import par
-import train_data as tr_data
+import train
 
 def close():
     print()
-    tr_data.data.close()
+    train.close()
     sys.exit()
 
 def run():
-    
-    tr_data.data.read()
     
     parnames = list(set(reduce(lambda x, y: x + y, strat.get())))
     spec_procs = specs.get(gl.SPECS)
@@ -96,8 +94,8 @@ def create_net(procs_dic, parname, points_num = 5):
         par_value_default = {'dcs_kill': par.default_value['dcs_kill'] , 'dcs_level' : par.default_value['dcs_level']}
         # добавляем в базу запуск при значении параметра по-умолчанию
         for specname, proclist in procs_dic.items():
-            t_c, t_e, v_mem = tr_data.data.default[specname]
-            tr_data.data.add(specname, proclist, par_value_default, t_c, t_e, v_mem)
+            t_c, t_e, v_mem = train.DB[specname].default
+            train.DB[specname].add(proclist, par_value_default, t_c, t_e, v_mem)
         for val in values:
             if val == 0:
                 dcs_kill_val = False
@@ -110,8 +108,8 @@ def create_net(procs_dic, parname, points_num = 5):
         default_val = par.default_value[parname]
         # добавляем в базу запуск при значении параметра по-умолчанию
         for specname, proclist in procs_dic.items():
-            t_c, t_e, v_mem = tr_data.data.default[specname]
-            tr_data.data.add(specname, proclist, {parname: default_val}, t_c, t_e, v_mem)
+            t_c, t_e, v_mem = train.DB[specname].default
+            train.DB[specname].add(proclist, {parname: default_val}, t_c, t_e, v_mem)
         
         # исключаем из узлов сетки значения параметров по-умолчанию
         if default_val in values:

@@ -94,11 +94,12 @@ for gl in options.list():
 #########################################################################################
 # Run intelligent system
 
-import anneal
-# import train
-import net
+import anneal, train, net
 
 if args.mode == 'data':
+
+    if args.clear:
+        train.clear()
 
     if args.force:
         try:

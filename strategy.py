@@ -54,6 +54,7 @@ def get(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY):
     
     groups = strategy_in_line_format.split(';')
     result = list(filter(group_filt, [list(filter(par_filt, x.split())) for x in groups]))
+    result.sort()
     
     if bool(result) == False: # если список пустой
         print('Error! The optimization strategy is empty')

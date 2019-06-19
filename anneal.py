@@ -13,19 +13,16 @@ import stat_adaptation as adt
 import calculate_TcTeMem as clc
 import optimize as opt
 import par
-import train_data as tr_data
+import train
 
 
 def close():
     print()
-    tr_data.data.close()
+    train.close()
     sys.exit()
 
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
-    
-    # считываем имеющиеся данные о предыдущих запусках
-    tr_data.data.read()
 
     if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
         # FIXME: если мы сами не собираем статистику, то

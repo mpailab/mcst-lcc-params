@@ -9,7 +9,7 @@ from sys import maxsize
 # Internal imports
 import par, read
 import options as gl
-import train_data as tr_data
+import train
 import output
 
 # Вычилсяем папку, из которой запущен процесс
@@ -123,7 +123,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
                 taskname_pred = el_pred
                 proclist_pred = procs_dic[el_pred]
             # Добавление результата запуска в tr_data для el_pred
-            tr_data.data.add(taskname_pred, proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
+            train.DB[taskname_pred].add(proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
         
         # Запуск на исполнение для el
         cmd_exec = SCRIPT_EXEC + ' ' + cmd_pars + ' \"' + tmpdir_path + '\"'
@@ -160,7 +160,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             shutil.rmtree(tmpdir_path)
             raise ExternalScriptError(error)
     # Добавление результата запуска в tr_data для последнего элемента в elements
-    tr_data.data.add(taskname, proclist, par_value, result_comp[el], result_exec[el], result_maxmem[el])
+    train.DB[taskname].add(proclist, par_value, result_comp[el], result_exec[el], result_maxmem[el])
     
     os.chdir(PWD)
     shutil.rmtree(tmpdir_path)
