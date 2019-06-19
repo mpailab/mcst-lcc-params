@@ -11,6 +11,7 @@ import stat_adaptation as adt # требуется для нахождения �
 import calculate_TcTeMem as clc
 import par
 import train
+import check_stat
 
 def close():
     print()
@@ -18,6 +19,9 @@ def close():
     sys.exit()
 
 def run():
+    
+    if not gl.GAIN_STAT_ON_EVERY_OPTIMIZATION_STEP:
+        check_stat.check()
     
     parnames = list(set(reduce(lambda x, y: x + y, strat.get())))
     spec_procs = specs.get(gl.SPECS)

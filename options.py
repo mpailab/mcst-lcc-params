@@ -603,13 +603,13 @@ GL['sync'] = Global(
 )
 
 # Каталог, в котором формируются выходные файлы
-OUTPUTDIR = "."
-GL['output'] = Global(
-     'OUTPUTDIR', 'output',
-     'каталог, в котором ИС формирует свои выходные файлы',
-     'path_to_dir', None, None,
-     OUTPUTDIR
-)
+#OUTPUTDIR = "."
+#GL['output'] = Global(
+     #'OUTPUTDIR', 'output',
+     #'каталог, в котором ИС формирует свои выходные файлы',
+     #'path_to_dir', None, None,
+     #OUTPUTDIR
+#)
 
 # Задает степень подробности вывода на экран во время работы ИС.
 VERBOSE = 0
