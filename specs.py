@@ -27,6 +27,7 @@ def get(specs_in_string = gl.SPECS):
         else:
             specname, proclist = tmp[0], tmp[1]
             proclist = proclist.split()
+            proclist.sort()
         specname = specname.strip()
         if not proclist:
             proclist = None

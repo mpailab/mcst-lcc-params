@@ -88,6 +88,9 @@ import anneal, train
 
 if args.mode == 'data':
 
+    if args.clear:
+        train.clear()
+
     if args.force:
         anneal.run()
 

@@ -111,10 +111,14 @@ def proc(taskname, procname):
             num = strr.split()[0].split(':')[1]
             name = strr.split()[1].split(':')[0]
             value = strr.split()[1].split(':')[1]
-            if name == 'type':
-                #В этом случае узел с номером nodenum раньше не встречался
-                proc.nodes[num] = Node()
-            proc.nodes[num].chars[name] = value
+            if name == "L":
+                proc.loops[value] = {'ovl' : strr.split()[2].split(":")[1], 
+                                     'red' : strr.split()[3].split(":")[1]}
+            else:
+                if name == 'type':
+                    #В этом случае узел с номером nodenum раньше не встречался
+                    proc.nodes[num] = Node()
+                proc.nodes[num].chars[name] = value
         else:
             #В этом случае в strr содержится информация о характеристике процедуры
             name = strr.split(':')[0]

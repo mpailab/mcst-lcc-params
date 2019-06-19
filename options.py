@@ -630,60 +630,60 @@ GL['rewrite'] = Global(
 
 
 #########################################################################################
-# Модуль tr_data
+# Модуль обучения ИС
 
-# Задает каталог, в котором расположены данные для переобучения ИС.
-TRAIN_DATA_DIR = '.'
+# Удаляются все накопленные данные для обучения
+TRAIN_CLEAR = False
+GL['clear'] = Global(
+     'TRAIN_CLEAR', 'clear',
+     'удаление всех накопленных данных для обучения',
+     'bool', ['0', '1'], None,
+     TRAIN_CLEAR
+)
+
+# Каталог, в котором расположены данные для обучения ИС
+TRAIN_DATA_DIR = './train/data'
 GL['tr_dir'] = Global(
      'TRAIN_DATA_DIR', 'tr_dir',
-     'каталог, в котором расположены данные для переобучения ИС',
+     'каталог с данными для обучения ИС',
      'path_to_dir', None, None,
      TRAIN_DATA_DIR
 )
 
-# Настройка сбора данных перед обучением
-TRAIN_DATA_SETUP = 0
-GL['tr_data'] = Global(
-     'TRAIN_DATA_SETUP', 'tr_data',
-     'сбор данных перед обучением',
-     'disc', ['0', '1', '2'], None,
-     TRAIN_DATA_SETUP
-)
-
-# Удаляются все накопленные данные для обучения
-NEW_TRAIN_DATA = False
-GL['tr_new'] = Global(
-     'NEW_TRAIN_DATA', 'tr_new',
-     'создание новых данных для обучения',
-     'bool', ['0', '1'], None,
-     NEW_TRAIN_DATA
-)
-
-# Порядок сплайн-интерполяции данных
-DATA_INTERP = 'linear'
-GL['data_interp'] = Global(
-     'DATA_INTERP', 'data_interp',
-     'порядок сплайн-интерполяции данных',
-     'disc', ['linear', 'quadratic', 'cubic'], None,
-     DATA_INTERP
+# Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
+TRAIN_MODEL_DIR = '.'
+GL['tr_model_dir'] = Global(
+     'TRAIN_MODEL_DIR', 'tr_model_dir',
+     'каталог c предобученными искусственными нейронными сетями',
+     'path_to_dir', None, None,
+     TRAIN_MODEL_DIR
 )
 
 # Доля данных, выделяемая для обучения искусственной нейронной сети
 TRAIN_DELTA = 0.7
-GL['train_delta'] = Global(
-     'TRAIN_DELTA', 'train_delta',
+GL['tr_delta'] = Global(
+     'TRAIN_DELTA', 'tr_delta',
      'доля данных, выделяемая для обучения искусственной нейронной сети',
      'float', None, None,
      TRAIN_DELTA
 )
 
-# Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
-MODEL_DIR = '.'
-GL['model_dir'] = Global(
-     'MODEL_DIR', 'model_dir',
-     'каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра',
-     'path_to_dir', None, None,
-     MODEL_DIR
+# Размер сетки для интерполяции данных
+TRAIN_GRID = 100
+GL['tr_grid'] = Global(
+     'TRAIN_GRID', 'tr_grid',
+     'размер сетки для интерполяции данных',
+     'float', None, None,
+     TRAIN_GRID
+)
+
+# Метод интерполяции данных
+TRAIN_INTERP = 'linear'
+GL['tr_interp'] = Global(
+     'TRAIN_INTERP', 'tr_interp',
+     'метод интерполяции данных',
+     'disc', ['linear', 'cubic'], None,
+     TRAIN_INTERP
 )
 
 #########################################################################################
