@@ -13,6 +13,7 @@ class Global:
           self.values  = values  # возможные значения глобала
           self.format  = format  # формат значения глобала
           self.default = default # значение по умолчанию
+          # mode -> setup, train, anneal, stat, setup, net
           self.mode    = mode    # режим ИС
 
      def isBool (self):
@@ -79,7 +80,7 @@ GL['w_unexec'] = Global(
       ' 1 - минимум среди всех весов исполняемых процедур,'
       ' 2 - среднее значение весов исполняемых процедур'),
      'disc', ['0', '1', '2'], None,
-     UNEXEC_PROC_WEIGHT_SETUP
+     UNEXEC_PROC_WEIGHT_SETUP, 'stat'
 )
 
 # Вес по-умолчанию, который присваевается компилируемой, но неисполняемой процедуре
@@ -88,7 +89,7 @@ GL['w_default'] = Global(
      'DEFAULT_WEIGHT_FOR_PROC', 'w_default',
      'вес по-умолчанию, который присваивается компилируемой, но неисполняемой процедуре',
      'float', None, None,
-     DEFAULT_WEIGHT_FOR_PROC
+     DEFAULT_WEIGHT_FOR_PROC, 'stat'
 )
 
 # Режим учета веса спека w_t: {0, 1, 2, 3}
@@ -105,7 +106,7 @@ GL['w_task'] = Global(
       ' 2 - отношение времени исполнения всех процедур задачи к общему времени его исполнения),'
       ' 3 - отношение времени исполнения оптимизируемых процедур задачи к общему времени его исполнения'),
      'disc', ['0', '1', '2', '3'], None,
-     TASK_WEIGHT_SETUP
+     TASK_WEIGHT_SETUP, 'stat'
 )
 
 # Режим учета веса процедуры w_p: {0, 1}
@@ -118,7 +119,7 @@ GL['w_proc'] = Global(
       ' 0 - не учитывать вес процедуры,'
       ' 1 - временя работы процедуры в составе спека'),
      'disc', ['0', '1'], None,
-     PROC_WEIGHT_SETUP
+     PROC_WEIGHT_SETUP, 'stat'
 )
 
 # Режим определения начального веса узла w_n: {0, 1, 2, 3}
@@ -137,7 +138,7 @@ GL['w_node'] = Global(
       ' 2 - вес равен счетчику узла во всей процедуре,'
       ' 3 - вес равен отношению внутреннего счетчика узла к счетчику узла во всей процедуре (0 если счетчик узла в процедуре равен нулю)'),
      'disc', ['0', '1', '2', '3'], None,
-     NODE_WEIGHT_SETUP
+     NODE_WEIGHT_SETUP, 'stat'
 )
 
 # Режим учета веса региона w_r фазы regions: {0, 1, 2}
@@ -152,7 +153,7 @@ GL['w_regn'] = Global(
       ' 1 - вес равен счетчику головы региона'
       ' 2 - вес равен счетчику головы региона, нормируемый по всем регионам в процедуре'),
      'disc', ['0', '1', '2'], None,
-     REGN_WEIGHT_SETUP
+     REGN_WEIGHT_SETUP, 'stat'
 )
 
 # Режим учета веса региона w_ir фазы if_conv: {0, 1, 2}
@@ -167,7 +168,7 @@ GL['w_icv_regn'] = Global(
       ' 1 - вес равен счетчику головы региона'
       ' 2 - вес равен счетчику головы региона, нормируемый по всем регионам в процедуре'),
      'disc', ['0', '1', '2'], None,
-     ICV_REGN_WEIGHT_SETUP
+     ICV_REGN_WEIGHT_SETUP, 'stat'
 )
 
 # Режим учета веса сливаемого участка w_s: {0, 1}
@@ -180,7 +181,7 @@ GL['w_sect'] = Global(
       ' 0 - не учитывать вес сливаемого участка,'
       ' 1 - вес равен счетчику головы сливаемого участка'),
      'disc', ['0', '1'], None,
-     SECT_WEIGHT_SETUP
+     SECT_WEIGHT_SETUP, 'stat'
 )
 
 #########################################################################################
@@ -195,7 +196,7 @@ GL['dir_w_proc'] = Global(
      'PROC_WEIGHT_PATH', 'dir_w_proc',
      'путь до каталога с файлами, определяющими веса процедур',
      'path_to_dir', None, None,
-     PROC_WEIGHT_PATH
+     PROC_WEIGHT_PATH, 'stat'
 )
 
 # Файл, в котором задаются веса спеков
@@ -205,7 +206,7 @@ GL['file_w_task'] = Global(
      'TASK_WEIGHT_PATH', 'file_w_task',
      'путь к файлу, из которого считываются веса задач',
      'path_to_file', None, None,
-     TASK_WEIGHT_PATH
+     TASK_WEIGHT_PATH, 'stat'
 )
 
 # Учитывать статистику компиляции неисполняемых процедур (т.е. процедур, для которых не заданы веса)? {0, 1}
@@ -214,7 +215,7 @@ GL['use_unexec'] = Global(
      'USE_UNEXEC_PROCS_IN_STAT', 'use_unexec',
      'обработка статистики компиляции неисполняемых процедур',
      'bool', ['0', '1'], None,
-     USE_UNEXEC_PROCS_IN_STAT
+     USE_UNEXEC_PROCS_IN_STAT, 'stat'
 )
 
 # Каталог со статистикой компиляции спеков при значениях параметров оптимизирующих преобразований по-умолчанию
@@ -223,7 +224,7 @@ GL['stat'] = Global(
      'STAT_PATH', 'stat',
      'путь каталогу со статистикой компиляции, собранной при значениях параметров оптимизирующих преобразований по-умолчанию',
      'path_to_dir', None, None,
-     STAT_PATH
+     STAT_PATH, 'stat'
 )
 
 # Каталог, в который собирается статистика компиляции спеков во время работы ИС
@@ -232,7 +233,7 @@ GL['din_stat'] = Global(
      'DINUMIC_STAT_PATH', 'din_stat',
      'путь каталогу, в котором ИС собирает статистику компиляции',
      'path_to_dir', None, None,
-     DINUMIC_STAT_PATH
+     DINUMIC_STAT_PATH, 'stat'
 )
 
 #########################################################################################
@@ -244,7 +245,7 @@ GL['din_proc'] = Global(
      'DINUMIC_PROC_OPERS_NUM', 'din_proc',
      'учет динамического изменения числа операций в процедуре во время компиляции на фазе regions',
      'bool', ['0', '1'], None,
-     DINUMIC_PROC_OPERS_NUM
+     DINUMIC_PROC_OPERS_NUM, 'stat'
 )
 
 # Учитывать при обработки статистики динамическое изменение числа операций в регионах процедуры во время фазы regions? {0, 1}
@@ -253,7 +254,7 @@ GL['din_regn'] = Global(
      'DINUMIC_REGN_OPERS_NUM', 'din_regn',
      'включает учет динамического изменения числа операций в регионах во время компиляции на фазе regions',
      'bool', ['0', '1'], None,
-     DINUMIC_REGN_OPERS_NUM
+     DINUMIC_REGN_OPERS_NUM, 'stat'
 )
 
 #########################################################################################
@@ -265,7 +266,7 @@ GL['max_dcs_level'] = Global(
      'MAX_DCS_LEVEL', 'max_dcs_level',
      'номер последнего существующего уровня оптимизации фазы dcs',
      'int', None, None,
-     MAX_DCS_LEVEL
+     MAX_DCS_LEVEL, 'setup'
 )
 
 # Полезность dcs оптимизации для процедуры определяется формулой:
@@ -278,21 +279,21 @@ GL['dcs_node'] = Global(
      'DCS_KOEF_NODE_IMPOTANCE', 'dcs_node',
      'коэффициент мертвых узлов в формуле полезности dcs-оптимизации',
      'float', None, None,
-     DCS_KOEF_NODE_IMPOTANCE
+     DCS_KOEF_NODE_IMPOTANCE, 'anneal'
 )
 DCS_KOEF_EDGE_IMPOTANCE = 1.0
 GL['dcs_edge'] = Global(
      'DCS_KOEF_EDGE_IMPOTANCE', 'dcs_edge',
      'коэффициент мертвых дуг в формуле полезности dcs-оптимизации',
      'float', None, None,
-     DCS_KOEF_EDGE_IMPOTANCE
+     DCS_KOEF_EDGE_IMPOTANCE, 'anneal'
 )
 DCS_KOEF_LOOP_IMPOTANCE = 1.0
 GL['dcs_loop'] = Global(
      'DCS_KOEF_LOOP_IMPOTANCE', 'dcs_loop',
      'коэффициент мертвых циклов в формуле полезности dcs-оптимизации',
      'float', None, None,
-     DCS_KOEF_LOOP_IMPOTANCE
+     DCS_KOEF_LOOP_IMPOTANCE, 'anneal'
 )
 
 # Если полезность dcs оптимизации <= DSC_IMPOTANCE_LIMIT, то dcs оптимизация считается бесполезной
@@ -301,7 +302,7 @@ GL['dcs_limit'] = Global(
      'DSC_IMPOTANCE_LIMIT', 'dcs_limit',
      'порог для значений полезности dcs-оптимиизации',
      'float', None, None,
-     DSC_IMPOTANCE_LIMIT
+     DSC_IMPOTANCE_LIMIT, 'anneal'
 )
 
 #########################################################################################
@@ -317,13 +318,13 @@ GL['dcs_limit'] = Global(
 #)
 
 # Предполагаемая процентная величина погрешности определения времени исполнения, компиляции, объема потребляемой памяти, и т.п.
-DEVIATION_PERCENT_OF_TcTeMemF = 0.01
-GL['inaccuracy'] = Global(
-     'DEVIATION_PERCENT_OF_TcTeMemF', 'inaccuracy',
-     'величина погрешности',
-     'float', ['(0, 1)'], None,
-     DEVIATION_PERCENT_OF_TcTeMemF
-)
+#DEVIATION_PERCENT_OF_TcTeMemF = 0.01
+#GL['inaccuracy'] = Global(
+     #'DEVIATION_PERCENT_OF_TcTeMemF', 'inaccuracy',
+     #'величина погрешности',
+     #'float', ['(0, 1)'], None,
+     #DEVIATION_PERCENT_OF_TcTeMemF
+#)
 
 #########################################################################################
 # Сглаживание статистики
@@ -334,7 +335,7 @@ GL['smooth'] = Global(
      'SMOOTH_STAT', 'smooth',
      'сглаживание распределений, получаемых по статистике работы компилятора LCC',
      'bool', ['0', '1'], None,
-     SMOOTH_STAT
+     SMOOTH_STAT, 'stat'
 )
 
 # Чем меньше следующие коэффиценты, тем сильнее сглаживание
@@ -343,14 +344,14 @@ GL['erf_cont'] = Global(
      'ERF_KOEF_FOR_CONTINUOUS_PAR', 'erf_cont',
      'коэффициент сглаживания распределений параметров оптимизирующих преобразований вещественного типа',
      'float', None, None,
-     ERF_KOEF_FOR_CONTINUOUS_PAR
+     ERF_KOEF_FOR_CONTINUOUS_PAR, 'stat'
 )
 ERF_KOEF_FOR_DISCRETE_PAR = 0.5 # коэффициент сглаживания для целичисленных параметров
 GL['erf_disc'] = Global(
      'ERF_KOEF_FOR_DISCRETE_PAR', 'erf_disc',
      'коэффициент сглаживания распределений параметров оптимизирующих преобразований целочисленного типа',
      'float', None, None,
-     ERF_KOEF_FOR_DISCRETE_PAR
+     ERF_KOEF_FOR_DISCRETE_PAR, 'stat'
 )
 
 # Чем ниже следующие параметры, тем качественнее сглаживание
@@ -361,7 +362,7 @@ GL['erf_limit'] = Global(
      'ZERO_LIMIT_FOR_ERF', 'erf_limit',
      'доля для сглаживаемых весов, которая не будет участвовать в сглаживании',
      'float', ['(0, 1)'], None,
-     ZERO_LIMIT_FOR_ERF
+     ZERO_LIMIT_FOR_ERF, 'stat'
 )
 
 # Порог для абсолютных значений весов, веса ниже которого не будут сглаживаться
@@ -370,7 +371,7 @@ GL['weight_limit'] = Global(
      'ZERO_LIMIT_FOR_WEIGHT', 'weight_limit',
      'порог для абсолютных значений весов, веса ниже которого не сглаживаются',
      'float', ['(0, 1)'], None,
-     ZERO_LIMIT_FOR_WEIGHT
+     ZERO_LIMIT_FOR_WEIGHT, 'stat'
 )
 
 #########################################################################################
@@ -392,7 +393,7 @@ GL['database'] = Global(
      'PAR_DISTRIBUTION_DATABASE', 'database',
      'хранение в оперативной памяти всех распределений, получаемых по статистике работы компилятора LCC',
      'bool', ['0', '1'], None,
-     PAR_DISTRIBUTION_DATABASE
+     PAR_DISTRIBUTION_DATABASE, 'anneal'
 )
 
 # Начальное значение температуры: (0, 1]
@@ -401,7 +402,7 @@ GL['start_temp'] = Global(
      'START_TEMPERATURE', 'start_temp',
      'начальное значение температуры в методе имитации отжига',
      'float', ['(0, 1]'], None,
-     START_TEMPERATURE
+     START_TEMPERATURE, 'anneal'
 )
 
 # Закон убывания температуры: {0, 1, 2}
@@ -416,7 +417,7 @@ GL['temp_law'] = Global(
       ' 1 - функция f(n) = 1 / n'
       ' 2 - функция f(n) = alpha ^ n'),
      'disc', ['0', '1', '2'], None,
-     TEMPERATURE_LAW_TYPE
+     TEMPERATURE_LAW_TYPE, 'anneal'
 )
 
 # значение alpha
@@ -425,7 +426,7 @@ GL['alpha'] = Global(
      'ALPHA_IN_TEPMERATURE_LAW', 'alpha',
      'значение параметра alpha в законе убывания температуры для метода имитации отжига',
      'float', ['(0, 1)'], None,
-     ALPHA_IN_TEPMERATURE_LAW
+     ALPHA_IN_TEPMERATURE_LAW, 'anneal'
 )
 
 # Тип вероятностного распределения,
@@ -443,7 +444,7 @@ GL['distr_law'] = Global(
       ' 2 - распределение Коши,'
       ' 3 - равномерное распределение'),
      'disc', ['0', '1', '2', '3'], None,
-     DISTRIBUTION_LAW_TYPE
+     DISTRIBUTION_LAW_TYPE, 'anneal'
 )
 
 # Учитывать зависимоти параметров друг от друга? {0, 1}
@@ -456,7 +457,7 @@ GL['relations'] = Global(
      'USE_RELATIONS_OF_PARAMETORS', 'relations',
      'использование зависимостей параметров оптимизирующих параметров друг от друга',
      'bool', ['0', '1'], None,
-     USE_RELATIONS_OF_PARAMETORS
+     USE_RELATIONS_OF_PARAMETORS, 'anneal'
 )
 
 # Минимизируемый функцонал имеет вид
@@ -527,7 +528,7 @@ GL['iter_num'] = Global(
      'MAX_NUMBER_ITERATIONS', 'iter_num',
      'число шагов применения метода имитации отжига',
      'int', None, None,
-     MAX_NUMBER_ITERATIONS
+     MAX_NUMBER_ITERATIONS, 'anneal'
 )
 
 # Максимальное число попыток выбора новых значений параметров для каждой итерации метода отжига
@@ -536,7 +537,7 @@ GL['attempts_num'] = Global(
      'MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION', 'attempts_num',
      'максимальное число попыток выбора очередного кандидата для параметров оптимизирующих преобразований на каждом шаге применения метода имитации отжига',
      'int', None, None,
-     MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION
+     MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION, 'anneal'
 )
 
 # Уменьшать значение температуры после итераций, на которых не был осуществлен переход к лучшему значению? {0, 1}
@@ -545,7 +546,7 @@ GL['decrease_temp'] = Global(
      'DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS', 'decrease_temp',
      'уменьшение температуры после неудачных шагов применения метода имитации отжига',
      'bool', ['0', '1'], None,
-     DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS
+     DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS, 'anneal'
 )
 
 #########################################################################################
@@ -573,7 +574,7 @@ GL['seq'] = Global(
       ' 0 - независимая оптимизация по каждой группе в стратегии'
       ' 1 - последовательная оптимизация согласно стратегии'),
      'bool', ['0', '1'], None,
-     SEQ_OPTIMIZATION_WITH_STRATEGY
+     SEQ_OPTIMIZATION_WITH_STRATEGY, 'anneal'
 )
 
 
@@ -624,13 +625,13 @@ GL['verbose'] = Global(
 # Перезаписывать выходные файлы? {0, 1}
 # 0 -> имена для выходных файлов будут подбираться таким образом, чтобы не перезаписывать выходные файлы от предыдущих запусков
 # 1 -> выходные файлы от предыдущих запусков могут быть перезаписаны
-ALLOW_REWRITE_OUTPUT_FILES = False
-GL['rewrite'] = Global(
-     'ALLOW_REWRITE_OUTPUT_FILES', 'rewrite',
-     'режим перезаписи выходных файлов',
-     'bool', ['0', '1'], None,
-     ALLOW_REWRITE_OUTPUT_FILES
-)
+#ALLOW_REWRITE_OUTPUT_FILES = False
+#GL['rewrite'] = Global(
+     #'ALLOW_REWRITE_OUTPUT_FILES', 'rewrite',
+     #'режим перезаписи выходных файлов',
+     #'bool', ['0', '1'], None,
+     #ALLOW_REWRITE_OUTPUT_FILES
+#)
 
 
 #########################################################################################
@@ -851,6 +852,17 @@ GL['dcs_level'] = Global(
      'значение по-умолчанию для параметра dcs_level',
      'int', None, None,
      dv_dcs_level, 'setup'
+)
+
+#########################################################################################
+# Модуль net
+
+points_num = 5
+GL['points_num'] = Global(
+     'points_num', 'points_num',
+     'задает число точек в сетке',
+     'int', None, None,
+     points_num, 'net'
 )
 
 #########################################################################################

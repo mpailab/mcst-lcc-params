@@ -47,7 +47,7 @@ def run():
                 create_net({specname: proclist}, parname)
 
     
-def create_net(procs_dic, parname, points_num = 5):
+def create_net(procs_dic, parname, points_num = gl.points_num):
     
     # получаем минимальное и максимальное значения для параметра
     if parname == 'dcs_level' or parname == 'dcs':
