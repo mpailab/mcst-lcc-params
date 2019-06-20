@@ -15,15 +15,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Internal imports
 import options as gl
-import read
-import specs
-import strategy
+import par, stat
 
 # Table of groups of parameters
-PARS = {tuple(g) : 1 for g in strategy.get()}
+PARS = {tuple(g) : 1 for g in par.strategy()}
 
 # Table of specs
-SPECS = specs.get()
+SPECS = par.specs()
 
 # Dataset directory
 DATA_DIR = gl.TRAIN_DATA_DIR
@@ -386,11 +384,11 @@ class DataBase:
     # Read characters of procedures
     def read (self, procs):
         
-        proc_order = read.weights_of_exec_procs(self.spec)
+        proc_order = stat.weights_of_exec_procs(self.spec)
 
         for name in procs:
 
-            proc_info = read.proc(self.spec, name)
+            proc_info = stat.get_proc(self.spec, name)
 
             w = float(proc_order[name]) if name in proc_order else 0.0
 

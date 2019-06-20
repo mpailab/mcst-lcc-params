@@ -11,7 +11,6 @@ import options
 # Read script options
 
 DEFAULT_CONFIG_FILE = './.config'
-SETUP_CONFIG_FILE = './.setup_config'
 
 class Formatter(configargparse.HelpFormatter):
     def _split_lines(self, text, width):
@@ -21,7 +20,7 @@ class Formatter(configargparse.HelpFormatter):
 parser = configargparse.ArgParser( prog = 'intsys',
                                    description='Запуск интеллектуальной системы для настройки параметров фаз regions, if_conv, dcs.',
                                    formatter_class=Formatter,
-                                   default_config_files=[DEFAULT_CONFIG_FILE, SETUP_CONFIG_FILE])
+                                   default_config_files=[DEFAULT_CONFIG_FILE])
 
 
 mode_group = parser.add_argument_group('Выбор режима работы ИС')
@@ -30,8 +29,7 @@ mode_group.add( 'mode', metavar='<mode>', type=str, choices=['data','find','stat
                      ' data - получение данных для обучения;\n'
                      ' find - поиск оптимальных значений параметров;\n'
                      ' stat - печать имеющихся данных для обучения;\n'
-                     'train - обучение ИС;\n'
-                     'setup - установка значений параметров по умолчанию.')
+                     'train - обучение ИС.')
 
 parser.add( '-c', '--config', metavar='path', type=str, is_config_file=True, help='конфигурационный файл')
 parser.add( '--force', action='store_true', help='запуск метода имитации отжига')
@@ -95,9 +93,7 @@ for param, value in vars(args).items():
 
 #########################################################################################
 # Checking global variables
-if options.dv_dcs_level > options.MAX_DCS_LEVEL:
-    print('Error! default value for parametor dcs_level more then MAX_DCS_LEVEL')
-    sys.exit()
+
 for gl in options.list():
     gval = options.__dict__[gl.name]
     if gval == None:
@@ -111,17 +107,6 @@ for gl in options.list():
 
 #########################################################################################
 # Run intelligent system
-
-if args.mode == 'setup':
-
-    with open(SETUP_CONFIG_FILE, 'w') as f:
-        f.write('# Configure default values of parameters\n\n')
-        for gl in options.list('setup'):
-            if not getattr(args, gl.param) == gl.default:
-                f.write('# ' + gl.help + '\n')
-                f.write(gl.param + ' = ' + str(getattr(args, gl.param)))
-
-    sys.exit()
 
 import anneal, train, net
 

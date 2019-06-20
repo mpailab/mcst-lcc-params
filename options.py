@@ -772,134 +772,22 @@ GL['stat_scr'] = Global(
 #########################################################################################
 # Модуль par
 
-# значения по-умолчанию для параметров
-
-dv_regn_max_proc_op_sem_size = 16000
-GL['regn_max_proc_op_sem_size'] = Global(
-     'dv_regn_max_proc_op_sem_size', 'regn_max_proc_op_sem_size',
-     'значение по-умолчанию для параметра regn_max_proc_op_sem_size',
-     'int', None, None,
-     dv_regn_max_proc_op_sem_size, 'setup'
+# Значения по-умолчанию для параметров компилятора lcc
+PAR_DEFAULTS = ''
+GL['par_defaults'] = Global(
+     'PAR_DEFAULTS', 'par_defaults',
+     'значения по-умолчанию для параметров компилятора lcc',
+     'format', None, '<par_name>:<value> ... <par_name>:<value>',
+     PAR_DEFAULTS, 'setup'
 )
 
-dv_regn_heur1 = 0.037
-GL['regn_heur1'] = Global(
-     'dv_regn_heur1', 'regn_heur1',
-     'значение по-умолчанию для параметра regn_heur1',
-     'float', ['[0, 1]'], None,
-     dv_regn_heur1, 'setup'
-)
-
-dv_regn_heur2 = 0.06
-GL['regn_heur2'] = Global(
-     'dv_regn_heur2', 'regn_heur2',
-     'значение по-умолчанию для параметра regn_heur2',
-     'float', ['[0, 1]'], None,
-     dv_regn_heur2, 'setup'
-)
-
-dv_regn_heur3 = 0.03
-GL['regn_heur3'] = Global(
-     'dv_regn_heur3', 'regn_heur3',
-     'значение по-умолчанию для параметра regn_heur3',
-     'float', ['[0, 1]'], None,
-     dv_regn_heur3, 'setup'
-)
-
-dv_regn_heur4 = 0.0
-GL['regn_heur4'] = Global(
-     'dv_regn_heur4', 'regn_heur4',
-     'значение по-умолчанию для параметра regn_heur4',
-     'float', ['[0, 1]'], None,
-     dv_regn_heur4, 'setup'
-)
-
-dv_regn_heur_bal1 = 0.0
-GL['regn_heur_bal1'] = Global(
-     'dv_regn_heur_bal1', 'regn_heur_bal1',
-     'значение по-умолчанию для параметра regn_heur_bal1',
-     'float', ['[0, 1]'], None,
-     dv_regn_heur_bal1, 'setup'
-)
-
-dv_regn_heur_bal2 = 0.0
-GL['regn_heur_bal2'] = Global(
-     'dv_regn_heur_bal2', 'regn_heur_bal2',
-     'значение по-умолчанию для параметра regn_heur_bal2',
-     'float', ['[0, 1]'], None,
-     dv_regn_heur_bal2, 'setup'
-)
-
-dv_regn_opers_limit = 2048
-GL['regn_opers_limit'] = Global(
-     'dv_regn_opers_limit', 'regn_opers_limit',
-     'значение по-умолчанию для параметра regn_opers_limit',
-     'int', None, None,
-     dv_regn_opers_limit, 'setup'
-)
-
-dv_regn_prob_heur = 0.04
-GL['regn_prob_heur'] = Global(
-     'dv_regn_prob_heur', 'regn_prob_heur',
-     'значение по-умолчанию для параметра regn_prob_heur',
-     'float', ['[0, 1]'], None,
-     dv_regn_prob_heur, 'setup'
-)
-
-dv_regn_disb_heur = 9
-GL['regn_disb_heur'] = Global(
-     'dv_regn_disb_heur', 'regn_disb_heur',
-     'значение по-умолчанию для параметра regn_disb_heur',
-     'int', None, None,
-     dv_regn_disb_heur, 'setup'
-)
-
-dv_ifconv_merge_heur = 1.0
-GL['ifconv_merge_heur'] = Global(
-     'dv_ifconv_merge_heur', 'ifconv_merge_heur',
-     'значение по-умолчанию для параметра ifconv_merge_heur',
-     'float', None, None,
-     dv_ifconv_merge_heur, 'setup'
-)
-
-dv_ifconv_opers_num = 200
-GL['ifconv_opers_num'] = Global(
-     'dv_ifconv_opers_num', 'ifconv_opers_num',
-     'значение по-умолчанию для параметра ifconv_opers_num',
-     'int', None, None,
-     dv_ifconv_opers_num, 'setup'
-)
-
-dv_ifconv_calls_num = 6
-GL['ifconv_calls_num'] = Global(
-     'dv_ifconv_calls_num', 'ifconv_calls_num',
-     'значение по-умолчанию для параметра ifconv_calls_num',
-     'int', None, None,
-     dv_ifconv_calls_num, 'setup'
-)
-
-dv_disable_regions_nesting = True
-GL['disable_regions_nesting'] = Global(
-     'dv_disable_regions_nesting', 'disable_regions_nesting',
-     'значение по-умолчанию для параметра disable_regions_nesting',
-     'bool', ['0','1'], None,
-     dv_disable_regions_nesting, 'setup'
-)
-
-dv_dcs_kill = False
-GL['dcs_kill'] = Global(
-     'dv_dcs_kill', 'dcs_kill',
-     'значение по-умолчанию для параметра dcs_kill',
-     'bool', ['0','1'], None,
-     dv_dcs_kill, 'setup'
-)
-
-dv_dcs_level = 0
-GL['dcs_level'] = Global(
-     'dv_dcs_level', 'dcs_level',
-     'значение по-умолчанию для параметра dcs_level',
-     'int', None, None,
-     dv_dcs_level, 'setup'
+# Диапазоны значений параметров компилятора lcc
+PAR_RANGES = ''
+GL['par_ranges'] = Global(
+     'PAR_RANGES', 'par_ranges',
+     'диапазоны значений параметров компилятора lcc',
+     'format', None, '<par_name>:<min>:<max> ... <par_name>:<min>:<max>',
+     PAR_RANGES, 'setup'
 )
 
 #########################################################################################

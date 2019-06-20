@@ -5,27 +5,20 @@ import sys
 from functools import reduce
 
 import options as gl
-import specs
-import strategy as strat
-import stat_adaptation as adt # требуется для нахождения минимального и максимального значений параметров
-import calculate_TcTeMem as clc
+import func as clc
 import par
 import train
-import check_stat
 
 def run():
     
-    if gl.INHERIT_STAT:
-        check_stat.check()
-    
-    parnames = list(set(reduce(lambda x, y: x + y, strat.get())))
-    spec_procs = specs.get(gl.SPECS)
+    parnames = list(set(reduce(lambda x, y: x + y, par.strategy())))
+    spec_procs = par.specs()
     
     if gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous net creating for specs :')  # all
     else:
         print('Net creating for every specs :')  # every_spec
-    specs.fprint(spec_procs)
+    par.print_specs(spec_procs)
     
     print('Net creating on every parametor :') # not seq
     for parname in parnames:
@@ -33,7 +26,7 @@ def run():
     
     
     # запуск при значениях параметра по-умолчанию
-    result_default = clc.calculate_abs_values(spec_procs, {})
+    clc.calculate_abs_values(spec_procs, {})
     for parname in parnames:
         print("---------------------------------------------------------------------------")
         print("Par:", parname)
@@ -50,27 +43,10 @@ def run():
 def create_net(procs_dic, parname, points_num = gl.points_num):
     
     # получаем минимальное и максимальное значения для параметра
-    if parname == 'dcs_level' or parname == 'dcs':
-        max_value_par = gl.MAX_DCS_LEVEL
-        min_value_par = 0
-    elif parname in par.reg_seq:
-        dis_regpar = adt.get_dis_regpar(procs_dic)
-        value_par = adt.get_value_par(procs_dic, [parname], [], dis_regpar, None)
-        ind = par.index_in_reg_seq[parname]
-        max_value_par = value_par[parname][-1][ind] + 1
-        min_value_par = max(value_par[parname][0][ind] - 1, 0)
-    elif parname in par.icv_seq:
-        dis_icvpar = adt.get_dis_icvpar(procs_dic)
-        value_par = adt.get_value_par(procs_dic, [], [parname], None, dis_icvpar)
-        ind = par.index_in_icv_seq[parname]
-        max_value_par = value_par[parname][-1][ind] + 1
-        min_value_par = max(value_par[parname][0][ind] - 1, 0)
+    min_value_par, max_value_par = par.ranges[parname]
     
     # строим узлы сетки
-    if parname == 'dcs':
-        vtype = int
-    else:
-        vtype = par.val_type[parname]
+    vtype = par.val_type[parname]
     if vtype == bool:
         values = [False, True]
     else:

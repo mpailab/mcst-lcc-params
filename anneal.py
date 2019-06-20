@@ -7,13 +7,10 @@ from functools import reduce
 
 # Internal imports
 import options as gl
-import specs
-import strategy as strat
-import stat_adaptation as adt
-import calculate_TcTeMem as clc
+import stat
+import func as clc
 import optimize as opt
 import par
-import check_stat
 import train
 
 # Запуск ИС в подрежиме "метод имитации отжига"
@@ -23,17 +20,17 @@ def run():
     train.DB.load()
 
     # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
-    strategy = strat.get(gl.OPTIMIZATION_STRATEGY)
-    spec_procs = specs.get(gl.SPECS)
+    strategy = par.strategy()
+    spec_procs = par.specs()
     
     if gl.INHERIT_STAT:
-        check_stat.check()
+        stat.check(spec_procs)
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all
-        specs.fprint(spec_procs)
+        par.print_specs(spec_procs)
         print('Successive optimization with the strategy :') # seq
-        strat.fprint(strategy)
+        par.print_strategy(strategy)
         
         try:
             opt.seq_optimize(spec_procs, strategy)
@@ -44,9 +41,9 @@ def run():
             print("ok")
     elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Independent optimization for every spec in') # every_spec
-        specs.fprint(spec_procs)
+        par.print_specs(spec_procs)
         print('Successive optimization with the strategy :') # seq
-        strat.fprint(strategy)
+        par.print_strategy(strategy)
         
         for specname, proclist in spec_procs.items():
             print("---------------------------------------------------------------------------")
@@ -62,12 +59,12 @@ def run():
 
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all
-        specs.fprint(spec_procs)
+        par.print_specs(spec_procs)
         print('Independent optimization on every parametors group in the strategy :') # not seq
-        strat.fprint(strategy)
+        par.print_strategy(strategy)
         
-        dis_regpar = adt.get_dis_regpar(spec_procs)
-        dis_icvpar = adt.get_dis_icvpar(spec_procs)
+        dis_regpar = stat.get_dis_regpar(spec_procs)
+        dis_icvpar = stat.get_dis_icvpar(spec_procs)
         
         for parnames in strategy:
             print("---------------------------------------------------------------------------")
@@ -90,17 +87,17 @@ def run():
                 print("ok")
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Independent optimization for every spec in') # every_spec
-        specs.fprint(spec_procs)
+        par.print_specs(spec_procs)
         print('Independent optimization on every parametors group in the strategy :') # not seq
-        strat.fprint(strategy)
+        par.print_strategy(strategy)
         
         for specname, proclist in spec_procs.items():
             print("---------------------------------------------------------------------------")
             print("---------------------------------------------------------------------------")
             print("Spec:", specname)
             
-            dis_regpar = adt.get_dis_regpar({specname : proclist})
-            dis_icvpar = adt.get_dis_icvpar({specname : proclist})
+            dis_regpar = stat.get_dis_regpar({specname : proclist})
+            dis_icvpar = stat.get_dis_icvpar({specname : proclist})
             
             for parnames in strategy:
                 print("---------------------------------------------------------------------------")

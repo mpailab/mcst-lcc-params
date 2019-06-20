@@ -7,15 +7,13 @@ import math, random
 from sys import maxsize
 from functools import reduce
 
-import output as out
 
 # Internal imports
 import options as gl
-from calculate_TcTeMem import calculate_abs_values
+from func import calculate_abs_values
 import par
-import weight
-import smooth_stat as sm
-import stat_adaptation as stat
+import stat
+import verbose
 
 if gl.TEMPERATURE_LAW_TYPE == 1:
     def temperature_law(i):
@@ -224,7 +222,7 @@ def get_value(parname, value_par, inf_value_par, sup_value_par, position, min_po
 def optimize(procs_dic, par_names,
              every_proc_is_individual_task = False,\
              par_start_value = None,\
-             output = out.default,\
+             output = verbose.default,\
              dis_regpar = None,\
              dis_icvpar = None,
              result_default = None,
@@ -281,7 +279,7 @@ def optimize(procs_dic, par_names,
             result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print('F(...) = ', val_F_start, file=out.F)
+            print('F(...) = ', val_F_start, file=verbose.F)
             
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
@@ -289,7 +287,7 @@ def optimize(procs_dic, par_names,
     # инициализация текущего значения функционала
     val_F_current = val_F_start
     par_current_value = dict(par_start_value)
-    print('F_start = ', val_F_current, file=out.F)
+    print('F_start = ', val_F_current, file=verbose.F)
     print(file=output)
     
     # установка начальных значений для лучшего значения функционала F, лучшего значения параметра
@@ -324,19 +322,19 @@ def optimize(procs_dic, par_names,
     
     # если списки reg_parnames и icv_parnames оба пусты
     if not reg_parnames and not icv_parnames:
-        print('Scale of posible values for parametors is empty', file=out.err)
-        print('For solve this problem increase a number of optimizated procedures', file=out.err)
-        print('Interrupt optimization', file=out.err)
+        print('Scale of posible values for parametors is empty', file=verbose.err)
+        print('For solve this problem increase a number of optimizated procedures', file=verbose.err)
+        print('Interrupt optimization', file=verbose.err)
         print(file=output)
         print('The best values for parametors are', par_best_value, file=output)
         print('The best values were found for', i_for_best_value, 'iterations of algorithm', file=output)
         print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-        print('The best (t_c, t_e, m) is', result_best, file=out.optval)
+        print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
         print('The best value for F is', val_F_best, file=output)
         return (par_best_value, val_F_best, result_best)
     
     # вычисление сглаженных распределений параметров (если соответстующая опция включена в smooth_stat)
-    sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
+    sm_dis = stat.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
     
     # инициализация базы данных для хранения всех найденных значений функционала F и распределений параметров
     F_run_result = ([], [], [], [])
@@ -381,7 +379,7 @@ def optimize(procs_dic, par_names,
                 for parname in reg_parnames + icv_parnames:
                     if value_par_tmp[parname]:
                         value_par[parname] = value_par_tmp[parname]
-                sm_dis = sm.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
+                sm_dis = stat.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
                 if gl.PAR_DISTRIBUTION_DATABASE == True:
                     F_run_result[2][ind] = deepcopy(value_par)
                     F_run_result[3][ind] = deepcopy(sm_dis)
@@ -550,7 +548,7 @@ def optimize(procs_dic, par_names,
             F_run_result[2].append(None)
             F_run_result[3].append(None)
             ind = -1
-        print('F(...) = ', val_F_candidate, file=out.F)
+        print('F(...) = ', val_F_candidate, file=verbose.F)
         
         if val_F_candidate < val_F_best:
             par_best_value = dict(par_candidate_value)
@@ -592,14 +590,14 @@ def optimize(procs_dic, par_names,
     print('The best values for parametors are', par_best_value, file=output)
     print('The best values were found for', i_for_best_value, 'iterations of algorithm', file=output)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-    print('The best (t_c, t_e, m) is', result_best, file=out.optval)
+    print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
     print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
 
 def seq_optimize(procs_dic, pargroup_seq,
              every_proc_is_individual_task = False,
-             output = out.default,
+             output = verbose.default,
              new_stat_for_every_step = not gl.INHERIT_STAT
             ):
     
@@ -647,7 +645,7 @@ def seq_optimize(procs_dic, pargroup_seq,
     
     print(file=output)
     print('The final best value for pars is', par_current_value, file=output)
-    print('The final (t_c, t_e, m) is', result_current, file=out.optval)
+    print('The final (t_c, t_e, m) is', result_current, file=verbose.optval)
     print('The final value for F is', val_F_current, file=output)
         
     return par_current_value, val_F_current, result_current
@@ -655,7 +653,7 @@ def seq_optimize(procs_dic, pargroup_seq,
 def dcs_optimize(procs_dic,
                  dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT,
                  result_default = None,
-                 output = out.default,
+                 output = verbose.default,
                  par_start_value = None,
                  val_F_start = None,
                  result_start = None,
@@ -691,12 +689,12 @@ def dcs_optimize(procs_dic,
             result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print('F(...) = ', val_F_start, file=out.F)
+            print('F(...) = ', val_F_start, file=verbose.F)
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
     
     par_value = dict(par_start_value)
-    print('F_start = ', val_F_start, file=out.F)
+    print('F_start = ', val_F_start, file=verbose.F)
     
     # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
     if val_F_start < val_F_default:
@@ -726,7 +724,7 @@ def dcs_optimize(procs_dic,
             result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
-            print('F(...) = ', val_F_candidate, file=out.F)
+            print('F(...) = ', val_F_candidate, file=verbose.F)
             if val_F_candidate < val_F_best:
                 par_best_value = dict(par_value)
                 result_best = dict(result_candidate)
@@ -737,14 +735,14 @@ def dcs_optimize(procs_dic,
     print(file=output)
     print('The best values for parametors are', par_best_value, file=output)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-    print('The best (t_c, t_e, m) is', result_best, file=out.optval)
+    print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
     print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
     
 def optimize_bool_par(procs_dic, parname,
                  result_default = None,
-                 output = out.default,
+                 output = verbose.default,
                  par_start_value = None,
                  val_F_start = None,
                  result_start = None,
@@ -775,11 +773,11 @@ def optimize_bool_par(procs_dic, parname,
             result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print('F(...) = ', val_F_start, file=out.F)
+            print('F(...) = ', val_F_start, file=verbose.F)
         if val_F_start == None:
             val_F_start = calculate_F(result_start, result_default)
             
-    print('F_start = ', val_F_start, file=out.F)
+    print('F_start = ', val_F_start, file=verbose.F)
     print(file=output)
     
     # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
@@ -800,7 +798,7 @@ def optimize_bool_par(procs_dic, parname,
     result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag)
     j_for_exec_run += 1
     val_F_candidate = calculate_F(result_candidate, result_default)
-    print('F(...) = ', val_F_candidate, file=out.F)
+    print('F(...) = ', val_F_candidate, file=verbose.F)
     
     if val_F_candidate < val_F_best:
         par_best_value = dict(par_value)
@@ -810,7 +808,7 @@ def optimize_bool_par(procs_dic, parname,
     print(file=output)
     print('The best values for parametors are', par_best_value, file=output)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-    print('The best (t_c, t_e, m) is', result_best, file=out.optval)
+    print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
     print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)

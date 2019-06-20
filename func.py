@@ -7,10 +7,10 @@ from subprocess import Popen, PIPE
 from sys import maxsize
 
 # Internal imports
-import par, read
+import par
 import options as gl
 import train
-import output
+import verbose
 
 # Вычилсяем папку, из которой запущен процесс
 PWD = os.getcwd()
@@ -43,25 +43,24 @@ def get_cmd_pars(task_name, par_value, procname_list = None):
         cmd += '\"'
     return cmd
     
-def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = output.runs):
+def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = verbose.runs):
     """ Запускает внешние скипты на задачах из procs_dic со значениями параметров из par_value
         и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
     """
     exec_proc = None
-    el_pred = None
     result_comp = {}
     result_exec = {}
     result_maxmem = {}
-    
-    if separate_procs:
-        elements = []
-        for taskname, procname_list in procs_dic.items():
-            if procname_list == None:
-                raise BaseException('Warning: there are many runs for run.sh')
+
+    elements = []
+    for taskname, procname_list in procs_dic.items():
+        if procname_list == None:
+            raise BaseException('Warning: there are many runs for run.sh')
+        if separate_procs:
             for procname in procname_list:
-                elements.append((taskname, procname))
-    else:
-        elements = list(procs_dic.keys())
+                elements.append((taskname, [procname]))
+        else:
+            elements.append((taskname, procname_list))
         
     
     # Вычисляем абсолютный путь к скриптам SCRIPT_COMP, SCRIPT_EXEC, SCRIPT_COMP_WITH_STAT
@@ -77,14 +76,10 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
 #    shutil.copy( "/auto/bokov_g/msu/bin/cmp_spec/*.sh", ".")
         
     for el in elements:
-        if separate_procs:
-            taskname = el[0]
-            proclist = [el[1]]
-        else:
-            taskname = el
-            proclist = procs_dic[el]
+
+        taskname = el[0]
+        proclist = el[1]
         cmd_pars = get_cmd_pars(taskname, par_value, proclist)
-        
         
         # Подсчет времени компиляции для el
         cmd_comp = SCRIPT_COMP + ' ' + cmd_pars
@@ -116,12 +111,9 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
                 shutil.rmtree(tmpdir_path)
                 raise ExternalScriptError(error)
             
-            if separate_procs:
-                taskname_pred = el_pred[0]
-                proclist_pred = [el_pred[1]]
-            else:
-                taskname_pred = el_pred
-                proclist_pred = procs_dic[el_pred]
+            taskname_pred = el_pred[0]
+            proclist_pred = el_pred[1]
+
             # Добавление результата запуска в tr_data для el_pred
             train.DB[taskname_pred].add(proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
         
