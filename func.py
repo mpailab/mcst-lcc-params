@@ -18,9 +18,29 @@ PWD = os.getcwd()
 class ExternalScriptError(BaseException):
     pass
 
-def get_cmd_pars(task_name, par_value, procname_list = None):
-    """ Формирует опции и аргументы для передачи внешнему скрипту
-    """
+# Инициализация внешнего скрипта
+def init_ext_script(dir, output = verbose.runs):
+    cmd = os.path.abspath(gl.SCRIPT_CMP_INIT) + ' ' + dir
+    print(cmd, file=output)
+    prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    prog.wait()
+
+# Запуск внешнего срипта
+def run_ext_script(mode, spec, opts, output = verbose.runs):
+    assert(mode in gl.CMP_MODES)
+    cmd = ( os.path.abspath(gl.SCRIPT_CMP_RUN) 
+            + ' -' + mode 
+            + ' -suite ' + gl.CMP_SUITE 
+            + ' -spec ' + spec
+            + ' -' + gl.COMP_MODE
+            + ' -opt ' + opts
+            + ' -dir ' + gl.DINUMIC_STAT_PATH
+            + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER))
+    print(cmd, file=output)
+    return Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+
+# Опции для передачи внешнему скрипту
+def ext_script_opts(task_name, par_value, procname_list = None):
     cmd = task_name 
     if len(par_value) != 0 or procname_list != None:
         cmd += ' \"'
@@ -43,10 +63,10 @@ def get_cmd_pars(task_name, par_value, procname_list = None):
         cmd += '\"'
     return cmd
     
+# Запускает внешние скипты на задачах из procs_dic со значениями параметров из par_value
+# и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
 def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = verbose.runs):
-    """ Запускает внешние скипты на задачах из procs_dic со значениями параметров из par_value
-        и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
-    """
+
     exec_proc = None
     result_comp = {}
     result_exec = {}
@@ -62,29 +82,21 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         else:
             elements.append((taskname, procname_list))
         
-    
-    # Вычисляем абсолютный путь к скриптам SCRIPT_COMP, SCRIPT_EXEC, SCRIPT_COMP_WITH_STAT
-    SCRIPT_COMP = os.path.abspath(gl.SCRIPT_COMP)
-    SCRIPT_EXEC = os.path.abspath(gl.SCRIPT_EXEC)
-    SCRIPT_COMP_WITH_STAT = os.path.abspath(gl.SCRIPT_COMP_WITH_STAT)
-        
     tmpdir_name = 'tmp' + '_' + str(random.randrange(10**10))
     os.mkdir(tmpdir_name)
     tmpdir_path = os.path.join(PWD, tmpdir_name)
     os.chdir(tmpdir_path)
-    os.system("cp /auto/bokov_g/msu/bin/cmp_spec/*.sh .")
-#    shutil.copy( "/auto/bokov_g/msu/bin/cmp_spec/*.sh", ".")
+
+    init_ext_script(tmpdir_name, output)
         
     for el in elements:
 
         taskname = el[0]
         proclist = el[1]
-        cmd_pars = get_cmd_pars(taskname, par_value, proclist)
-        
-        # Подсчет времени компиляции для el
-        cmd_comp = SCRIPT_COMP + ' ' + cmd_pars
-        print(cmd_comp, file=output)
-        comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
+        cmd_pars = ext_script_opts(taskname, par_value, proclist)
+
+        # Запуск на компиляцию для el
+        comp_proc = run_ext_script('comp', taskname, cmd_pars, output)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
         print("comp_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
@@ -118,15 +130,11 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             train.DB[taskname_pred].add(proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
         
         # Запуск на исполнение для el
-        cmd_exec = SCRIPT_EXEC + ' ' + cmd_pars + ' \"' + tmpdir_path + '\"'
-        print(cmd_exec, file=output)
-        exec_proc = Popen(cmd_exec, shell=True, stdout=PIPE, stderr=PIPE)
+        exec_proc = run_ext_script('exec', taskname, cmd_pars, output)
         el_pred = el
         
         # Подсчет объема потребляемой памяти для el
-        cmd_comp = SCRIPT_COMP_WITH_STAT + ' ' + cmd_pars
-        print(cmd_comp, file=output)
-        comp_proc = Popen(cmd_comp, shell=True, stdout=PIPE, stderr=PIPE)
+        comp_proc = run_ext_script('comp', taskname, cmd_pars, output)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
         print("max_mem#" + tmp_result[0].decode('utf-8'), end='', file=output)
