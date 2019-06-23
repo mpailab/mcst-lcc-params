@@ -40,11 +40,8 @@ for mode in options.modes.keys():
     for gl in options.list(mode):
 
         if gl.isBool():
-            assert(gl.default is not None)
-            if gl.default:
-                group.add( '--no-' + gl.param, dest=gl.param, action='store_false', help=gl.help)
-            else:
-                group.add( '--' + gl.param, action='store_true', help=gl.help)
+            assert(gl.default is False)
+            group.add( '--' + gl.param, action='store_true', help=gl.help)
 
         elif gl.isDisc():
             assert(gl.values is not None)
@@ -94,16 +91,15 @@ for param, value in vars(args).items():
 #########################################################################################
 # Checking global variables
 
+import verbose
+
 for gl in options.list():
     gval = options.__dict__[gl.name]
     if gval == None:
-        print ('Error! The value of parametor', gl.param, 'was not defined')
-        sys.exit()
+        verbose.error('The value of parametor \'' + gl.param + '\' was not defined')
     if gl.isFile() or gl.isDir():
         if not os.path.exists(options.__dict__[gl.name]):
-            print('Error! Wrong value for parametor', gl.param, ':', gl.default)
-            print('       Incorrect path :', gl.default)
-            sys.exit()
+            verbose.error('Wrong value of parametor \'' + gl.param + '\', path \'' + gl.default + '\' does not exist')
 
 #########################################################################################
 # Run intelligent system
@@ -134,7 +130,7 @@ try:
             train.find()
 
     elif args.mode == 'stat':
-        print('Warning! Режим stat пока не поддерживается.')
+        verbose.warning('Режим \'stat\' пока не поддерживается.')
         pass
 
     else: # args.mode == 'train':

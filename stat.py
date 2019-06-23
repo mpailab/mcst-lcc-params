@@ -972,10 +972,10 @@ def smooth_dis(array, coord, w_dis, erff):
             
     return sdis
 
-def get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar, smooth_stat = gl.SMOOTH_STAT):
+def get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar, pure_stat = gl.PURE_STAT):
     # dis_regpar и dis_icvpar должны быть уже нормированы
     sm_dis = {}
-    if not smooth_stat:
+    if pure_stat:
         for parname in reg_parnames:
             sm_dis[parname] = dis_regpar
         for parname in icv_parnames:

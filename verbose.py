@@ -1,15 +1,16 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-""" 
-    содержит настройки вывода на экран различных категорий информации
-"""
+# Настройка вывода на экран различных категорий информации
 
+# External imports
 from os import devnull
-devnull = open(devnull, 'w')
+import sys, textwrap
 
+# Internal imports
 import options as gl
 
-
+devnull = open(devnull, 'w')
+width = 100
 
 ## Виды информации, выводимой на экнан
 ## если = devnull -> не печатать на экран
@@ -45,3 +46,9 @@ if gl.VERBOSE >= 2:
     err = None
     default = None
 
+def warning (str):
+    print('Warning!', '\n         '.join(textwrap.wrap(str, width - 9)))
+
+def error (str):
+    print('Error!', '\n       '.join(textwrap.wrap(str, width - 7)))
+    sys.exit()

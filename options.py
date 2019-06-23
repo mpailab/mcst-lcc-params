@@ -225,7 +225,7 @@ USE_UNEXEC_PROCS_IN_STAT = False
 GL['use_unexec'] = Global(
      'USE_UNEXEC_PROCS_IN_STAT', 'use_unexec',
      'обработка статистики компиляции неисполняемых процедур',
-     'bool', ['0', '1'], None,
+     'bool', None, None,
      USE_UNEXEC_PROCS_IN_STAT, 'stat'
 )
 
@@ -246,7 +246,7 @@ DINUMIC_PROC_OPERS_NUM = False
 GL['din_proc'] = Global(
      'DINUMIC_PROC_OPERS_NUM', 'din_proc',
      'учет динамического изменения числа операций в процедуре во время компиляции на фазе regions',
-     'bool', ['0', '1'], None,
+     'bool', None, None,
      DINUMIC_PROC_OPERS_NUM, 'stat'
 )
 
@@ -255,7 +255,7 @@ DINUMIC_REGN_OPERS_NUM = False
 GL['din_regn'] = Global(
      'DINUMIC_REGN_OPERS_NUM', 'din_regn',
      'включает учет динамического изменения числа операций в регионах во время компиляции на фазе regions',
-     'bool', ['0', '1'], None,
+     'bool', None, None,
      DINUMIC_REGN_OPERS_NUM, 'stat'
 )
 
@@ -332,12 +332,12 @@ GL['dcs_limit'] = Global(
 # Сглаживание статистики
 
 # Сглаживать статистику? {0, 1}
-SMOOTH_STAT = True
-GL['smooth'] = Global(
-     'SMOOTH_STAT', 'smooth',
-     'сглаживание распределений, получаемых по статистике работы компилятора LCC',
-     'bool', ['0', '1'], None,
-     SMOOTH_STAT, 'stat'
+PURE_STAT = False
+GL['pure_stat'] = Global(
+     'PURE_STAT', 'pure_stat',
+     'не использовать сглаживание распределений, получаемых по статистике работы компилятора lcc',
+     'bool', None, None,
+     PURE_STAT, 'stat'
 )
 
 # Чем меньше следующие коэффиценты, тем сильнее сглаживание
@@ -384,18 +384,18 @@ INHERIT_STAT = False
 GL['inherit'] = Global(
      'INHERIT_STAT', 'inherit',
      'использовать собранную статистику компилятора LCC в не зависимости от значений параметров оптимизирующих преобразований',
-     'bool', ['0', '1'], None,
+     'bool', None, None,
      INHERIT_STAT
 )
 
-# Сохранять в оперативной памяти распределения весов для каждого нового набора параметров? {0, 1}
-# Увеличивает скорость работы ИС, может привести к чрезмерному потреблению оперативной памяти
-PAR_DISTRIBUTION_DATABASE = True
-GL['database'] = Global(
-     'PAR_DISTRIBUTION_DATABASE', 'database',
-     'хранение в оперативной памяти всех распределений, получаемых по статистике работы компилятора LCC',
-     'bool', ['0', '1'], None,
-     PAR_DISTRIBUTION_DATABASE, 'anneal'
+# Ограничение на использование памяти
+# Если True, то в оперативной памяти не сохраняются распределения весов для каждого нового набора параметров
+MEM_RESTRICTION = False
+GL['mem_restr'] = Global(
+     'MEM_RESTRICTION', 'mem_restr',
+     'ограничение на использование памяти',
+     'bool', None, None,
+     MEM_RESTRICTION, 'anneal'
 )
 
 # Начальное значение температуры: (0, 1]
@@ -454,12 +454,12 @@ GL['distr_law'] = Global(
 # значение par1 никак не влияют на работу компилятора LCC.
 # Если опция возведена, то зависимости параметров учитываются при прогнозировании
 # насколько существенно может повлиять на работу компилятора изменение значений параметров
-USE_RELATIONS_OF_PARAMETORS = True
-GL['relations'] = Global(
-     'USE_RELATIONS_OF_PARAMETORS', 'relations',
-     'использование зависимостей параметров оптимизирующих параметров друг от друга',
-     'bool', ['0', '1'], None,
-     USE_RELATIONS_OF_PARAMETORS, 'anneal'
+UNRELATED_PARAMS = False
+GL['unrelated'] = Global(
+     'UNRELATED_PARAMS', 'unrelated',
+     'считать параметры компилятора lcc независимыми друг от друга',
+     'bool', None, None,
+     UNRELATED_PARAMS, 'anneal'
 )
 
 # Минимизируемый функцонал имеет вид
@@ -543,12 +543,12 @@ GL['attempts_num'] = Global(
 )
 
 # Уменьшать значение температуры после итераций, на которых не был осуществлен переход к лучшему значению? {0, 1}
-DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS = True
-GL['decrease_temp'] = Global(
-     'DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS', 'decrease_temp',
-     'уменьшение температуры после неудачных шагов применения метода имитации отжига',
-     'bool', ['0', '1'], None,
-     DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS, 'anneal'
+TEMP_MODE = 0
+GL['temp_mode'] = Global(
+     'TEMP_MODE', 'temp_mode',
+     'режим изменения температуры после неудачных шагов применения метода имитации отжига: 0 - уменьшать температуру, 1 - сохранять той же.',
+     'disc', [0, 1], None,
+     TEMP_MODE, 'anneal'
 )
 
 #########################################################################################
@@ -566,16 +566,12 @@ GL['strategy'] = Global(
      OPTIMIZATION_STRATEGY
 )
 
-# Последовательная оптимизация? {0, 1}
-# 0 -> независимая оптимизация по каждой группе в стратегии
-# 1 -> последовательная оптимизация согласно стратегии
-SEQ_OPTIMIZATION_WITH_STRATEGY = True
+# Последовательная оптимизация
+SEQ_OPTIMIZATION_WITH_STRATEGY = False
 GL['seq'] = Global(
      'SEQ_OPTIMIZATION_WITH_STRATEGY', 'seq',
-     ('характер оптимизации по отношению к заданной параметром strategy стратегии оптимизации:'
-      ' 0 - независимая оптимизация по каждой группе в стратегии'
-      ' 1 - последовательная оптимизация согласно стратегии'),
-     'bool', ['0', '1'], None,
+     'последовательная оптимизация групп параметров, определенных стратегией (задается параметром strategy)',
+     'bool', None, None,
      SEQ_OPTIMIZATION_WITH_STRATEGY, 'anneal'
 )
 
@@ -593,16 +589,12 @@ GL['specs'] = Global(
      SPECS
 )
 
-# Синхронная оптимизация? {0, 1}
-# 0 -> независимая оптимизация каждого спека
-# 1 -> синхранная оптимизация спеков
-SYNCHRONOUS_OPTIMIZATION_FOR_SPECS = True
+# Синхронная оптимизация
+SYNCHRONOUS_OPTIMIZATION_FOR_SPECS = False
 GL['sync'] = Global(
      'SYNCHRONOUS_OPTIMIZATION_FOR_SPECS', 'sync',
-     ('характер оптимизации по отношению к заданному параметром specs списку задач:'
-      ' 0 - независимая оптимизация каждой задачи'
-      ' 1 - синхранная оптимизация задач'),
-     'bool', ['0', '1'], None,
+     'синхранная оптимизация задач, определенных параметром specs',
+     'bool', None, None,
      SYNCHRONOUS_OPTIMIZATION_FOR_SPECS
 )
 
@@ -631,7 +623,7 @@ GL['verbose'] = Global(
 #GL['rewrite'] = Global(
      #'ALLOW_REWRITE_OUTPUT_FILES', 'rewrite',
      #'режим перезаписи выходных файлов',
-     #'bool', ['0', '1'], None,
+     #'bool', None, None,
      #ALLOW_REWRITE_OUTPUT_FILES
 #)
 
@@ -673,7 +665,7 @@ TRAIN_CLEAR = False
 GL['clear'] = Global(
      'TRAIN_CLEAR', 'clear',
      'удаление всех накопленных данных для обучения',
-     'bool', ['0', '1'], None,
+     'bool', None, None,
      TRAIN_CLEAR
 )
 
@@ -682,7 +674,7 @@ TRAIN_PURE = False
 GL['pure'] = Global(
      'TRAIN_PURE', 'pure',
      'не накопливать данные для обучения',
-     'bool', ['0', '1'], None,
+     'bool', None, None,
      TRAIN_PURE
 )
 
@@ -849,29 +841,3 @@ GL['points_num'] = Global(
      'int', None, None,
      points_num, 'train'
 )
-
-#########################################################################################
-# Модуль draw
-
-# Количество столбцов на генерируемых графиках
-PAR_DIAG_COL_NUM = 100
-
-# Отображать на экран генерируемые графики? {0, 1}
-SHOW_FLAG = False
-
-# Сохранять генерируемые графики? {0, 1}
-SAVE_PIC_FLAG = True
-
-# Каталог, в который будут сохраняться генерируемые графики
-IMAGES_SAVE_MAIN_DIR = './images'
-
-# Структура подкаталогов, в соответствии с которой будут распределяться сохраняемые графики {0, 1, 2}
-# 0 -> нет подкаталогов
-# 1 -> taskname/...
-# 2 -> parname/...
-SAVE_SUBDIR_STRUCTURE_MODE = 2
-
-# Опция включает отрисовку на графиках результатов запуска оптимизации
-DRAW_RUN_RESULTS_ON_GRAPHICS = True
-
-GREAN_DOTS = False

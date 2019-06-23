@@ -134,7 +134,7 @@ def shift(par_list, max_sum, dis_par, cond):
     position_shift = 0
     while (current_sum <= max_sum) and (position_shift != len(par_list)):
         par_value = par_list[position_shift]
-        if not gl.USE_RELATIONS_OF_PARAMETORS or cond(par_value):
+        if gl.UNRELATED_PARAMS or cond(par_value):
             current_sum += dis_par[par_value]
         position_shift += 1
     #if not (current_sum <= max_sum): # ошибка
@@ -333,7 +333,7 @@ def optimize(procs_dic, par_names,
         print('The best value for F is', val_F_best, file=output)
         return (par_best_value, val_F_best, result_best)
     
-    # вычисление сглаженных распределений параметров (если соответстующая опция включена в smooth_stat)
+    # вычисление распределений параметров
     sm_dis = stat.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
     
     # инициализация базы данных для хранения всех найденных значений функционала F и распределений параметров
@@ -348,12 +348,12 @@ def optimize(procs_dic, par_names,
     # добавление в базу соответсвующих значений при начальном значении параметров
     F_run_result[0].append(dict(par_current_value))
     F_run_result[1].append(val_F_current)
-    if gl.PAR_DISTRIBUTION_DATABASE == True:
-        F_run_result[2].append(deepcopy(value_par))
-        F_run_result[3].append(deepcopy(sm_dis))
-    else:
+    if gl.MEM_RESTRICTION:
         F_run_result[2].append(None)
         F_run_result[3].append(None)
+    else:
+        F_run_result[2].append(deepcopy(value_par))
+        F_run_result[3].append(deepcopy(sm_dis))
     
     j_for_temperature = 1 # задание начального уровня темпрературы
     iterr = 0 # инициализация счетчика внешних итераций алгоритма
@@ -380,7 +380,7 @@ def optimize(procs_dic, par_names,
                     if value_par_tmp[parname]:
                         value_par[parname] = value_par_tmp[parname]
                 sm_dis = stat.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
-                if gl.PAR_DISTRIBUTION_DATABASE == True:
+                if not gl.MEM_RESTRICTION:
                     F_run_result[2][ind] = deepcopy(value_par)
                     F_run_result[3][ind] = deepcopy(sm_dis)
             else:
@@ -580,7 +580,7 @@ def optimize(procs_dic, par_names,
                     position = position_candidate
                 print('Moving to the not better value with chance_move =', chance_move, file=output)
             else:
-                if gl.DECREASE_TEMPERATURE_BEFORE_UNFORTUNATE_ITERATIONS:
+                if gl.TEMP_MODE == 0:
                     j_for_temperature += 1
                 print('Not moving to the candidate value with chance_move =', chance_move, file=output)
         
