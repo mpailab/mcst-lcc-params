@@ -109,13 +109,14 @@ def create_net(procs_dic, pgroup, points_num = gl.points_num):
                 values[parname] = [val]
             else:
                 segments_num = points_num - 1
-                segment_len = (max_value_par - min_value_par) / segments_num
-                values[parname] = []
+                vals = []
                 for i in range(points_num):
-                    val = min_value_par + i * segment_len
+                    val = min_value_par + i * (max_value_par - min_value_par) / segments_num
                     if vtype == int:
                         val = round(val)
-                    values[parname].append(val)
+                    if not val in vals:
+                        vals.append(val)
+                values[parname] = vals
                     
     # строим узлы сетки
     nodes = iter(VectIter(values))
