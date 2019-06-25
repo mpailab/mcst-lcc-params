@@ -16,7 +16,7 @@ import verbose
 PWD = os.getcwd()
 
 class ExternalScriptError(BaseException):
-    pass
+    print('An error in external sript \'' + gl.SCRIPT_CMP_RUN + '\'.')
 
 # Инициализация внешнего скрипта
 def init_ext_script(dir, output = verbose.runs):

@@ -18,7 +18,7 @@ import options as gl
 import func, par, stat, verbose
 
 # Table of groups of parameters
-PARS = {tuple(g) : 1 for g in par.strategy()}
+PARS = {tuple(g) : 1 for g in par.strategy(restricte_groups_for_anneal_method = False)}
 
 # Table of specs
 SPECS = par.specs()
@@ -481,12 +481,18 @@ def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
 #########################################################################################
 # Collect the raw data
 
+def calculate (specs, pars):
+    try:
+        func.calculate_abs_values(specs, pars)
+    except func.ExternalScriptError:
+        raise KeyboardInterrupt
+
 def collect():
 
     print('Collect the raw data')
     
     # Calculate default values
-    func.calculate_abs_values(SPECS, {})
+    calculate(SPECS, {})
 
     # Collect the raw data for current group of parameters
     for gr in PARS.keys():
@@ -502,7 +508,7 @@ def collect():
         # Calculate values in points and store data
         for point in points:
             if point != default:
-                func.calculate_abs_values(SPECS, dict(zip(gr, point)))
+                calculate(SPECS, dict(zip(gr, point)))
 
 #########################################################################################
 # Train neural network
