@@ -101,11 +101,27 @@ for param, value in vars(args).items():
     if options.exist(param):
         options.__dict__[options.var(param).name] = value
 
+#########################################################################################
+# Checking global variables
+    
+import verbose
+
+if options.SPECS is None:
+    verbose.error('Specs list was not defined')
+    
+if options.OPTIMIZATION_STRATEGY is None:
+    verbose.error('Optimization strategy was not defined')
+    
+if args.force or args.mode == 'data':
+
+    # все глобалы раздела script должны быть не None
+    for gl in options.list(mode = 'script'):
+        gval = options.__dict__[gl.name]
+        if gval == None:
+            verbose.error('The value of parametor \'' + gl.param + '\' was not defined')
 
 #########################################################################################
 # Run intelligent system
-
-import anneal, train
 
 # каталог, из которого запущен процесс
 PWD = os.getcwd()
@@ -114,20 +130,25 @@ try:
     if args.mode == 'data':
 
         if args.clear:
-            train.clear()
+            from train import clear
+            clear()
 
         if args.force:
+            import anneal
             anneal.run()
 
         else:
+            import train
             train.collect()
 
     elif args.mode == 'find':
 
         if args.force:
+            import anneal
             anneal.run()
 
         else:
+            import train
             train.find()
 
     elif args.mode == 'stat':
@@ -135,6 +156,7 @@ try:
         pass
 
     else: # args.mode == 'train':
+        import train
         train.run()
 
 except KeyboardInterrupt:

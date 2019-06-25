@@ -74,8 +74,6 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
 
     elements = []
     for taskname, procname_list in procs_dic.items():
-        if procname_list == None:
-            raise BaseException('Warning: there are many runs for run.sh')
         if separate_procs:
             for procname in procname_list:
                 elements.append((taskname, [procname]))

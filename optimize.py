@@ -12,7 +12,7 @@ from functools import reduce
 import options as gl
 from func import calculate_abs_values
 import par
-import stat
+import statistics as stat
 import verbose
 
 if gl.TEMPERATURE_LAW_TYPE == 1:

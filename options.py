@@ -37,26 +37,27 @@ NODE_TYPE = {
     "Tmp"    : 8
     }
 
-def dir_parser (line):
+def dir (line):
      line = line.strip('"')
      if not os.path.isdir(line):
           raise ValueError
      return line
 
-def dir_name_parser (line):
+def path (line):
+     from re import search
      line = line.strip('"')
-     if not os.path.supports_unicode_filenames(line):
+     if not search(r'[^A-Za-z0-9_\-\\]',os.path.normpath(line)) is None:
           raise ValueError
      return line
 
-def file_parser (line):
+def file (line):
      line = line.strip('"')
      if not os.path.isfile(line):
           raise ValueError
      return line
 
 # Parse string of the format '<name>'
-def name_parser (line):
+def name (line):
      line = line.strip('"')
      if line == '':
           raise ValueError
@@ -65,7 +66,7 @@ def name_parser (line):
      return line
 
 # Parse string of the format '<parname> [<parname>] [; <parname> [<parname>]]'
-def strategy_parser (line):
+def strategy (line):
      line = line.strip('"')
      line = str(line)
      if line == '':
@@ -83,7 +84,7 @@ def strategy_parser (line):
      return pars
 
 # Parse string of the format '<specname>[: <procname> [<procname>]] [, <specname>[: <procname> [<procname>]]]'
-def specs_parser (line):
+def specs (line):
      line = line.strip('"')
      if line == '':
           raise ValueError
@@ -111,7 +112,7 @@ def specs_parser (line):
           specs[name] = procs
      return specs
 
-def node_type_parser (line):
+def node_type (line):
      if line in NODE_TYPE:
           raise ValueError
      return NODE_TYPE[line]
@@ -137,7 +138,7 @@ def node_type_parser (line):
 # '<(p)dom_height> - высота дерева (пост)доминаторов\n'
 # '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
 # '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов'
-def proc_chars_parser (line):
+def proc_chars (line):
      line = line.strip('"')
      lines = [x for x in line.split(' ') if x != '']
      if not lines:
@@ -153,7 +154,7 @@ def proc_chars_parser (line):
                ps = node.split(':')
                if len(ps) != 7 or any (x == '' for x in ps):
                     raise ValueError
-               nodes.append((int(ps[0]), node_type_parser(ps[1]), float(ps[3]), int(ps[4]), int(ps[5]), int(ps[6]), int(ps[7])))
+               nodes.append((int(ps[0]), node_type(ps[1]), float(ps[3]), int(ps[4]), int(ps[5]), int(ps[6]), int(ps[7])))
           loops = []
           for loop in proc[2].split(','):
                ps = loop.split(':')
@@ -176,12 +177,12 @@ def proc_chars_parser (line):
      return procs
 
 # Parse string of the format '<par_name>:<value> ... <par_name>:<value>'
-def defaults_parser (line):
+def defaults (line):
      line = line.strip('"')
      lines = [x for x in line.split(' ') if x != '']
      if not lines:
           raise ValueError
-     pars = {}
+     pars = {x : PARAMS[x][1] for x in PARAMS}
      for l in lines:
           d = l.split(':')
           if len(d) != 2 or any (x == '' for x in d) or not d[0] in PARAMS:
@@ -190,12 +191,12 @@ def defaults_parser (line):
      return pars
 
 # Parse string of the format '<par_name>:<min>:<max> ... <par_name>:<min>:<max>'
-def ranges_parser (line):
+def ranges (line):
      line = line.strip('"')
      lines = [x for x in line.split(' ') if x != '']
      if not lines:
           raise ValueError
-     pars = {}
+     pars = {x : PARAMS[x][2] for x in PARAMS}
      for l in lines:
           d = l.split(':')
           if len(d) != 3 or any (x == '' for x in d) or not d[0] in PARAMS:
@@ -407,7 +408,7 @@ PROC_WEIGHT_PATH = None
 GL['dir_w_proc'] = Global(
      'PROC_WEIGHT_PATH', 'dir_w_proc',
      'путь до каталога с файлами, определяющими веса процедур',
-     'path_to_dir', None, None, dir_parser,
+     'path_to_dir', None, None, dir,
      PROC_WEIGHT_PATH, 'stat'
 )
 
@@ -417,7 +418,7 @@ TASK_WEIGHT_PATH = None
 GL['file_w_task'] = Global(
      'TASK_WEIGHT_PATH', 'file_w_task',
      'путь к файлу, из которого считываются веса задач',
-     'path_to_file', None, None, file_parser,
+     'path_to_file', None, None, file,
      TASK_WEIGHT_PATH, 'stat'
 )
 
@@ -435,7 +436,7 @@ STAT_PATH = None
 GL['stat'] = Global(
      'STAT_PATH', 'stat',
      'путь каталогу со статистикой компиляции, собранной при значениях параметров оптимизирующих преобразований по-умолчанию',
-     'path_to_dir', None, None, dir_parser,
+     'path_to_dir', None, None, dir,
      STAT_PATH, 'stat'
 )
 
@@ -516,7 +517,7 @@ GL['dcs_limit'] = Global(
 #GL['logs'] = Global(
      #'RUN_LOGS_PATH', 'logs',
      #'каталог, в котором хранятся логи запусков',
-     #'path_to_dir', None, None, dir_parser,
+     #'path_to_dir', None, None, dir,
      #RUN_LOGS_PATH
 #)
 
@@ -759,11 +760,11 @@ GL['temp_mode'] = Global(
 # Синтаксис:
 #   <стратегия>         ::= <группа параметров> | <стратегия>; <группа параметров>
 #   <группа параметров> ::= <параметр> | <группа параметров> <параметр>
-OPTIMIZATION_STRATEGY = None
+OPTIMIZATION_STRATEGY = []
 GL['strategy'] = Global(
      'OPTIMIZATION_STRATEGY', 'strategy',
      'стратегия оптимизации, согласно с которой ИС осуществляет подборку параметров оптимизирующих преобразований',
-     'format', None, '<parname> [<parname>] [; <parname> [<parname>]]', strategy_parser,
+     'format', None, '<parname> [<parname>] [; <parname> [<parname>]]', strategy,
      OPTIMIZATION_STRATEGY
 )
 
@@ -782,11 +783,11 @@ GL['seq'] = Global(
 #   <список задач>    ::= <задача> | <список задач>, <задача>
 #   <задача>          ::= <имя задачи> | <имя задачи> : <список процедур>
 #   <список процедур> ::= <процедура> | <список процедур> <процедура>
-SPECS = None
+SPECS = {}
 GL['specs'] = Global(
      'SPECS', 'specs',
      'список задач, для которых ИС должна осуществлять подборку параметров оптимизирующих преобразований',
-     'format', None, '<specname>[: <procname> [<procname>]] [, <specname>[: <procname> [<procname>]]]', specs_parser,
+     'format', None, '<specname>[: <procname> [<procname>]] [, <specname>[: <procname> [<procname>]]]', specs,
      SPECS
 )
 
@@ -804,7 +805,7 @@ GL['sync'] = Global(
 #GL['output'] = Global(
      #'OUTPUTDIR', 'output',
      #'каталог, в котором ИС формирует свои выходные файлы',
-     #'path_to_dir', None, None, dir_parser,
+     #'path_to_dir', None, None, dir,
      #OUTPUTDIR
 #)
 
@@ -856,7 +857,7 @@ GL['proc_chars'] = Global(
      '<(p)dom_height> - высота дерева (пост)доминаторов\n'
      '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
      '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов',
-     'format', None, '<procs>', proc_chars_parser,
+     'format', None, '<procs>', proc_chars,
      TRAIN_PROC_CHARS
 )
 
@@ -883,7 +884,7 @@ TRAIN_DATA_DIR = None
 GL['tr_dir'] = Global(
      'TRAIN_DATA_DIR', 'tr_dir',
      'каталог с данными для обучения ИС',
-     'path_to_dir', None, None, dir_name_parser,
+     'path_to_dir', None, None, path,
      TRAIN_DATA_DIR
 )
 
@@ -892,7 +893,7 @@ TRAIN_MODEL_DIR = None
 GL['model_dir'] = Global(
      'TRAIN_MODEL_DIR', 'model_dir',
      'каталог c предобученными искусственными нейронными сетями',
-     'path_to_dir', None, None, dir_name_parser,
+     'path_to_dir', None, None, path,
      TRAIN_MODEL_DIR, 'train'
 )
 
@@ -972,7 +973,7 @@ GL['cmp_init'] = Global(
      'bash-скрипт для инициализации скрипта cmp_run. Имеет формат:\n'
      '  cmp_init <dist_dir>\n'
      'где <dist_dir> - директория, в которой будет запущен скрипт cmp_run и куда необходимо скопировать все необходимые для этого исходники',
-     'path_to_file', None, None, file_parser,
+     'path_to_file', None, None, file,
      SCRIPT_CMP_INIT, 'script'
 )
 
@@ -981,7 +982,7 @@ SCRIPT_CMP_RUN = None
 GL['cmp_run'] = Global(
      'SCRIPT_CMP_RUN', 'cmp_run',
      'bash-скрипт для запуска задач на компиляцию и/или исполнение. Имеет формат:\n'
-     '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir_parser <dir_name> -server <machine_name>\n'
+     '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir <path> -server <machine_name>\n'
      'где -comp   - режим рапуска на компиляцию\n'
      '    -exec   - режим рапуска на исполнение\n'
      '    -stat   - режим рапуска на получение статистики\n'
@@ -990,14 +991,14 @@ GL['cmp_run'] = Global(
      '    -base   - базовый режим запуска компилятора lcc\n'
      '    -peak   - пиковый режим запуска компилятора lcc\n'
      '    -opt    - параметры компилятора lcc\n'
-     '    -dir_parser    - директория, в которой сохраняется статистика\n'
+     '    -dir    - директория, в которой сохраняется статистика\n'
      '    -server - машина, на которой следует произвести запуск\n'
      'Скрипт должен в конце своей работы выдать на экран:\n'
      '  время компиляции (в режиме -comp),\n'
      '  время исполнения (в режиме -exec),\n'
      '  максимальный объем памяти, затраченный компилятором lcc (в режиме -stat).\n'
      'Других сообщений на экран выводится не должно.',
-     'path_to_file', None, None, file_parser,
+     'path_to_file', None, None, file,
      SCRIPT_CMP_RUN, 'script'
 )
 
@@ -1009,7 +1010,7 @@ CMP_SUITE = None
 GL['cmp_suite'] = Global(
      'CMP_SUITE', 'cmp_suite',
      'выбор специфического бэнчмарка (значение параметра определяется внешним скриптом SCRIPT_RUN_CMP)',
-     'format', None, '<pack_name>', name_parser,
+     'format', None, '<pack_name>', name,
      CMP_SUITE, 'script'
 )
 
@@ -1018,7 +1019,7 @@ DINUMIC_STAT_PATH = None
 GL['cmp_stat'] = Global(
      'DINUMIC_STAT_PATH', 'cmp_stat',
      'директория, в которую внешний скрипт сохраняет статистику',
-     'path_to_dir', None, None, dir_name_parser,
+     'path_to_dir', None, None, path,
      DINUMIC_STAT_PATH, 'script'
 )
 
@@ -1033,19 +1034,19 @@ GL['comp_mode'] = Global(
 
 # Машина, на которой следует компилировать задачи
 COMP_SERVER = None
-GL['comp_server'] = Global(
-     'COMP_SERVER', 'comp_server',
+GL['comp_srv'] = Global(
+     'COMP_SERVER', 'comp_srv',
      'машина, на которой следует компилировать задачи',
-     'format', None, '<machine_name>', name_parser,
+     'format', None, '<machine_name>', name,
      COMP_SERVER, 'script'
 )
 
 # Машина, на которой следует исполнять задачи
 EXEC_SERVER = None
-GL['exec_server'] = Global(
-     'EXEC_SERVER', 'exec_server',
+GL['exec_srv'] = Global(
+     'EXEC_SERVER', 'exec_srv',
      'машина, на которой следует исполнять задачи',
-     'format', None, '<machine_name>', name_parser,
+     'format', None, '<machine_name>', name,
      EXEC_SERVER, 'script'
 )
 
@@ -1053,19 +1054,19 @@ GL['exec_server'] = Global(
 # Модуль par
 
 # Значения по-умолчанию для параметров компилятора lcc
-PAR_DEFAULTS = {}
+PAR_DEFAULTS = {x : PARAMS[x][1] for x in PARAMS}
 GL['par_defaults'] = Global(
      'PAR_DEFAULTS', 'par_defaults',
      'значения по-умолчанию для параметров компилятора lcc',
-     'format', None, '<par_name>:<value> ... <par_name>:<value>', defaults_parser,
+     'format', None, '<par_name>:<value> ... <par_name>:<value>', defaults,
      PAR_DEFAULTS, 'setup'
 )
 
 # Диапазоны значений параметров компилятора lcc
-PAR_RANGES = {}
+PAR_RANGES = {x : PARAMS[x][2] for x in PARAMS}
 GL['par_ranges'] = Global(
      'PAR_RANGES', 'par_ranges',
      'диапазоны значений параметров компилятора lcc',
-     'format', None, '<par_name>:<min>:<max> ... <par_name>:<min>:<max>', ranges_parser,
+     'format', None, '<par_name>:<min>:<max> ... <par_name>:<min>:<max>', ranges,
      PAR_RANGES, 'setup'
 )

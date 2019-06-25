@@ -67,24 +67,11 @@ from functools import reduce
 
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
 import options as gl
+import verbose
 
 types = {x : gl.PARAMS[x][0] for x in gl.PARAMS}
-
-def set_defaults ():
-    res = {x : gl.PARAMS[x][1] for x in gl.PARAMS}
-    for x in gl.PAR_DEFAULTS:
-        res[x] = gl.PAR_DEFAULTS[x]
-    return res
-
-defaults = set_defaults()
-
-def set_ranges ():
-    res = {x : gl.PARAMS[x][2] for x in gl.PARAMS}
-    for x in gl.PAR_RANGES:
-        res[x] = gl.PAR_RANGES[x]
-    return res
-
-ranges = set_ranges()
+defaults = {x : gl.PARAMS[x][1] for x in gl.PARAMS}
+ranges = {x : gl.PARAMS[x][2] for x in gl.PARAMS}
 
 # список параметров, связанных с дублированием узлов
 doub_kind = [
@@ -167,68 +154,22 @@ cond = {
 dcs = ['dcs_kill', 'dcs_level']
 nesting = ['disable_regions_nesting']
 
+def strategy():
+    return gl.OPTIMIZATION_STRATEGY
 
-def strategy(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY,
-             restricte_groups_for_anneal_method = True,
-             allow_dcs_psevdo_parametor = True):
-    """
-        Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
-    """
-    def print_format():
-        print('The strategy must be in the next format :', end=' ')
-        print('<group> [; <group>]')
-        print('     where <group> is a string in the next format :', end=' ')
-        print('<parname> [<parname>]')
-    
-    def par_filt(parname):
-        if parname in types.keys():
-            return True
+def check_strategy(strategy = gl.OPTIMIZATION_STRATEGY):
+    for group in strategy:
+        dcs_par_exist = reduce(lambda x, y: x or y, [parname in dcs + ['dcs'] for parname in group])
+        nesting_par_exist = reduce(lambda x, y: x or y, [parname in nesting for parname in group])
+        reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in reg_seq + icv_seq for parname in group])
+        if reg_or_icv_par_exist:
+            if dcs_par_exist:
+                verbose.error('Wrong parametors group : %s. dcs-parametors must be in separated group.' % group)
+            if nesting_par_exist:
+                verbose.error('Wrong parametors group : %s. Parametor %r must be in separated group.' % (group, nesting[0]))
         else:
-            if allow_dcs_psevdo_parametor and parname == 'dcs':
-                return True
-            print('Warning! Unknown parametor of LCC in the strategy :', parname)
-            print('         The unknown parametor \'' + parname + '\' will be ignored')
-            return False
-            
-    def group_filt(group):
-        if bool(group): # если группа параметров не пустая
-            if restricte_groups_for_anneal_method:
-                dcs_par_exist = reduce(lambda x, y: x or y, [parname in dcs + ['dcs'] for parname in group])
-                nesting_par_exist = reduce(lambda x, y: x or y, [parname in nesting for parname in group])
-                reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in reg_seq + icv_seq for parname in group])
-                if reg_or_icv_par_exist:
-                    if dcs_par_exist:
-                        print('Warning! Wrong parametors group :', group)
-                        print('         dcs-parametors must be in separated group')
-                        print('         The wrong parametors group will be ignored :', group)
-                        return False
-                    if nesting_par_exist:
-                        print('Warning! Wrong parametors group :', group)
-                        print('         parametor \'' + nesting[0] + '\' must be in separated group')
-                        print('         The wrong parametors group will be ignored :', group)
-                        return False
-                else:
-                    if dcs_par_exist and nesting_par_exist:
-                        print('Warning! Wrong parametors group :', group)
-                        print('         dcs-parametors and parametor \'' + nesting[0] + '\' must be in separated groups')
-                        print('         The wrong parametors group will be ignored :', group)
-                        return False
-            return True
-        else:
-            return False
-    
-    groups = strategy_in_line_format.split(';')
-    result = list(filter(group_filt, [list(filter(par_filt, x.split())) for x in groups]))
-    result.sort()
-    
-    if not result: # если список пустой
-        print('Error! The optimization strategy is empty')
-        print('Posible reason: there is not any valid parametor of LCC in the strategy or')
-        print('                all parametors group in the strategy are not valid')
-        print_format()
-        sys.exit()
-    
-    return result
+            if dcs_par_exist and nesting_par_exist:
+                verbose.error('Wrong parametors group : %s. dcs-parametors and parametor %r must be in separated groups.' % (group, nesting[0]))
 
 def encode_strategy(strategy):
     """
@@ -244,39 +185,8 @@ def print_strategy(strategy, output = None):
         print('   ', reduce(lambda x, y: x + ', ' + y, group), file=output)
 
 
-def specs(specs_in_string = gl.SPECS):
-    """
-        Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
-    """
-    def print_format():
-        print('The specs list must be in the next format :', end=' ')
-        print('<specname>[: <proclist>][, <specname>[: <proclist>]]')
-        print('<proclist> format is :', end=' ')
-        print('<procname> [<procname>]')
-    
-    result = {}
-    for spec in specs_in_string.split(','):
-        tmp = spec.split(':', 1)
-        if len(tmp) == 1:
-            specname = tmp[0]
-            proclist = None
-        else:
-            specname, proclist = tmp[0], tmp[1]
-            proclist = proclist.split()
-            proclist.sort()
-        specname = specname.strip()
-        if not proclist:
-            proclist = None
-        if specname in result:
-            print('Warning! There are several occurrences in the speclist for specname :', specname)
-            print('         Only the first occurrence of', specname, 'will be used')
-            continue
-        result[specname] = proclist
-    if not result:
-        print('Error! The specs list is empty')
-        print_format()
-        sys.exit()
-    return result
+def specs():
+    return gl.SPECS
 
 def encode_specs(spec_procs):
     """

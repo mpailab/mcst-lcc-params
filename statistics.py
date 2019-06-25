@@ -8,7 +8,7 @@ from math import erf
 
 # Internal imports
 import options as gl
-import par
+import par, verbose
 
 #########################################################################################
 # Чтение статистики компилируемых процедур
@@ -625,44 +625,50 @@ def get_dcs_dis(procs_dic,
 #########################################################################################
 # Module check_stat
 
-def check(spec_procs):
-    if not os.path.exists(gl.STAT_PATH):
-        print('Error! The statictic was not found')
-        print('       There is not path :', gl.STAT_PATH)
-        sys.exit()
-    for specname, proclist in spec_procs.items():
-        specpath = os.path.join(gl.STAT_PATH, specname)
-        if not os.path.exists(specpath):
-            print('Error! There is not statictic for task :', specname)
-            sys.exit()
-        if proclist == None:
-            proclist = os.listdir(specpath)
-        for procname in proclist:
-            path = os.path.join(specpath, procname)
-            if not os.path.exists(path):
-                print('Error! There is not statictic for proc', procname, 'of task', specname)
-                sys.exit()
-                
-            path_reg = os.path.join(path, 'regions.txt')
-            if not os.path.exists(path_reg):
-                print('Error! Incorrect statictic for proc', procname, 'of task', specname)
-                print('       There is not file :',  path_reg)
-                sys.exit()
-                
-            path_icv = os.path.join(path, 'if_conv.txt')
-            if not os.path.exists(path_icv):
-                print('Error! Incorrect statictic for proc', procname, 'of task', specname)
-                print('       There is not file :',  path_icv)
-                sys.exit()
-                
-            dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
-            for lv in dcs_levels:
-                lv_file = 'dcs_' + str(lv) + '.txt'
-                path_lv = os.path.join(path, lv_file)
-                if not os.path.exists(path_lv):
-                    print('Error! Incorrect statictic for proc', procname, 'of task', specname)
-                    print('       There is not file :',  path_lv)
-                    sys.exit()
+def check(specs = gl.SPECS, train = False):
+    
+    if gl.INHERIT_STAT or train:
+
+        if STAT_PATH_FOR_READ == None:
+            verbose.error('The statictic was not defined')
+
+        for specname, proclist in specs.items():
+            specpath = os.path.join(STAT_PATH_FOR_READ, specname)
+            if not os.path.exists(specpath):
+                verbose.error('There is not statictic for task %r.' % specname)
+            if proclist == None:
+                proclist = os.listdir(specpath)
+            for procname in proclist:
+                path = os.path.join(specpath, procname)
+                if not os.path.exists(path):
+                    verbose.error('There is not statictic for proc %r of task %r.' % (procname, specname))
+                    
+                path_reg = os.path.join(path, 'regions.txt')
+                if not os.path.exists(path_reg):
+                    verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_reg))
+                    
+                path_icv = os.path.join(path, 'if_conv.txt')
+                if not os.path.exists(path_icv):
+                    verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_icv))
+                    
+                dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+                for lv in dcs_levels:
+                    lv_file = 'dcs_' + str(lv) + '.txt'
+                    path_lv = os.path.join(path, lv_file)
+                    if not os.path.exists(path_lv):
+                        verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_lv))
+        
+    if gl.PROC_WEIGHT_PATH == None:
+        verbose.error('Weights for procs of specs was not defined')
+        
+    for specname in specs.keys():
+        path = os.path.join(gl.PROC_WEIGHT_PATH, specname)
+        if not os.path.exists(path):
+            verbose.error('There is not file with weights for proc of spec  %r : %r.' % (specname, path))
+        
+    if gl.TASK_WEIGHT_SETUP == 1:
+        if gl.TASK_WEIGHT_PATH == None:
+            verbose.error('Weights for specs was not defined')
 
 
 #########################################################################################

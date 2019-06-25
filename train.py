@@ -15,7 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Internal imports
 import options as gl
-import func, par, stat, verbose
+import par, verbose
 
 #########################################################################################
 # Checking global variables
@@ -36,7 +36,7 @@ import func, par, stat, verbose
 # Local variables and data structures
 
 # Table of groups of parameters
-PARS = {tuple(g) : 1 for g in par.strategy(restricte_groups_for_anneal_method = False)}
+PARS = {tuple(g) : 1 for g in par.strategy()}
 
 # Table of specs
 SPECS = par.specs()
@@ -326,9 +326,6 @@ class DataBase:
         # Spec name
         self.spec = spec
 
-        # List of characters
-        self.chars = []
-
         # Table of values
         # Format: procs -> (par_1,...,par_n) -> (val_1,...,val_n) -> [(t_c/t0_c, t_e/t0_e, v_mem/v0_mem), ... ]
         self.values = {}
@@ -385,46 +382,6 @@ class DataBase:
                 self.values[k][p][v].append(r)
             else:
                 self.values[k][p][v] = [r]
-
-    # Read characters of procedures
-    def read (self, procs):
-        
-        proc_order = stat.weights_of_exec_procs(self.spec)
-
-        for name in procs:
-
-            proc_info = stat.get_proc(self.spec, name)
-
-            w = float(proc_order[name]) if name in proc_order else 0.0
-
-            nodes = []
-            for n in proc_info.nodes:
-                node = proc_info.nodes[n]
-                nodes.append(Node(int(n), 
-                                  gl.NODE_TYPE[node['type']], 
-                                  float(node['cnt']), 
-                                  int(node['o_num']), 
-                                  int(node['c_num']), 
-                                  int(node['l_num']), 
-                                  int(node['s_num'])))
-
-            loops = []
-            for l in proc_info.loops:
-                loop = proc_info.loops[l]
-                loops.append(Loop(int(l), 
-                                  bool(loop['ovl']), 
-                                  bool(loop['red'])))
-
-            proc = Proc(name, w, nodes, loops,
-                        [int(proc_info.chars['dom_height']),
-                         int(proc_info.chars['dom_weight']),
-                         int(proc_info.chars['dom_succs'])],
-                        [int(proc_info.chars['pdom_height']),
-                         int(proc_info.chars['pdom_weight']),
-                         int(proc_info.chars['pdom_succs'])])
-
-            self.chars.append(list(map(lambda x: float(calc(x, proc)), CHARS)))
-
 
 # Database
 DB = {spec : DataBase(spec) for spec in SPECS.keys()}
@@ -487,13 +444,15 @@ def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
 #########################################################################################
 # Collect the raw data
 
-def calculate (specs, pars):
-    try:
-        func.calculate_abs_values(specs, pars)
-    except func.ExternalScriptError:
-        raise KeyboardInterrupt
-
 def collect():
+
+    import func
+
+    def calculate (specs, pars):
+        try:
+            func.calculate_abs_values(specs, pars)
+        except func.ExternalScriptError:
+            raise KeyboardInterrupt
 
     print('Collect the raw data')
     
@@ -522,13 +481,58 @@ def collect():
 def average (l):
     return sum(l) / float(len(l))
 
-def run (): 
+def run ():
+
+    import statistics as stat
+
+    # Check statistics correctness
+    stat.check(SPECS, True)
+
+    # Read characters of procedures
+    def read (spec, procs):
+        
+        proc_order = stat.weights_of_exec_procs(spec)
+
+        for name in procs:
+
+            proc_info = stat.get_proc(spec, name)
+
+            w = float(proc_order[name]) if name in proc_order else 0.0
+
+            nodes = []
+            for n in proc_info.nodes:
+                node = proc_info.nodes[n]
+                nodes.append(Node(int(n), 
+                                  gl.NODE_TYPE[node['type']], 
+                                  float(node['cnt']), 
+                                  int(node['o_num']), 
+                                  int(node['c_num']), 
+                                  int(node['l_num']), 
+                                  int(node['s_num'])))
+
+            loops = []
+            for l in proc_info.loops:
+                loop = proc_info.loops[l]
+                loops.append(Loop(int(l), 
+                                  bool(loop['ovl']), 
+                                  bool(loop['red'])))
+
+            proc = Proc(name, w, nodes, loops,
+                        [int(proc_info.chars['dom_height']),
+                         int(proc_info.chars['dom_weight']),
+                         int(proc_info.chars['dom_succs'])],
+                        [int(proc_info.chars['pdom_height']),
+                         int(proc_info.chars['pdom_weight']),
+                         int(proc_info.chars['pdom_succs'])])
+
+            return list(map(lambda x: float(calc(x, proc)), CHARS))
 
     print('Train neural network')
 
-    R = {gr : {} for gr in PARS.keys()} # Ranges of parameters in every group
-    D = {gr : [] for gr in PARS.keys()} # Specs data for every group
-    cnt = 0                             # Maximal counter in all specs
+    C = {}                       # Characters of procedures of specs
+    R = {gr : {} for gr in PARS} # Ranges of parameters in every group
+    D = {gr : [] for gr in PARS} # Specs data for every group
+    cnt = 0                      # Maximal counter in all specs
 
     # Treat specs, read its characters and store data
     for spec in SPECS.keys():
@@ -536,10 +540,10 @@ def run ():
         procs = SPECS[spec]
 
         # Read characters of procedures
-        DB[spec].read(procs)
+        C[spec] = read(spec, procs)
 
         # Find maximal counter
-        cnt = max(cnt, max(map(lambda x: x[0], DB[spec].chars)))
+        cnt = max(cnt, max(map(lambda x: x[0], C[spec])))
 
         # Store data for every group of parameters
         for gr in PARS.keys():
@@ -612,7 +616,7 @@ def run ():
                 val = np.maximum(val / max (val), 0)
 
             # Store pairs of procedures characters and values normalized with respect to procedures counters
-            for c in DB[spec].chars:
+            for c in C[spec]:
                 if c[0] != 0:
                     data.append((c[1:], val * np.exp(c[0] / cnt)))
 
