@@ -631,7 +631,6 @@ GL['verbose'] = Global(
 #########################################################################################
 # Модуль обучения ИС
 
-# Удаляются все накопленные данные для обучения
 TRAIN_PROC_CHARS = None
 GL['proc_chars'] = Global(
      'TRAIN_PROC_CHARS', 'proc_chars',
@@ -673,7 +672,7 @@ GL['clear'] = Global(
 TRAIN_PURE = False
 GL['pure'] = Global(
      'TRAIN_PURE', 'pure',
-     'не накопливать данные для обучения',
+     'не накапливать данные для обучения',
      'bool', None, None,
      TRAIN_PURE
 )
@@ -872,3 +871,11 @@ GL['par_ranges'] = Global(
 
 #########################################################################################
 # Модуль net
+
+points_num = 5
+GL['points_num'] = Global(
+     'points_num', 'points_num',
+     'задает число возможных значений по каждому измерению сетки',
+     'int', None, None,
+     points_num, 'train'
+)

@@ -225,7 +225,9 @@ dcs = ['dcs_kill', 'dcs_level']
 nesting = ['disable_regions_nesting']
 
 
-def strategy(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY):
+def strategy(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY,
+             restricte_groups_for_anneal_method = True,
+             allow_dcs_psevdo_parametor = True):
     """
         Преобразовать стратегию оптимизации из строкового формата в рабочий формат интеллектуальной системы
     """
@@ -236,35 +238,38 @@ def strategy(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY):
         print('<parname> [<parname>]')
     
     def par_filt(parname):
-        if parname in types.keys() or parname == 'dcs':
+        if parname in types.keys():
             return True
         else:
+            if allow_dcs_psevdo_parametor and parname == 'dcs':
+                return True
             print('Warning! Unknown parametor of LCC in the strategy :', parname)
             print('         The unknown parametor \'' + parname + '\' will be ignored')
             return False
             
     def group_filt(group):
         if bool(group): # если группа параметров не пустая
-            dcs_par_exist = reduce(lambda x, y: x or y, [parname in dcs + ['dcs'] for parname in group])
-            nesting_par_exist = reduce(lambda x, y: x or y, [parname in nesting for parname in group])
-            reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in reg_seq + icv_seq for parname in group])
-            if reg_or_icv_par_exist:
-                if dcs_par_exist:
-                    print('Warning! Wrong parametors group :', group)
-                    print('         dcs-parametors must be in separated group')
-                    print('         The wrong parametors group will be ignored :', group)
-                    return False
-                if nesting_par_exist:
-                    print('Warning! Wrong parametors group :', group)
-                    print('         parametor \'' + nesting[0] + '\' must be in separated group')
-                    print('         The wrong parametors group will be ignored :', group)
-                    return False
-            else:
-                if dcs_par_exist and nesting_par_exist:
-                    print('Warning! Wrong parametors group :', group)
-                    print('         dcs-parametors and parametor \'' + nesting[0] + '\' must be in separated groups')
-                    print('         The wrong parametors group will be ignored :', group)
-                    return False
+            if restricte_groups_for_anneal_method:
+                dcs_par_exist = reduce(lambda x, y: x or y, [parname in dcs + ['dcs'] for parname in group])
+                nesting_par_exist = reduce(lambda x, y: x or y, [parname in nesting for parname in group])
+                reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in reg_seq + icv_seq for parname in group])
+                if reg_or_icv_par_exist:
+                    if dcs_par_exist:
+                        print('Warning! Wrong parametors group :', group)
+                        print('         dcs-parametors must be in separated group')
+                        print('         The wrong parametors group will be ignored :', group)
+                        return False
+                    if nesting_par_exist:
+                        print('Warning! Wrong parametors group :', group)
+                        print('         parametor \'' + nesting[0] + '\' must be in separated group')
+                        print('         The wrong parametors group will be ignored :', group)
+                        return False
+                else:
+                    if dcs_par_exist and nesting_par_exist:
+                        print('Warning! Wrong parametors group :', group)
+                        print('         dcs-parametors and parametor \'' + nesting[0] + '\' must be in separated groups')
+                        print('         The wrong parametors group will be ignored :', group)
+                        return False
             return True
         else:
             return False
