@@ -71,18 +71,36 @@ def run():
     par.print_specs(spec_procs)
     
     # запуск при значениях параметра по-умолчанию
-    clc.calculate_abs_values(spec_procs, {})
+    try:
+        clc.calculate_abs_values(spec_procs, {})
+    except clc.ExternalScriptError:
+        print('An error with recieving (t_c, t_e, m) on default values of parametors')
+        print('An error by giving (t_c, t_e, m) from external script')
+        raise KeyboardInterrupt
+        
     
     for group in pgroups:
         print("---------------------------------------------------------------------------")
         print("Group:", group)
         if gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-            create_net(spec_procs, group)
+            try:
+                create_net(spec_procs, group)
+            except clc.ExternalScriptError:
+                print('fail')
+                print('An error by giving (t_c, t_e, m) from external script')
+            else:
+                print("ok")
         else:
             for specname, proclist in spec_procs.items():
                 print("---------------------------------------------------------------------------")
                 print("Spec:", specname)
-                create_net({specname: proclist}, group)
+                try:
+                    create_net({specname: proclist}, group)
+                except clc.ExternalScriptError:
+                    print('fail')
+                    print('An error by giving (t_c, t_e, m) from external script')
+                else:
+                    print("ok")
 
     
 def create_net(procs_dic, pgroup, points_num = gl.points_num):
