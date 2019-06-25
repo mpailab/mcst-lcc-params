@@ -45,11 +45,11 @@ def ext_script_opts(task_name, par_value, procname_list = None):
     if len(par_value) != 0 or procname_list != None:
         cmd += ' \"'
         for par_name in par_value.keys():
-            if par.val_type[par_name] == float:
+            if par.types[par_name] == float:
                 cmd += '--letf=' + par_name + ':' + str(par_value[par_name]) + ' '
-            elif par.val_type[par_name] == int:
+            elif par.types[par_name] == int:
                 cmd += '--let=' + par_name + ':' + str(par_value[par_name]) + ' '
-            elif par.val_type[par_name] == bool:
+            elif par.types[par_name] == bool:
                 if par_value[par_name]:
                     cmd += '--true=' + par_name + ' '
                 else:

@@ -705,21 +705,60 @@ GL['delta'] = Global(
      TRAIN_DELTA, 'train'
 )
 
+# Число попыток для обучения модели искусственной нейронной сети
+TRAIN_STEPS = 5
+GL['tr_steps'] = Global(
+     'TRAIN_STEPS', 'tr_steps',
+     'число попыток для обучения модели искусственной нейронной сети',
+     'int', None, None,
+     TRAIN_STEPS, 'train'
+)
+
+# Число эпох обучения модели искусственной нейронной сети
+TRAIN_EPOCHS = 100
+GL['epochs'] = Global(
+     'TRAIN_EPOCHS', 'epochs',
+     'число эпох обучения модели искусственной нейронной сети',
+     'int', None, None,
+     TRAIN_EPOCHS, 'train'
+)
+
+# Размер пакета данных в обучении модели искусственной нейронной сети
+TRAIN_BATCH = 100
+GL['batch'] = Global(
+     'TRAIN_BATCH', 'batch',
+     'размер пакета данных в обучении модели искусственной нейронной сети',
+     'int', None, None,
+     TRAIN_BATCH, 'train'
+)
+
 # Размер сетки для интерполяции данных
 TRAIN_GRID = 100
-GL['grid'] = Global(
-     'TRAIN_GRID', 'grid',
+GL['train_grid'] = Global(
+     'TRAIN_GRID', 'train_grid',
      'размер сетки для интерполяции данных',
-     'float', None, None,
+     'int', None, None,
      TRAIN_GRID, 'train'
+)
+
+COLLECT_GRID = 5
+GL['collect_grid'] = Global(
+     'COLLECT_GRID', 'collect_grid',
+     'размер сетки для получения данных',
+     'int', None, None,
+     COLLECT_GRID, 'train'
 )
 
 # Метод интерполяции данных
 TRAIN_INTERP = 'linear'
 GL['interp'] = Global(
      'TRAIN_INTERP', 'interp',
-     'метод интерполяции данных',
-     'disc_str', ['linear', 'cubic'], None,
+     'метод интерполяции данных:\n'
+     ' nearest   - значение ближайшей точки из выборки (доступен для любой группы параметров)\n'
+     ' linear    - интерполяция линейными сплайнами (доступен для любой группы параметров)\n'
+     ' quadratic - интерполяция квадратичными сплайнами (доступен для групп из одного параметра)\n'
+     ' cubic     - интерполяция кубическими сплайнами (доступен для групп из одного и двух параметров)\n',
+     'disc_str', ['linear', 'quadratic', 'cubic'], None,
      TRAIN_INTERP, 'train'
 )
 
@@ -833,11 +872,3 @@ GL['par_ranges'] = Global(
 
 #########################################################################################
 # Модуль net
-
-points_num = 5
-GL['points_num'] = Global(
-     'points_num', 'points_num',
-     'задает число точек в сетке',
-     'int', None, None,
-     points_num, 'train'
-)

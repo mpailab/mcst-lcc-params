@@ -26,9 +26,9 @@
 - dcs_kill,
 - dcs_level.
 
-Словарь val_type: параметр -> тип значения (int, float, bool)
+Словарь types: параметр -> тип значения (int, float, bool)
 
-Словарь default_value: параметр -> значение по-умолчанию
+Словарь defaults: параметр -> значение по-умолчанию
 
 Список doub_kind содержит параметры фазы regions, значения которых не оказывают влияния на работу компилятора LCC при условии,
 что запрещено дублирование узлов процедуры.
@@ -68,7 +68,7 @@ from functools import reduce
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
 import options as gl
 
-val_type = {
+types = {
     'regn_max_proc_op_sem_size' : int,
     'regn_heur1' : float,
     'regn_heur2' : float,
@@ -110,10 +110,10 @@ def set_defaults ():
     res = _defaults
     for pv in gl.PAR_DEFAULTS.split():
         l = pv.split(':')
-        res[l[0]] = val_type[l[0]](l[1])
+        res[l[0]] = types[l[0]](l[1])
     return res
 
-default_value = set_defaults()
+defaults = set_defaults()
     
 _ranges = {
     'regn_max_proc_op_sem_size' : (0,50000),
@@ -138,7 +138,7 @@ def set_ranges ():
     res = _ranges
     for pr in gl.PAR_RANGES.split():
         l = pr.split(':')
-        res[l[0]] = (val_type[l[0]](l[1]), val_type[l[0]](l[2]))
+        res[l[0]] = (types[l[0]](l[1]), types[l[0]](l[2]))
     return res
 
 ranges = set_ranges()
@@ -236,7 +236,7 @@ def strategy(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY):
         print('<parname> [<parname>]')
     
     def par_filt(parname):
-        if parname in val_type.keys() or parname == 'dcs':
+        if parname in types.keys() or parname == 'dcs':
             return True
         else:
             print('Warning! Unknown parametor of LCC in the strategy :', parname)

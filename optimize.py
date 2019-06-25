@@ -204,7 +204,7 @@ def pv_list_from_dic(pv_dic, parnames):
         if parname in pv_dic:
             tmp_list.append(pv_dic[parname])
         else:
-            tmp_list.append(par.default_value[parname])
+            tmp_list.append(par.defaults[parname])
     return tuple(tmp_list)
 
 def get_value(parname, value_par, inf_value_par, sup_value_par, position, min_position, max_position, coord):
@@ -246,7 +246,7 @@ def optimize(procs_dic, par_names,
     # установка значения по умолчанию для параметров
     par_default_value = {}
     for parname in reg_parnames + icv_parnames:
-            par_default_value[parname] = par.default_value[parname]
+            par_default_value[parname] = par.defaults[parname]
     
     # вычисление времени компиляции, времени исполнения и потребляемтой памяти заданных спеков при значении параметров по умолчанию
     # генерация статистики, если new_stat_for_every_step == True
@@ -456,7 +456,7 @@ def optimize(procs_dic, par_names,
                     if tmp_parname in par_start_value:
                         new_reg_pv_list.append(par_start_value[tmp_parname])
                     else:
-                        new_reg_pv_list.append(par.default_value[tmp_parname])
+                        new_reg_pv_list.append(par.defaults[tmp_parname])
                 if parname in par.doub_kind: # если parname связан с дублированием узлов,
                     index_0_flag = True # то proc_opers_num может его блокировать
                 else:
@@ -496,7 +496,7 @@ def optimize(procs_dic, par_names,
                     if tmp_parname in par_start_value:
                         new_icv_pv_list.append(par_start_value[tmp_parname])
                     else:
-                        new_icv_pv_list.append(par.default_value[tmp_parname])
+                        new_icv_pv_list.append(par.defaults[tmp_parname])
                 cond = lambda x_list: icv_condition(x_list, coord, current_icv_pv_list, new_icv_pv_list)
                 coin = random.choice([True, False])
                 if coin:
@@ -668,7 +668,7 @@ def dcs_optimize(procs_dic,
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
-    par_default_value = {parname : par.default_value[parname] for parname in par.dcs}
+    par_default_value = {parname : par.defaults[parname] for parname in par.dcs}
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров
@@ -756,7 +756,7 @@ def optimize_bool_par(procs_dic, parname,
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
-    par_default_value = {parname : par.default_value[parname]}
+    par_default_value = {parname : par.defaults[parname]}
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров

@@ -792,11 +792,11 @@ def get_erf(parname):
     '''
     Получить функцию сглаживания для параметра parname
     '''
-    if par.val_type[parname] == int:
+    if par.types[parname] == int:
         return derf
-    if par.val_type[parname] == float:
+    if par.types[parname] == float:
         return cerf
-    if par.val_type[parname] == bool:
+    if par.types[parname] == bool:
         raise BaseException('There is not smooth for bool parametors')
 
 class Block:

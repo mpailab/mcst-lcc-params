@@ -104,7 +104,7 @@ for gl in options.list():
 #########################################################################################
 # Run intelligent system
 
-import anneal, train, net
+import anneal, train
 
 # каталог, из которого запущен процесс
 PWD = os.getcwd()
@@ -119,7 +119,7 @@ try:
             anneal.run()
 
         else:
-            net.run()
+            train.collect()
 
     elif args.mode == 'find':
 

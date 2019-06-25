@@ -15,7 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Internal imports
 import options as gl
-import par, stat
+import func, par, stat, verbose
 
 # Table of groups of parameters
 PARS = {tuple(g) : 1 for g in par.strategy()}
@@ -365,7 +365,6 @@ class DataBase:
             return
 
         if bool(pv):
-            # TODO Add default values of parameters to database
             self.default = (t_c, t_e, v_mem)
 
         else:
@@ -431,14 +430,29 @@ def close ():
 # Models directory
 MODEL_DIR = gl.TRAIN_MODEL_DIR
 
+# Percent of train data
+DELTA = gl.TRAIN_DELTA
+
+# Number of train steps
+TRAIN_STEPS = gl.TRAIN_STEPS
+
+# Train grid density
+TRAIN_GRID = gl.TRAIN_GRID
+
+# Collect grid density
+COLLECT_GRID = gl.COLLECT_GRID
+
 # Order of spline interpolation
 INTERP = gl.TRAIN_INTERP
 
-# Grid density
-GRID = gl.TRAIN_GRID
+# List of available optimizers 
+OPTIMIZERS = ['rmsprop', 'sgd', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam']
 
-# Percent of train data
-DELTA = gl.TRAIN_DELTA
+# Number of epochs
+EPOCHS = gl.TRAIN_EPOCHS
+
+# Batch size
+BATCH = gl.TRAIN_BATCH
 
 # Objective function
 def F (x):
@@ -447,37 +461,64 @@ def F (x):
 # Default value of objective function
 FL = F((1.0,1.0,1.0))
 
+# Create grid for values of group of parameters
+def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
+
+    ax = []
+    for par in group:
+        start, stop = ranges[par]
+        if par.types[par] == bool:
+            steps = 1
+        elif par.types[par] == int:
+            d = stop - start
+            steps = d if d < steps else steps
+        ax.append(np.linspace(start, stop, num=steps+1, dtype=par.types[par]))
+
+    l = list(map(lambda x: x.flatten().tolist(), np.meshgrid(*ax, sparse=False, indexing='ij')))
+
+    return list(zip(*l))
+
+#########################################################################################
+# Collect the raw data
+
+def collect():
+
+    print('Collect the raw data')
+    
+    # Calculate default values
+    func.calculate_abs_values(SPECS, {})
+
+    # Collect the raw data for current group of parameters
+    for gr in PARS.keys():
+
+        points = grid(gr)
+        default = tuple([par.defaults[x] for x in gr])
+        
+        # Add data for default values of parameters
+        for spec, procs in SPECS.items():
+            t_c, t_e, v_mem = DB[spec].default
+            DB[spec].add(procs, dict(zip(gr, default)), t_c, t_e, v_mem)
+        
+        # Calculate values in points and store data
+        for point in points:
+            if point != default:
+                func.calculate_abs_values(SPECS, dict(zip(gr, point)))
+
+#########################################################################################
+# Train neural network
+
 def average (l):
     return sum(l) / float(len(l))
 
-def grid (dim, x):
-    if dim == 1:
-        return np.mgrid[0 : x[0] + GRID : GRID]
-        
-    elif dim == 2:
-        return np.mgrid[0 : x[0] + GRID : GRID, 0 : x[1] + GRID : GRID]
-        
-    elif dim == 3:
-        return np.mgrid[0 : x[0] + GRID : GRID, 0 : x[1] + GRID : GRID, 0 : x[2] + GRID : GRID]
-        
-    elif dim == 4:
-        return np.mgrid[0 : x[0] + GRID : GRID, 0 : x[1] + GRID : GRID, 0 : x[2] + GRID : GRID, 0 : x[3] + GRID : GRID]
-        
-    elif dim == 5:
-        return np.mgrid[0 : x[0] + GRID : GRID, 0 : x[1] + GRID : GRID, 0 : x[2] + GRID : GRID, 0 : x[3] + GRID : GRID, 0 : x[4] + GRID : GRID]
-        
-    else:
-        print("Error! Can't train a neural network. The dimension of a group of parameters is too large.")
-        sys.exit()
-
 def run (): 
 
-    Table = {}
-    for p in PARS.keys():
-        Table[p] = [tuple([0 for x in p]),[]]
+    print('Train neural network')
 
-    cnt = 0
+    R = {gr : {} for gr in PARS.keys()} # Ranges of parameters in every group
+    D = {gr : [] for gr in PARS.keys()} # Specs data for every group
+    cnt = 0                             # Maximal counter in all specs
 
+    # Treat specs, read its characters and store data
     for spec in SPECS.keys():
 
         procs = SPECS[spec]
@@ -488,71 +529,135 @@ def run ():
         # Find maximal counter
         cnt = max(cnt, max(map(lambda x: x[0], DB[spec].chars)))
 
-        for p in PARS.keys():
-            if p in DB[spec].values[tuple(procs)]:
-                vh = DB[spec].values[tuple(procs)][p]
-                vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
-                if any (x[1] < FL for x in vs):
-                    for x in vs:
-                        for i in range(0,len(x[0])):
-                            if Table[p][0][i] < x[0][i]: 
-                                Table[p][0][i] = x[0][i]
-                    x = [ i for i, j in vs ]
-                    y = [ j for i, j in vs ]
-                    Table[p][1].append([spec,x,y])
+        # Store data for every group of parameters
+        for gr in PARS.keys():
 
-    for p in Table.keys():
+            # Check that there is the raw data for given group of parameters
+            if not gr in DB[spec].values[tuple(procs)]:
+                continue
 
-        if Table[p][1] == []: 
-            print('Warning! Train for params', p, 'are impossible since not enough data available.')
+            # Form list of the raw data
+            vh = DB[spec].values[tuple(procs)][gr]
+            vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
+
+            # Check that data is suitable
+            if not any (x[1] < FL for x in vs):
+                continue
+
+            # Correct minimal and maximal values for every parameter in given group
+            for x in vs:
+                for i in range(0,len(gr)):
+                    min_value = max_value = x[0][i]
+                    if gr[i] in R[gr]:
+                        if R[gr][gr[i]][0] < min_value:
+                            min_value = R[gr][gr[i]][0]
+                        if R[gr][gr[i]][1] > max_value:
+                            max_value = R[gr][gr[i]][1]
+                    R[gr][gr[i]] = (min_value, max_value)
+
+            # Store data
+            D[gr].append([spec, [ i for i, j in vs ], [ j for i, j in vs ]])
+
+    # Train neural network for a given group of parameters
+    for gr in PARS.keys():
+
+        # Check that data is not empty for a given group of parameters
+        if D[gr] == []: 
+            verbose.warning('Train for parameters ' + gr + ' are impossible since not enough data available.')
             continue
 
+        # Set interpolation method
+        method = INTERP
+        if method == 'quadratic' and len(gr) > 1:
+            verbose.warning('Method \'quadratic\' can not be used for training data of parameters ' + gr + ', method \'linear\' will be used.')
+            method = 'linear'
+        if method == 'cubic' and len(gr) > 2:
+            verbose.warning('Method \'cubic\' can not be used for training data of parameters ' + gr + ', method \'linear\' will be used.')
+            method = 'linear'
+
+        # Create grid for interpolation
+        grid = grid(gr, R[gr], TRAIN_GRID)
+
+        # Fill data list
         data = []
-        grid = grid(len(p), Table[p][0])
-        for ls in Table[p][1]:
-            spec = ls[0]
-            val = FL - interpolate.griddata(ls[1], ls[2], grid, method=INTERP)
+        for spec, points, values in D[gr]:
+
+            # Calculate interpolation function
+            if len(gr) == 1:
+                # Sort points/values together, necessary as input for interp1d
+                idx = np.argsort(points)
+                points = points[idx]
+                values = values[idx]
+                f = interpolate.interp1d(points, values, kind=method, axis=0, bounds_error=False, fill_value='extrapolate')
+            else:
+                f = lambda x: interpolate.griddata(points, values, x, method=method, fill_value='extrapolate')
+
+            # Calculate interpolated values
+            val = FL - f(grid)
+
+            # Normalize interpolated values
             if max(val) != 0:
                 val = np.maximum(val / max (val), 0)
+
+            # Store pairs of procedures characters and values normalized with respect to procedures counters
             for c in DB[spec].chars:
                 if c[0] != 0:
                     data.append((c[1:], val * np.exp(c[0] / cnt)))
 
-        np.random.shuffle(data)
-
         N = int(DELTA * len(data))
 
-        train_X = np.array([ i for i, j in data[0:N] ])
-        train_Y = np.array([ j for i, j in data[0:N] ])
-
-        # test_X = np.array([ i for i, j in data[N:] ])
-        # test_Y = np.array([ j for i, j in data[N:] ])
-
+        # Create a model of neural network
         model = keras.Sequential([keras.layers.Flatten(input_shape=(48,)),
-                                keras.layers.Dense(int(GRID / 2), activation='relu'),
-                                keras.layers.Dense(int(GRID / 2), activation='relu'),
-                                keras.layers.Dense(GRID + 1, activation='softmax')])
-        model.compile( #optimizer='rmsprop',
-                    #optimizer='sgd',
-                    #optimizer='adagrad',
-                    #optimizer='adadelta',
-                    #optimizer='adam',
-                    #optimizer='adamax',
-                    optimizer='nadam',
-                    loss='categorical_crossentropy',
-                    metrics=['categorical_accuracy'])
-
-        model.fit(train_X, train_Y, epochs=100, batch_size=100, verbose=False)
+                                  keras.layers.Dense(int(TRAIN_GRID / 2), activation='relu'),
+                                  keras.layers.Dense(int(TRAIN_GRID / 2), activation='relu'),
+                                  keras.layers.Dense(TRAIN_GRID + 1, activation='softmax')])
         
-        # test_loss, test_acc = model.evaluate(test_X, test_Y, verbose=False)
+        acc = []
+        loss = []
+        for optimizer in OPTIMIZERS:
 
-        # predictions=model.predict(test_X)
-        # print(predictions[0])
-        # print(test_Y[0])
-        # plt.plot(grid, test_Y[0], '-', grid, predictions[0], 'o')
-        # plt.show()
+            # Set optimizer
+            model.compile( optimizer=optimizer, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 
-        model.save(MODEL_DIR + '/' + p + '_model.h5')
+            opt_acc = []
+            opt_loss = []
+            
+            for i in range(TRAIN_STEPS):
+
+                # Randomize data
+                np.random.shuffle(data)
+
+                # Train model
+                train_X = np.array([ i for i, j in data[0:N] ])
+                train_Y = np.array([ j for i, j in data[0:N] ])
+                model.fit(train_X, train_Y, epochs=EPOCHS, batch_size=BATCH, verbose=False)
+
+                # Check model
+                test_X = np.array([ i for i, j in data[N:] ])
+                test_Y = np.array([ j for i, j in data[N:] ])
+                loss, acc = model.evaluate(test_X, test_Y, verbose=False)
+
+                opt_acc.append(acc)
+                opt_loss.append(loss)
+
+            acc.append(average(opt_acc))
+            loss.append(average(opt_loss))
+
+        max_acc = max(acc)
+        min_loss = min([x for i in range(OPTIMIZERS) for x in loss if x == loss[i] and acc[i] == max_acc])
+        best_opt = [i for i in range(OPTIMIZERS) if acc[i] == max_acc and loss[i] == min_loss]
+
+        # Set best optimizer
+        model.compile( optimizer=best_opt[0], loss='categorical_crossentropy', metrics=['categorical_accuracy'])
+
+        # Train model
+        model.fit([i for i, j in data], [j for i, j in data], epochs=EPOCHS, batch_size=BATCH, verbose=False)
+
+        # Save model
+        model.save(MODEL_DIR + '/' + gr + '_model.h5')
+
+#########################################################################################
+# Use neural network to find parameters values
 
 def init_node (str):
     h = str.split(':')
@@ -574,9 +679,7 @@ def init_proc (str):
 def find ():
 
     if gl.TRAIN_PROC_CHARS is None:
-        print('Error! Не поданы характеристики процедур, для которых необходимо'
-              '       найти оптимальные значения параметров компилятора lcc.')
-        return
+        verbose.error('Не поданы характеристики процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc.')
 
     procs = list(map(init_proc, gl.TRAIN_PROC_CHARS.split()))
     chars = list(map(lambda p: list(map(lambda x: float(calc(x, p)), CHARS)), procs))
