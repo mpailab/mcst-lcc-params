@@ -221,7 +221,7 @@ def strategy(strategy_in_line_format = gl.OPTIMIZATION_STRATEGY,
     result = list(filter(group_filt, [list(filter(par_filt, x.split())) for x in groups]))
     result.sort()
     
-    if bool(result) == False: # если список пустой
+    if not result: # если список пустой
         print('Error! The optimization strategy is empty')
         print('Posible reason: there is not any valid parametor of LCC in the strategy or')
         print('                all parametors group in the strategy are not valid')
@@ -248,11 +248,11 @@ def specs(specs_in_string = gl.SPECS):
     """
         Преобразовать список спеков из строкового формата в рабочий формат интеллектуальной системы
     """
-    # def print_format():
-    #     print('The list of specs must be in the next format :', end=' ')
-    #     print('<specname>[: <proclist>][, <specname>[: <proclist>]]')
-    #     print('<proclist> format is :', end=' ')
-    #     print('<procname> [<procname>]')
+    def print_format():
+        print('The specs list must be in the next format :', end=' ')
+        print('<specname>[: <proclist>][, <specname>[: <proclist>]]')
+        print('<proclist> format is :', end=' ')
+        print('<procname> [<procname>]')
     
     result = {}
     for spec in specs_in_string.split(','):
@@ -272,6 +272,10 @@ def specs(specs_in_string = gl.SPECS):
             print('         Only the first occurrence of', specname, 'will be used')
             continue
         result[specname] = proclist
+    if not result:
+        print('Error! The specs list is empty')
+        print_format()
+        sys.exit()
     return result
 
 def encode_specs(spec_procs):

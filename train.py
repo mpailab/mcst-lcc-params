@@ -666,7 +666,7 @@ def run ():
         model.fit([i for i, j in data], [j for i, j in data], epochs=EPOCHS, batch_size=BATCH, verbose=False)
 
         # Save model
-        model.save(MODEL_DIR + '/' + gr + '_model.h5')
+        model.save(os.path.join(MODEL_DIR, gr + '_model.h5'))
 
 #########################################################################################
 # Use neural network to find parameters values
@@ -699,7 +699,7 @@ def find ():
     print('Optimal values of parameters')
     for p in PARS.keys():
 
-        model = keras.models.load_model(MODEL_DIR + '/' + p + '_model.h5')
+        model = keras.models.load_model(os.path.join(MODEL_DIR, p + '_model.h5'))
         val_grids = list(map(lambda x: model.predict(x), chars))
         val_grid = np.average(val_grids, weights=np.array(list(map(lambda p: p.weight, procs))))
         val = np.unravel_index(np.argmax(val_grid), val_grid.shape)

@@ -12,19 +12,57 @@ import func as clc
 import optimize as opt
 import par
 import train
+import verbose
 
+# проверка корректности всех необходимых глобалов
+def check():
+    
+    if gl.SPECS == None:
+        verbose.error('Specs list was not defined')
+    if gl.OPTIMIZATION_STRATEGY == None:
+        verbose.error('Optimization strategy was not defined')
+        
+    specs = par.specs()
+    
+    # глобалы статистики и весов
+    if gl.INHERIT_STAT:
+        if gl.STAT_PATH == None:
+            verbose.error('The statictic was not defined')
+        stat.check(spec_procs)
+        
+    if gl.PROC_WEIGHT_PATH == None:
+        verbose.error('Weights for procs of specs was not defined')
+    for specname in specs.keys():
+        path = os.path.join(gl.PROC_WEIGHT_PATH, specname)
+        if not os.path.exists(path):
+            verbose.error('There is not file with weights for proc of spec ' + specname + ' : ' + path)
+        
+    if gl.TASK_WEIGHT_SETUP == 1:
+        if gl.TASK_WEIGHT_PATH == None:
+            verbose.error('Weights for specs was not defined')
+    
+    if gl.TRAIN_DATA_DIR == None:
+        verbose.error('Directory for train data wat not defined')
+    
+    # все глобалы раздела script должны быть не None
+    for gl in options.list(mode = 'script'):
+        gval = options.__dict__[gl.name]
+        if gval == None:
+            verbose.error('The value of parametor \'' + gl.param + '\' was not defined')
+    
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
-
+    
+    # проверка корректности всех необходимых глобалов
+    check()
+    
     # Подгружаем базу данных для обучения
     train.DB.load()
 
     # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
     strategy = par.strategy()
     spec_procs = par.specs()
-    
-    if gl.INHERIT_STAT:
-        stat.check(spec_procs)
+        
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all
