@@ -84,7 +84,7 @@ class Dcs_level:
 # Считывает статистику компиляции процедуры procname задачи taskname на фазе regions
 def get_proc(taskname, procname):
     proc = Proc()
-    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
+    procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
     file = open(procpath + '/regions.txt')
     for strr in file:
         ## отрезаем от strr последний символ, который является символом перехода на новую строку
@@ -140,7 +140,7 @@ def get_proc(taskname, procname):
 # Считывает статистику компиляции процедуры procname задачи taskname на фазе if_conv
 def get_icv_proc(taskname, procname):
     proc = Icv_Proc()
-    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
+    procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
     file = open(procpath + '/if_conv.txt')
     for strr in file:
         # отрезаем от strr последний символ, который является символом перехода на новую строку
@@ -175,7 +175,7 @@ def get_icv_proc(taskname, procname):
 
 # Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для всех уровней dcs-оптимизации)
 def get_dcs_proc(taskname, procname, difference_from_levels = True):
-    procpath = STAT_PATH_FOR_READ + '/' + taskname + '/' + procname
+    procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
     proc = [None] # proc[0] = None -> нет нулевого уровня оптимизации
     dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
@@ -248,12 +248,12 @@ def dcs_level(procpath, lv):
 # Формирует множество компилируемых процедур задачи taskname,
 # т.е. таких процедур, которые фигурируют в статистике компиляции задачи taskname
 def comp_procs_list(taskname):
-    return os.listdir(STAT_PATH_FOR_READ + '/' + taskname)
+    return os.listdir(os.path.join(STAT_PATH_FOR_READ, taskname))
 
 # Считывает файл, в котором задаются веса для процедур задачи taskname
 def weights_of_exec_procs(taskname):
     res = {}
-    rfile = open(gl.PROC_WEIGHT_PATH + '/' + taskname + '.txt')
+    rfile = open(os.path.join(gl.PROC_WEIGHT_PATH, taskname + '.txt'))
     for line in rfile:
         sp_line = line.split()
         procname = sp_line[0]
