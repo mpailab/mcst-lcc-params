@@ -68,77 +68,20 @@ from functools import reduce
 # Подключаем модуль, хранящий значения параметров интеллектуальной системы
 import options as gl
 
-types = {
-    'regn_max_proc_op_sem_size' : int,
-    'regn_heur1' : float,
-    'regn_heur2' : float,
-    'regn_heur3' : float,
-    'regn_heur4' : float,
-    'regn_heur_bal1' : float,
-    'regn_heur_bal2' : float,
-    'regn_opers_limit' : int,
-    'regn_prob_heur' : float,
-    'regn_disb_heur' : int,
-    'ifconv_merge_heur' : float,
-    'ifconv_opers_num' : int,
-    'ifconv_calls_num' : int,
-    'disable_regions_nesting': bool,
-    'dcs_kill': bool,
-    'dcs_level': int
-    }
-    
-_defaults = {
-    'regn_max_proc_op_sem_size' : 16000,
-    'regn_heur1' : 0.037,
-    'regn_heur2' : 0.06,
-    'regn_heur3' : 0.03,
-    'regn_heur4' : 0.0,
-    'regn_heur_bal1' : 0.0,
-    'regn_heur_bal2' : 0.0,
-    'regn_opers_limit' : 2048,
-    'regn_prob_heur' : 0.04,
-    'regn_disb_heur' : 9,
-    'ifconv_merge_heur' : 1.0,
-    'ifconv_opers_num' : 200,
-    'ifconv_calls_num' : 6,
-    'disable_regions_nesting' : True,
-    'dcs_kill': False,
-    'dcs_level': 0
-    }
+types = {x : gl.PARAMS[x][0] for x in gl.PARAMS}
 
 def set_defaults ():
-    res = _defaults
-    for pv in gl.PAR_DEFAULTS.split():
-        l = pv.split(':')
-        res[l[0]] = types[l[0]](l[1])
+    res = {x : gl.PARAMS[x][1] for x in gl.PARAMS}
+    for x in gl.PAR_DEFAULTS:
+        res[x] = gl.PAR_DEFAULTS[x]
     return res
 
 defaults = set_defaults()
-    
-_ranges = {
-    'regn_max_proc_op_sem_size' : (0,50000),
-    'regn_heur1' : (0.0,1.0),
-    'regn_heur2' : (0.0,1.0),
-    'regn_heur3' : (0.0,1.0),
-    'regn_heur4' : (0.0,1.0),
-    'regn_heur_bal1' : (0.0,1.0),
-    'regn_heur_bal2' : (0.0,1.0),
-    'regn_opers_limit' : (0,5000),
-    'regn_prob_heur' : (0.0,1.0),
-    'regn_disb_heur' : (0,15),
-    'ifconv_merge_heur' : (0.0,2.0),
-    'ifconv_opers_num' : (0,500),
-    'ifconv_calls_num' : (0,10),
-    'disable_regions_nesting' : (False,True),
-    'dcs_kill': (False,True),
-    'dcs_level': (0,4)
-    }
 
 def set_ranges ():
-    res = _ranges
-    for pr in gl.PAR_RANGES.split():
-        l = pr.split(':')
-        res[l[0]] = (types[l[0]](l[1]), types[l[0]](l[2]))
+    res = {x : gl.PARAMS[x][2] for x in gl.PARAMS}
+    for x in gl.PAR_RANGES:
+        res[x] = gl.PAR_RANGES[x]
     return res
 
 ranges = set_ranges()

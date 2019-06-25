@@ -17,6 +17,16 @@ class Formatter(configargparse.HelpFormatter):
         import textwrap
         return [x for l in text.splitlines() for x in textwrap.wrap(l, width) ]
 
+# class DirAction(configargparse.Action):
+#     def __call__(self, parser, namespace, values, option_string=None):
+#         if not os.path.exists(values):
+#             raise ValueError('nargs for store actions must be > 0; if you '
+#                              'have nothing to store, actions such as store '
+#                              'true or store const may be more appropriate')
+#         if const is not None and nargs != OPTIONAL:
+#             raise ValueError('nargs must be %r to supply const' % OPTIONAL)
+#         setattr(namespace, self.dest, values)
+
 parser = configargparse.ArgParser( prog = 'intsys',
                                    description='Запуск интеллектуальной системы для настройки параметров фаз regions, if_conv, dcs.',
                                    formatter_class=Formatter,
@@ -46,35 +56,38 @@ for mode in options.modes.keys():
         elif gl.isDisc():
             assert(gl.values is not None)
             assert(gl.default is not None)
-            group.add( '--' + gl.param, type=int, choices=gl.values, default=gl.default, 
+            group.add( '--' + gl.param, type=gl.parser, choices=gl.values, default=gl.default, 
                  help=gl.help + '; Values: %(choices)s; Default: %(default)s')
 
         elif gl.isDiscStr():
             assert(gl.values is not None)
             assert(gl.default is not None)
-            group.add( '--' + gl.param, type=str, choices=gl.values, default=gl.default, 
+            group.add( '--' + gl.param, type=gl.parser, choices=gl.values, default=gl.default, 
                  help=gl.help + '; Values: %(choices)s; Default: %(default)s')
 
         elif gl.isInt():
             assert(gl.default is not None)
-            group.add( '--' + gl.param, metavar='int', type=int, default=gl.default, 
+            group.add( '--' + gl.param, metavar='int', type=gl.parser, default=gl.default, 
                  help=gl.help + '; Default: %(default)s')
 
         elif gl.isFloat():
             assert(gl.default is not None)
             if gl.values is None:
-                group.add( '--' + gl.param, metavar='float', type=float, default=gl.default, 
+                group.add( '--' + gl.param, metavar='float', type=gl.parser, default=gl.default, 
                      help=gl.help + '; Default: %(default)s')
             else:
                 assert(len(gl.values) == 1)
-                group.add( '--' + gl.param, metavar='float', type=float, default=gl.default, 
+                group.add( '--' + gl.param, metavar='float', type=gl.parser, default=gl.default, 
                      help=gl.help + '; Values: ' + gl.values[0] + '; Default: %(default)s')
 
-        elif gl.isFile() or gl.isDir():
-            group.add( '--' + gl.param, metavar='path', type=str, default=gl.default, help=gl.help)
+        elif gl.isDir():
+            group.add( '--' + gl.param, metavar='path', type=gl.parser, default=gl.default, help=gl.help)
+
+        elif gl.isFile():
+            group.add( '--' + gl.param, metavar='path', type=gl.parser, default=gl.default, help=gl.help)
 
         elif gl.isFormat():
-            group.add( '--' + gl.param, metavar=gl.format, type=str, default=gl.default, help=gl.help)
+            group.add( '--' + gl.param, metavar=gl.format, type=gl.parser, default=gl.default, help=gl.help)
 
         else:
             raise Exception('unsupported type of the global variable ' + gl.param)

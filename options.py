@@ -3,6 +3,206 @@
  
 # Глобальные переменные
 
+# External imports
+import os
+
+PARAMS = {
+    'regn_max_proc_op_sem_size' : (int, 16000, (0,50000)),
+    'regn_heur1' : (float, 0.037, (0.0,1.0)),
+    'regn_heur2' : (float, 0.06, (0.0,1.0)),
+    'regn_heur3' : (float, 0.03, (0.0,1.0)),
+    'regn_heur4' : (float, 0.0, (0.0,1.0)),
+    'regn_heur_bal1' : (float, 0.0, (0.0,1.0)),
+    'regn_heur_bal2' : (float, 0.0, (0.0,1.0)),
+    'regn_opers_limit' : (int, 2048, (0,5000)),
+    'regn_prob_heur' : (float, 0.04, (0.0,1.0)),
+    'regn_disb_heur' : (int, 9, (0,15)),
+    'ifconv_merge_heur' : (float, 1.0, (0.0,2.0)),
+    'ifconv_opers_num' : (int, 200, (0,500)),
+    'ifconv_calls_num' : (int, 6, (0,10)),
+    'disable_regions_nesting': (bool, True, (False,True)),
+    'dcs_kill': (bool, False, (False,True)),
+    'dcs_level': (int, 0, (0,4))
+    }
+
+NODE_TYPE = {
+    "Simple" : 0,
+    "If"     : 1,
+    "Return" : 2,
+    "Start"  : 3,
+    "Stop"   : 4,
+    "Switch" : 5,
+    "Hyper"  : 6,
+    "Jump"   : 7,
+    "Tmp"    : 8
+    }
+
+def dir_parser (line):
+     line = line.strip('"')
+     if not os.path.isdir(line):
+          raise ValueError
+     return line
+
+def dir_name_parser (line):
+     line = line.strip('"')
+     if not os.path.supports_unicode_filenames(line):
+          raise ValueError
+     return line
+
+def file_parser (line):
+     line = line.strip('"')
+     if not os.path.isfile(line):
+          raise ValueError
+     return line
+
+# Parse string of the format '<name>'
+def name_parser (line):
+     line = line.strip('"')
+     if line == '':
+          raise ValueError
+     if len(line.split(' ')) > 1:
+          raise ValueError
+     return line
+
+# Parse string of the format '<parname> [<parname>] [; <parname> [<parname>]]'
+def strategy_parser (line):
+     line = line.strip('"')
+     line = str(line)
+     if line == '':
+          raise ValueError
+     lines = line.split(';')
+     pars = []
+     for l in lines:
+          if l == '':
+               raise ValueError
+          group = [x for x in l.split(' ') if x in PARAMS]
+          if not group:
+               raise ValueError
+          group.sort()
+          pars.append(tuple(group))
+     return pars
+
+# Parse string of the format '<specname>[: <procname> [<procname>]] [, <specname>[: <procname> [<procname>]]]'
+def specs_parser (line):
+     line = line.strip('"')
+     if line == '':
+          raise ValueError
+     lines = line.split(',')
+     specs = {}
+     for l in lines:
+          if l == '':
+               raise ValueError
+          spec = l.split(':')
+          if len(spec) > 2:
+               raise ValueError
+          name = spec[0].strip()
+          if name == '':
+               raise ValueError
+          if name in specs:
+               print('Warning! There are several occurrences in the speclist for specname :', name)
+               print('         Only the first occurrence of', name, 'will be used.')
+               continue
+          procs = None
+          if len(spec) == 2:
+               procs = [x for x in spec[1].split(' ') if x != '']
+               if not procs:
+                    raise ValueError
+               procs.sort()
+          specs[name] = procs
+     return specs
+
+def node_type_parser (line):
+     if line in NODE_TYPE:
+          raise ValueError
+     return NODE_TYPE[line]
+
+# Parse string of the format '<procs>', где
+# '<procs> = <proc> | <proc> <procs>\n'
+# '<proc>  = <weight>;<nodes>;<loops>;<doms>;<pdoms>\n'
+# '<weight> - вес процедуры\n'
+# '<nodes> = <node> | <node>,<nodes>\n'
+# '<node>  = <num>:<type>:<cnt>:<o_num>:<c_num>:<l_num>:<s_num>\n'
+# '<num>   - номер узла управляющего графа\n'
+# '<type>  - его тип (одно из значений Simple, If, Return, Start, Stop, Switch, Hyper, Jump, Tmp)\n'
+# '<o_num> - число всех операций в нём\n'
+# '<c_num> - число операций вызова в нём\n'
+# '<l_num> - число операций чтения в нём\n'
+# '<s_num> - число операций записи в нём\n'
+# '<loops> = <loop> | <loop>,<loops>\n'
+# '<loop>  = <num>:<ovl>:<red>\n'
+# '<num>   - номер цикла управляющего графа\n'
+# '<ovl>   - признак накрученного цикла (0 или 1)\n'
+# '<red>   - признак сводимого цикла (0 или 1)\n'
+# '<(p)doms>  = <(p)dom_height>,<(p)dom_width>,<(p)dom_succs>\n'
+# '<(p)dom_height> - высота дерева (пост)доминаторов\n'
+# '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
+# '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов'
+def proc_chars_parser (line):
+     line = line.strip('"')
+     lines = [x for x in line.split(' ') if x != '']
+     if not lines:
+          raise ValueError
+     procs = []
+     for l in lines:
+          proc = l.split(';')
+          if len(proc) != 5 or any (x == '' for x in proc):
+               raise ValueError
+          weight = float(proc[0])
+          nodes = []
+          for node in proc[1].split(','):
+               ps = node.split(':')
+               if len(ps) != 7 or any (x == '' for x in ps):
+                    raise ValueError
+               nodes.append((int(ps[0]), node_type_parser(ps[1]), float(ps[3]), int(ps[4]), int(ps[5]), int(ps[6]), int(ps[7])))
+          loops = []
+          for loop in proc[2].split(','):
+               ps = loop.split(':')
+               if len(ps) != 3 or any (x == '' for x in ps):
+                    raise ValueError
+               loops.append((int(ps[0]), bool(ps[1]), bool(ps[3])))
+          doms = []
+          for dom in proc[3].split(','):
+               ps = dom.split(':')
+               if len(ps) != 3 or any (x == '' for x in ps):
+                    raise ValueError
+               doms.append((int(ps[0]), int(ps[1]), int(ps[3])))
+          pdoms = []
+          for pdom in proc[3].split(','):
+               ps = pdom.split(':')
+               if len(ps) != 3 or any (x == '' for x in ps):
+                    raise ValueError
+               pdoms.append((int(ps[0]), int(ps[1]), int(ps[3])))
+          procs.append((weight, nodes, loops, doms, pdoms))
+     return procs
+
+# Parse string of the format '<par_name>:<value> ... <par_name>:<value>'
+def defaults_parser (line):
+     line = line.strip('"')
+     lines = [x for x in line.split(' ') if x != '']
+     if not lines:
+          raise ValueError
+     pars = {}
+     for l in lines:
+          d = l.split(':')
+          if len(d) != 2 or any (x == '' for x in d) or not d[0] in PARAMS:
+               raise ValueError
+          pars[d[0]] = PARAMS[d[0]][0](d[1])
+     return pars
+
+# Parse string of the format '<par_name>:<min>:<max> ... <par_name>:<min>:<max>'
+def ranges_parser (line):
+     line = line.strip('"')
+     lines = [x for x in line.split(' ') if x != '']
+     if not lines:
+          raise ValueError
+     pars = {}
+     for l in lines:
+          d = l.split(':')
+          if len(d) != 3 or any (x == '' for x in d) or not d[0] in PARAMS:
+               raise ValueError
+          pars[d[0]] = (PARAMS[d[0]][0](d[1]), PARAMS[d[0]][0](d[2]))
+     return pars
+
 # Режимы работы ИС
 modes = {
     ''       : 'Основная группа параметров',
@@ -16,13 +216,14 @@ modes = {
 
 # Информационная структура глобальной переменной
 class Global:
-     def __init__ (self, name, param, help, type, values, format, default, mode = ''):
+     def __init__ (self, name, param, help, type, values, format, parser, default, mode = ''):
           self.name    = name    # имя глобала
           self.param   = param   # имя параметра, соответствующего глобалу
           self.help    = help    # описание глобала
           self.type    = type    # тип глобала
           self.values  = values  # возможные значения глобала
           self.format  = format  # формат значения глобала
+          self.parser  = parser
           self.default = default # значение по умолчанию
           assert(mode in modes)
           self.mode    = mode    # режим ИС
@@ -90,7 +291,7 @@ GL['w_unexec'] = Global(
       ' 0 - вес по-умолчанию,'
       ' 1 - минимум среди всех весов исполняемых процедур,'
       ' 2 - среднее значение весов исполняемых процедур'),
-     'disc', [0, 1, 2], None,
+     'disc', [0, 1, 2], None, int,
      UNEXEC_PROC_WEIGHT_SETUP, 'stat'
 )
 
@@ -99,7 +300,7 @@ DEFAULT_WEIGHT_FOR_PROC = 1.0
 GL['w_default'] = Global(
      'DEFAULT_WEIGHT_FOR_PROC', 'w_default',
      'вес по-умолчанию, который присваивается компилируемой, но неисполняемой процедуре',
-     'float', None, None,
+     'float', None, None, float,
      DEFAULT_WEIGHT_FOR_PROC, 'stat'
 )
 
@@ -116,7 +317,7 @@ GL['w_task'] = Global(
       ' 1 - считывается из файла,'
       ' 2 - отношение времени исполнения всех процедур задачи к общему времени его исполнения),'
       ' 3 - отношение времени исполнения оптимизируемых процедур задачи к общему времени его исполнения'),
-     'disc', [0, 1, 2, 3], None,
+     'disc', [0, 1, 2, 3], None, int,
      TASK_WEIGHT_SETUP, 'stat'
 )
 
@@ -129,7 +330,7 @@ GL['w_proc'] = Global(
      ('режим учета весов процедур при обработке статистики работы компилятора LCC:'
       ' 0 - не учитывать вес процедуры,'
       ' 1 - временя работы процедуры в составе спека'),
-     'disc', [0, 1], None,
+     'disc', [0, 1], None, int,
      PROC_WEIGHT_SETUP, 'stat'
 )
 
@@ -148,7 +349,7 @@ GL['w_node'] = Global(
       ' 1 - вес равен внутреннему счетчику узла в регионе,'
       ' 2 - вес равен счетчику узла во всей процедуре,'
       ' 3 - вес равен отношению внутреннего счетчика узла к счетчику узла во всей процедуре (0 если счетчик узла в процедуре равен нулю)'),
-     'disc', [0, 1, 2, 3], None,
+     'disc', [0, 1, 2, 3], None, int,
      NODE_WEIGHT_SETUP, 'stat'
 )
 
@@ -163,7 +364,7 @@ GL['w_regn'] = Global(
       ' 0 - не учитывать вес региона,'
       ' 1 - вес равен счетчику головы региона'
       ' 2 - вес равен счетчику головы региона, нормируемый по всем регионам в процедуре'),
-     'disc', [0, 1, 2], None,
+     'disc', [0, 1, 2], None, int,
      REGN_WEIGHT_SETUP, 'stat'
 )
 
@@ -178,7 +379,7 @@ GL['w_icv_regn'] = Global(
       ' 0 - не учитывать вес региона,'
       ' 1 - вес равен счетчику головы региона'
       ' 2 - вес равен счетчику головы региона, нормируемый по всем регионам в процедуре'),
-     'disc', [0, 1, 2], None,
+     'disc', [0, 1, 2], None, int,
      ICV_REGN_WEIGHT_SETUP, 'stat'
 )
 
@@ -191,7 +392,7 @@ GL['w_sect'] = Global(
      ('режим учета весов сливаемых участков фазы if_conv при обработке статистики работы компилятора LCC'
       ' 0 - не учитывать вес сливаемого участка,'
       ' 1 - вес равен счетчику головы сливаемого участка'),
-     'disc', [0, 1], None,
+     'disc', [0, 1], None, int,
      SECT_WEIGHT_SETUP, 'stat'
 )
 
@@ -206,7 +407,7 @@ PROC_WEIGHT_PATH = None
 GL['dir_w_proc'] = Global(
      'PROC_WEIGHT_PATH', 'dir_w_proc',
      'путь до каталога с файлами, определяющими веса процедур',
-     'path_to_dir', None, None,
+     'path_to_dir', None, None, dir_parser,
      PROC_WEIGHT_PATH, 'stat'
 )
 
@@ -216,7 +417,7 @@ TASK_WEIGHT_PATH = None
 GL['file_w_task'] = Global(
      'TASK_WEIGHT_PATH', 'file_w_task',
      'путь к файлу, из которого считываются веса задач',
-     'path_to_file', None, None,
+     'path_to_file', None, None, file_parser,
      TASK_WEIGHT_PATH, 'stat'
 )
 
@@ -225,7 +426,7 @@ USE_UNEXEC_PROCS_IN_STAT = False
 GL['use_unexec'] = Global(
      'USE_UNEXEC_PROCS_IN_STAT', 'use_unexec',
      'обработка статистики компиляции неисполняемых процедур',
-     'bool', None, None,
+     'bool', None, None, None,
      USE_UNEXEC_PROCS_IN_STAT, 'stat'
 )
 
@@ -234,7 +435,7 @@ STAT_PATH = None
 GL['stat'] = Global(
      'STAT_PATH', 'stat',
      'путь каталогу со статистикой компиляции, собранной при значениях параметров оптимизирующих преобразований по-умолчанию',
-     'path_to_dir', None, None,
+     'path_to_dir', None, None, dir_parser,
      STAT_PATH, 'stat'
 )
 
@@ -246,7 +447,7 @@ DINUMIC_PROC_OPERS_NUM = False
 GL['din_proc'] = Global(
      'DINUMIC_PROC_OPERS_NUM', 'din_proc',
      'учет динамического изменения числа операций в процедуре во время компиляции на фазе regions',
-     'bool', None, None,
+     'bool', None, None, None,
      DINUMIC_PROC_OPERS_NUM, 'stat'
 )
 
@@ -255,7 +456,7 @@ DINUMIC_REGN_OPERS_NUM = False
 GL['din_regn'] = Global(
      'DINUMIC_REGN_OPERS_NUM', 'din_regn',
      'включает учет динамического изменения числа операций в регионах во время компиляции на фазе regions',
-     'bool', None, None,
+     'bool', None, None, None,
      DINUMIC_REGN_OPERS_NUM, 'stat'
 )
 
@@ -267,7 +468,7 @@ MAX_DCS_LEVEL = 4
 GL['max_dcs_level'] = Global(
      'MAX_DCS_LEVEL', 'max_dcs_level',
      'номер последнего существующего уровня оптимизации фазы dcs',
-     'int', None, None,
+     'int', None, None, int,
      MAX_DCS_LEVEL, 'setup'
 )
 
@@ -280,21 +481,21 @@ DCS_KOEF_NODE_IMPOTANCE = 1.0
 GL['dcs_node'] = Global(
      'DCS_KOEF_NODE_IMPOTANCE', 'dcs_node',
      'коэффициент мертвых узлов в формуле полезности dcs-оптимизации',
-     'float', None, None,
+     'float', None, None, float,
      DCS_KOEF_NODE_IMPOTANCE, 'anneal'
 )
 DCS_KOEF_EDGE_IMPOTANCE = 1.0
 GL['dcs_edge'] = Global(
      'DCS_KOEF_EDGE_IMPOTANCE', 'dcs_edge',
      'коэффициент мертвых дуг в формуле полезности dcs-оптимизации',
-     'float', None, None,
+     'float', None, None, float,
      DCS_KOEF_EDGE_IMPOTANCE, 'anneal'
 )
 DCS_KOEF_LOOP_IMPOTANCE = 1.0
 GL['dcs_loop'] = Global(
      'DCS_KOEF_LOOP_IMPOTANCE', 'dcs_loop',
      'коэффициент мертвых циклов в формуле полезности dcs-оптимизации',
-     'float', None, None,
+     'float', None, None, float,
      DCS_KOEF_LOOP_IMPOTANCE, 'anneal'
 )
 
@@ -303,7 +504,7 @@ DSC_IMPOTANCE_LIMIT = 0.001
 GL['dcs_limit'] = Global(
      'DSC_IMPOTANCE_LIMIT', 'dcs_limit',
      'порог для значений полезности dcs-оптимиизации',
-     'float', None, None,
+     'float', None, None, float,
      DSC_IMPOTANCE_LIMIT, 'anneal'
 )
 
@@ -315,7 +516,7 @@ GL['dcs_limit'] = Global(
 #GL['logs'] = Global(
      #'RUN_LOGS_PATH', 'logs',
      #'каталог, в котором хранятся логи запусков',
-     #'path_to_dir', None, None,
+     #'path_to_dir', None, None, dir_parser,
      #RUN_LOGS_PATH
 #)
 
@@ -324,7 +525,7 @@ GL['dcs_limit'] = Global(
 #GL['inaccuracy'] = Global(
      #'DEVIATION_PERCENT_OF_TcTeMemF', 'inaccuracy',
      #'величина погрешности',
-     #'float', ['(0, 1)'], None,
+     #'float', ['(0, 1)'], None, float,
      #DEVIATION_PERCENT_OF_TcTeMemF
 #)
 
@@ -336,7 +537,7 @@ PURE_STAT = False
 GL['pure_stat'] = Global(
      'PURE_STAT', 'pure_stat',
      'не использовать сглаживание распределений, получаемых по статистике работы компилятора lcc',
-     'bool', None, None,
+     'bool', None, None, None,
      PURE_STAT, 'stat'
 )
 
@@ -345,14 +546,14 @@ ERF_KOEF_FOR_CONTINUOUS_PAR = 20.0 # коэффициент сглаживани
 GL['erf_cont'] = Global(
      'ERF_KOEF_FOR_CONTINUOUS_PAR', 'erf_cont',
      'коэффициент сглаживания распределений параметров оптимизирующих преобразований вещественного типа',
-     'float', None, None,
+     'float', None, None, float,
      ERF_KOEF_FOR_CONTINUOUS_PAR, 'stat'
 )
 ERF_KOEF_FOR_DISCRETE_PAR = 0.5 # коэффициент сглаживания для целичисленных параметров
 GL['erf_disc'] = Global(
      'ERF_KOEF_FOR_DISCRETE_PAR', 'erf_disc',
      'коэффициент сглаживания распределений параметров оптимизирующих преобразований целочисленного типа',
-     'float', None, None,
+     'float', None, None, float,
      ERF_KOEF_FOR_DISCRETE_PAR, 'stat'
 )
 
@@ -363,7 +564,7 @@ ZERO_LIMIT_FOR_ERF = 0.01
 GL['erf_limit'] = Global(
      'ZERO_LIMIT_FOR_ERF', 'erf_limit',
      'доля для сглаживаемых весов, которая не будет участвовать в сглаживании',
-     'float', ['(0, 1)'], None,
+     'float', ['(0, 1)'], None, float,
      ZERO_LIMIT_FOR_ERF, 'stat'
 )
 
@@ -372,7 +573,7 @@ ZERO_LIMIT_FOR_WEIGHT = 0.001
 GL['weight_limit'] = Global(
      'ZERO_LIMIT_FOR_WEIGHT', 'weight_limit',
      'порог для абсолютных значений весов, веса ниже которого не сглаживаются',
-     'float', ['(0, 1)'], None,
+     'float', ['(0, 1)'], None, float,
      ZERO_LIMIT_FOR_WEIGHT, 'stat'
 )
 
@@ -384,7 +585,7 @@ INHERIT_STAT = False
 GL['inherit'] = Global(
      'INHERIT_STAT', 'inherit',
      'использовать собранную статистику компилятора LCC в не зависимости от значений параметров оптимизирующих преобразований',
-     'bool', None, None,
+     'bool', None, None, None,
      INHERIT_STAT
 )
 
@@ -394,7 +595,7 @@ MEM_RESTRICTION = False
 GL['mem_restr'] = Global(
      'MEM_RESTRICTION', 'mem_restr',
      'ограничение на использование памяти',
-     'bool', None, None,
+     'bool', None, None, None,
      MEM_RESTRICTION, 'anneal'
 )
 
@@ -403,7 +604,7 @@ START_TEMPERATURE = 0.5
 GL['start_temp'] = Global(
      'START_TEMPERATURE', 'start_temp',
      'начальное значение температуры в методе имитации отжига',
-     'float', ['(0, 1]'], None,
+     'float', ['(0, 1]'], None, float,
      START_TEMPERATURE, 'anneal'
 )
 
@@ -418,7 +619,7 @@ GL['temp_law'] = Global(
       ' 0 - функция f(n) = 1 / ln(n + 1)'
       ' 1 - функция f(n) = 1 / n'
       ' 2 - функция f(n) = alpha ^ n'),
-     'disc', [0, 1, 2], None,
+     'disc', [0, 1, 2], None, int,
      TEMPERATURE_LAW_TYPE, 'anneal'
 )
 
@@ -427,7 +628,7 @@ ALPHA_IN_TEPMERATURE_LAW = 0.7
 GL['alpha'] = Global(
      'ALPHA_IN_TEPMERATURE_LAW', 'alpha',
      'значение параметра alpha в законе убывания температуры для метода имитации отжига',
-     'float', ['(0, 1)'], None,
+     'float', ['(0, 1)'], None, float,
      ALPHA_IN_TEPMERATURE_LAW, 'anneal'
 )
 
@@ -445,7 +646,7 @@ GL['distr_law'] = Global(
       ' 1 - распределение для сверхбыстрого отжига,'
       ' 2 - распределение Коши,'
       ' 3 - равномерное распределение'),
-     'disc', [0, 1, 2, 3], None,
+     'disc', [0, 1, 2, 3], None, int,
      DISTRIBUTION_LAW_TYPE, 'anneal'
 )
 
@@ -458,7 +659,7 @@ UNRELATED_PARAMS = False
 GL['unrelated'] = Global(
      'UNRELATED_PARAMS', 'unrelated',
      'считать параметры компилятора lcc независимыми друг от друга',
-     'bool', None, None,
+     'bool', None, None, None,
      UNRELATED_PARAMS, 'anneal'
 )
 
@@ -479,21 +680,21 @@ TIME_EXEC_IMPOTANCE = 5.0
 GL['F_exec'] = Global(
      'TIME_EXEC_IMPOTANCE', 'F_exec',
      'значение множителя при члене относительного увеличении времени исполнения в минимизируемом функционале',
-     'float', None, None,
+     'float', None, None, float,
      TIME_EXEC_IMPOTANCE, 'func'
 )
 TIME_COMP_IMPOTANCE = 1.0
 GL['F_comp'] = Global(
      'TIME_COMP_IMPOTANCE', 'F_comp',
      'значение множителя при члене относительного увеличении времени компиляции в минимизируемом функционале',
-     'float', None, None,
+     'float', None, None, float,
      TIME_COMP_IMPOTANCE, 'func'
 )
 MEMORY_IMPOTANCE = 1.0
 GL['F_mem'] = Global(
      'MEMORY_IMPOTANCE', 'F_mem',
      'значение множителя при члене относительного увеличении объема потребляемой компилятором памяти в минимизируемом функционале',
-     'float', None, None,
+     'float', None, None, float,
      MEMORY_IMPOTANCE, 'func'
 )
 
@@ -502,7 +703,7 @@ COMP_TIME_INCREASE_ALLOWABLE_PERCENT = 0.25
 GL['comp_limit'] = Global(
      'COMP_TIME_INCREASE_ALLOWABLE_PERCENT', 'comp_limit',
      'задает допустимое относительное замедление времени компиляции',
-     'float', None, None,
+     'float', None, None, float,
      COMP_TIME_INCREASE_ALLOWABLE_PERCENT, 'func'
 )
 
@@ -511,7 +712,7 @@ EXEC_TIME_INCREASE_ALLOWABLE_PERCENT = 0.05
 GL['exec_limit'] = Global(
      'EXEC_TIME_INCREASE_ALLOWABLE_PERCENT', 'exec_limit',
      'задает допустимое относительное замедление времени исполнения',
-     'float', None, None,
+     'float', None, None, float,
      EXEC_TIME_INCREASE_ALLOWABLE_PERCENT, 'func'
 )
 
@@ -520,7 +721,7 @@ MEMORY_INCREASE_ALLOWABLE_PERCENT = 0.50
 GL['mem_limit'] = Global(
      'MEMORY_INCREASE_ALLOWABLE_PERCENT', 'mem_limit',
      'задает допустимое относительное увеличение объема памяти, потребляемой при компиляции',
-     'float', None, None,
+     'float', None, None, float,
      MEMORY_INCREASE_ALLOWABLE_PERCENT, 'func'
 )
 
@@ -529,7 +730,7 @@ MAX_NUMBER_ITERATIONS = 10
 GL['iter_num'] = Global(
      'MAX_NUMBER_ITERATIONS', 'iter_num',
      'число шагов применения метода имитации отжига',
-     'int', None, None,
+     'int', None, None, int,
      MAX_NUMBER_ITERATIONS, 'anneal'
 )
 
@@ -538,7 +739,7 @@ MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION = 10
 GL['attempts_num'] = Global(
      'MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION', 'attempts_num',
      'максимальное число попыток выбора очередного кандидата для параметров оптимизирующих преобразований на каждом шаге применения метода имитации отжига',
-     'int', None, None,
+     'int', None, None, int,
      MAX_NUMBER_OF_ATTEMPTS_FOR_ITERATION, 'anneal'
 )
 
@@ -547,7 +748,7 @@ TEMP_MODE = 0
 GL['temp_mode'] = Global(
      'TEMP_MODE', 'temp_mode',
      'режим изменения температуры после неудачных шагов применения метода имитации отжига: 0 - уменьшать температуру, 1 - сохранять той же.',
-     'disc', [0, 1], None,
+     'disc', [0, 1], None, int,
      TEMP_MODE, 'anneal'
 )
 
@@ -562,7 +763,7 @@ OPTIMIZATION_STRATEGY = None
 GL['strategy'] = Global(
      'OPTIMIZATION_STRATEGY', 'strategy',
      'стратегия оптимизации, согласно с которой ИС осуществляет подборку параметров оптимизирующих преобразований',
-     'format', None, '<parname> [<parname>] [; <parname> [<parname>]]',
+     'format', None, '<parname> [<parname>] [; <parname> [<parname>]]', strategy_parser,
      OPTIMIZATION_STRATEGY
 )
 
@@ -571,7 +772,7 @@ SEQ_OPTIMIZATION_WITH_STRATEGY = False
 GL['seq'] = Global(
      'SEQ_OPTIMIZATION_WITH_STRATEGY', 'seq',
      'последовательная оптимизация групп параметров, определенных стратегией (задается параметром strategy)',
-     'bool', None, None,
+     'bool', None, None, None,
      SEQ_OPTIMIZATION_WITH_STRATEGY, 'anneal'
 )
 
@@ -585,7 +786,7 @@ SPECS = None
 GL['specs'] = Global(
      'SPECS', 'specs',
      'список задач, для которых ИС должна осуществлять подборку параметров оптимизирующих преобразований',
-     'format', None, '<specname>[: <procname> [<procname>]] [, <specname>[: <procname> [<procname>]]]',
+     'format', None, '<specname>[: <procname> [<procname>]] [, <specname>[: <procname> [<procname>]]]', specs_parser,
      SPECS
 )
 
@@ -594,7 +795,7 @@ SYNCHRONOUS_OPTIMIZATION_FOR_SPECS = False
 GL['sync'] = Global(
      'SYNCHRONOUS_OPTIMIZATION_FOR_SPECS', 'sync',
      'синхранная оптимизация задач, определенных параметром specs',
-     'bool', None, None,
+     'bool', None, None, None,
      SYNCHRONOUS_OPTIMIZATION_FOR_SPECS
 )
 
@@ -603,7 +804,7 @@ GL['sync'] = Global(
 #GL['output'] = Global(
      #'OUTPUTDIR', 'output',
      #'каталог, в котором ИС формирует свои выходные файлы',
-     #'path_to_dir', None, None,
+     #'path_to_dir', None, None, dir_parser,
      #OUTPUTDIR
 #)
 
@@ -612,7 +813,7 @@ VERBOSE = 0
 GL['verbose'] = Global(
      'VERBOSE', 'verbose',
      'степень подробности вывода информации на экран во время работы ИС',
-     'disc', [0, 1, 2], None,
+     'disc', [0, 1, 2], None, int,
      VERBOSE
 )
 
@@ -623,7 +824,7 @@ GL['verbose'] = Global(
 #GL['rewrite'] = Global(
      #'ALLOW_REWRITE_OUTPUT_FILES', 'rewrite',
      #'режим перезаписи выходных файлов',
-     #'bool', None, None,
+     #'bool', None, None, None,
      #ALLOW_REWRITE_OUTPUT_FILES
 #)
 
@@ -655,7 +856,7 @@ GL['proc_chars'] = Global(
      '<(p)dom_height> - высота дерева (пост)доминаторов\n'
      '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
      '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов',
-     'format', None, '<procs>',
+     'format', None, '<procs>', proc_chars_parser,
      TRAIN_PROC_CHARS
 )
 
@@ -664,7 +865,7 @@ TRAIN_CLEAR = False
 GL['clear'] = Global(
      'TRAIN_CLEAR', 'clear',
      'удаление всех накопленных данных для обучения',
-     'bool', None, None,
+     'bool', None, None, None,
      TRAIN_CLEAR
 )
 
@@ -673,25 +874,25 @@ TRAIN_PURE = False
 GL['pure'] = Global(
      'TRAIN_PURE', 'pure',
      'не накапливать данные для обучения',
-     'bool', None, None,
+     'bool', None, None, None,
      TRAIN_PURE
 )
 
 # Каталог, в котором расположены данные для обучения ИС
-TRAIN_DATA_DIR = './train/data'
+TRAIN_DATA_DIR = None
 GL['tr_dir'] = Global(
      'TRAIN_DATA_DIR', 'tr_dir',
      'каталог с данными для обучения ИС',
-     'path_to_dir', None, None,
+     'path_to_dir', None, None, dir_name_parser,
      TRAIN_DATA_DIR
 )
 
 # Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
-TRAIN_MODEL_DIR = '.'
+TRAIN_MODEL_DIR = None
 GL['model_dir'] = Global(
      'TRAIN_MODEL_DIR', 'model_dir',
      'каталог c предобученными искусственными нейронными сетями',
-     'path_to_dir', None, None,
+     'path_to_dir', None, None, dir_name_parser,
      TRAIN_MODEL_DIR, 'train'
 )
 
@@ -700,7 +901,7 @@ TRAIN_DELTA = 0.5
 GL['delta'] = Global(
      'TRAIN_DELTA', 'delta',
      'доля данных, выделяемая для обучения искусственной нейронной сети',
-     'float', None, None,
+     'float', None, None, float,
      TRAIN_DELTA, 'train'
 )
 
@@ -709,7 +910,7 @@ TRAIN_STEPS = 5
 GL['tr_steps'] = Global(
      'TRAIN_STEPS', 'tr_steps',
      'число попыток для обучения модели искусственной нейронной сети',
-     'int', None, None,
+     'int', None, None, int,
      TRAIN_STEPS, 'train'
 )
 
@@ -718,7 +919,7 @@ TRAIN_EPOCHS = 100
 GL['epochs'] = Global(
      'TRAIN_EPOCHS', 'epochs',
      'число эпох обучения модели искусственной нейронной сети',
-     'int', None, None,
+     'int', None, None, int,
      TRAIN_EPOCHS, 'train'
 )
 
@@ -727,7 +928,7 @@ TRAIN_BATCH = 100
 GL['batch'] = Global(
      'TRAIN_BATCH', 'batch',
      'размер пакета данных в обучении модели искусственной нейронной сети',
-     'int', None, None,
+     'int', None, None, int,
      TRAIN_BATCH, 'train'
 )
 
@@ -736,7 +937,7 @@ TRAIN_GRID = 100
 GL['train_grid'] = Global(
      'TRAIN_GRID', 'train_grid',
      'размер сетки для интерполяции данных',
-     'int', None, None,
+     'int', None, None, int,
      TRAIN_GRID, 'train'
 )
 
@@ -744,7 +945,7 @@ COLLECT_GRID = 5
 GL['collect_grid'] = Global(
      'COLLECT_GRID', 'collect_grid',
      'размер сетки для получения данных',
-     'int', None, None,
+     'int', None, None, int,
      COLLECT_GRID, 'train'
 )
 
@@ -757,7 +958,7 @@ GL['interp'] = Global(
      ' linear    - интерполяция линейными сплайнами (доступен для любой группы параметров)\n'
      ' quadratic - интерполяция квадратичными сплайнами (доступен для групп из одного параметра)\n'
      ' cubic     - интерполяция кубическими сплайнами (доступен для групп из одного и двух параметров)\n',
-     'disc_str', ['linear', 'quadratic', 'cubic'], None,
+     'disc_str', ['linear', 'quadratic', 'cubic'], None, str,
      TRAIN_INTERP, 'train'
 )
 
@@ -771,7 +972,7 @@ GL['cmp_init'] = Global(
      'bash-скрипт для инициализации скрипта cmp_run. Имеет формат:\n'
      '  cmp_init <dist_dir>\n'
      'где <dist_dir> - директория, в которой будет запущен скрипт cmp_run и куда необходимо скопировать все необходимые для этого исходники',
-     'path_to_file', None, None,
+     'path_to_file', None, None, file_parser,
      SCRIPT_CMP_INIT, 'script'
 )
 
@@ -780,7 +981,7 @@ SCRIPT_CMP_RUN = None
 GL['cmp_run'] = Global(
      'SCRIPT_CMP_RUN', 'cmp_run',
      'bash-скрипт для запуска задач на компиляцию и/или исполнение. Имеет формат:\n'
-     '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir <dir_name> -server <machine_name>\n'
+     '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir_parser <dir_name> -server <machine_name>\n'
      'где -comp   - режим рапуска на компиляцию\n'
      '    -exec   - режим рапуска на исполнение\n'
      '    -stat   - режим рапуска на получение статистики\n'
@@ -789,14 +990,14 @@ GL['cmp_run'] = Global(
      '    -base   - базовый режим запуска компилятора lcc\n'
      '    -peak   - пиковый режим запуска компилятора lcc\n'
      '    -opt    - параметры компилятора lcc\n'
-     '    -dir    - директория, в которой сохраняется статистика\n'
+     '    -dir_parser    - директория, в которой сохраняется статистика\n'
      '    -server - машина, на которой следует произвести запуск\n'
      'Скрипт должен в конце своей работы выдать на экран:\n'
      '  время компиляции (в режиме -comp),\n'
      '  время исполнения (в режиме -exec),\n'
      '  максимальный объем памяти, затраченный компилятором lcc (в режиме -stat).\n'
      'Других сообщений на экран выводится не должно.',
-     'path_to_file', None, None,
+     'path_to_file', None, None, file_parser,
      SCRIPT_CMP_RUN, 'script'
 )
 
@@ -808,7 +1009,7 @@ CMP_SUITE = None
 GL['cmp_suite'] = Global(
      'CMP_SUITE', 'cmp_suite',
      'выбор специфического бэнчмарка (значение параметра определяется внешним скриптом SCRIPT_RUN_CMP)',
-     'format', None, '<pack_name>',
+     'format', None, '<pack_name>', name_parser,
      CMP_SUITE, 'script'
 )
 
@@ -817,7 +1018,7 @@ DINUMIC_STAT_PATH = None
 GL['cmp_stat'] = Global(
      'DINUMIC_STAT_PATH', 'cmp_stat',
      'директория, в которую внешний скрипт сохраняет статистику',
-     'path_to_dir', None, None,
+     'path_to_dir', None, None, dir_name_parser,
      DINUMIC_STAT_PATH, 'script'
 )
 
@@ -826,7 +1027,7 @@ COMP_MODE = 'base'
 GL['comp_mode'] = Global(
      'COMP_MODE', 'comp_mode',
      'режим запуска задач на компиляцию',
-     'disc_str', ['base', 'peak'], None,
+     'disc_str', ['base', 'peak'], None, str,
      COMP_MODE, 'script'
 )
 
@@ -835,7 +1036,7 @@ COMP_SERVER = None
 GL['comp_server'] = Global(
      'COMP_SERVER', 'comp_server',
      'машина, на которой следует компилировать задачи',
-     'format', None, '<machine_name>',
+     'format', None, '<machine_name>', name_parser,
      COMP_SERVER, 'script'
 )
 
@@ -844,7 +1045,7 @@ EXEC_SERVER = None
 GL['exec_server'] = Global(
      'EXEC_SERVER', 'exec_server',
      'машина, на которой следует исполнять задачи',
-     'format', None, '<machine_name>',
+     'format', None, '<machine_name>', name_parser,
      EXEC_SERVER, 'script'
 )
 
@@ -852,30 +1053,19 @@ GL['exec_server'] = Global(
 # Модуль par
 
 # Значения по-умолчанию для параметров компилятора lcc
-PAR_DEFAULTS = ''
+PAR_DEFAULTS = {}
 GL['par_defaults'] = Global(
      'PAR_DEFAULTS', 'par_defaults',
      'значения по-умолчанию для параметров компилятора lcc',
-     'format', None, '<par_name>:<value> ... <par_name>:<value>',
+     'format', None, '<par_name>:<value> ... <par_name>:<value>', defaults_parser,
      PAR_DEFAULTS, 'setup'
 )
 
 # Диапазоны значений параметров компилятора lcc
-PAR_RANGES = ''
+PAR_RANGES = {}
 GL['par_ranges'] = Global(
      'PAR_RANGES', 'par_ranges',
      'диапазоны значений параметров компилятора lcc',
-     'format', None, '<par_name>:<min>:<max> ... <par_name>:<min>:<max>',
+     'format', None, '<par_name>:<min>:<max> ... <par_name>:<min>:<max>', ranges_parser,
      PAR_RANGES, 'setup'
-)
-
-#########################################################################################
-# Модуль net
-
-points_num = 5
-GL['points_num'] = Global(
-     'points_num', 'points_num',
-     'задает число возможных значений по каждому измерению сетки',
-     'int', None, None,
-     points_num, 'train'
 )

@@ -17,6 +17,24 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import options as gl
 import func, par, stat, verbose
 
+#########################################################################################
+# Checking global variables
+
+# EXTERNALS = [
+#     gl.TRAIN_DATA_DIR
+# ]
+
+# for gl in :
+#     val = options.__dict__[gl.name]
+#     if val == None:
+#         verbose.error('The value of parametor \'' + gl.param + '\' was not defined')
+#     if gl.isFile() or gl.isDir():
+#         if not os.path.exists(options.__dict__[gl.name]):
+#             verbose.error('Wrong value of parametor \'' + gl.param + '\', path \'' + gl.default + '\' does not exist')
+
+#########################################################################################
+# Local variables and data structures
+
 # Table of groups of parameters
 PARS = {tuple(g) : 1 for g in par.strategy(restricte_groups_for_anneal_method = False)}
 
@@ -232,18 +250,6 @@ class Proc:
     def aver_cnt (self):
         return reduce(lambda a, n: a + n.counter, self.nodes, 0) / self.nodes_num()
 
-NODE_TYPE = {
-    "Simple" : 0,
-    "If"     : 1,
-    "Return" : 2,
-    "Start"  : 3,
-    "Stop"   : 4,
-    "Switch" : 5,
-    "Hyper"  : 6,
-    "Jump"   : 7,
-    "Tmp"    : 8
-    }
-
 CHARS = [
     (  0, "Вес процедуры", lambda p: p.weight),
     (  1, "Число операций", Proc.opers_num),
@@ -395,7 +401,7 @@ class DataBase:
             for n in proc_info.nodes:
                 node = proc_info.nodes[n]
                 nodes.append(Node(int(n), 
-                                  NODE_TYPE[node['type']], 
+                                  gl.NODE_TYPE[node['type']], 
                                   float(node['cnt']), 
                                   int(node['o_num']), 
                                   int(node['c_num']), 
@@ -667,7 +673,7 @@ def run ():
 
 def init_node (str):
     h = str.split(':')
-    return Node(int(h[0]), NODE_TYPE[h[1]], float(h[2]), int(h[3]), int(h[4]), int(h[5]), int(h[6]))
+    return Node(int(h[0]), gl.NODE_TYPE[h[1]], float(h[2]), int(h[3]), int(h[4]), int(h[5]), int(h[6]))
 
 def init_loop (str):
     h = str.split(':')
