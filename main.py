@@ -88,18 +88,6 @@ for param, value in vars(args).items():
     if options.exist(param):
         options.__dict__[options.var(param).name] = value
 
-#########################################################################################
-# Checking global variables
-
-import verbose
-
-for gl in options.list():
-    gval = options.__dict__[gl.name]
-    if gval == None:
-        verbose.error('The value of parametor \'' + gl.param + '\' was not defined')
-    if gl.isFile() or gl.isDir():
-        if not os.path.exists(options.__dict__[gl.name]):
-            verbose.error('Wrong value of parametor \'' + gl.param + '\', path \'' + gl.default + '\' does not exist')
 
 #########################################################################################
 # Run intelligent system

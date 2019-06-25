@@ -257,8 +257,12 @@ def weights_of_exec_procs(taskname):
     for line in rfile:
         sp_line = line.split()
         procname = sp_line[0]
-        w_proc = float(sp_line[1])
-        res[procname] = w_proc
+        try:
+            w_proc = float(sp_line[1])
+        except ValueError:
+            print('Warning! Incorrect weight for proc ' + procname, ':', sp_line[1])
+        else:
+            res[procname] = w_proc
     return res
 
 # Получение веса задачи taskname из внешнего файла
@@ -273,7 +277,13 @@ def task_cnt(taskname):
     for line in rfile:
         sp_line = line.split()
         task = sp_line[0]
-        w_task = float(sp_line[1])
+        try:
+            w_task = float(sp_line[1])
+        except ValueError:
+            if task == taskname:
+                print('Warning! Incorrect weight for spec ' + taskname, ':', sp_line[1])
+                print('         The weight of task', taskname, 'will be equal to :', 1.)
+                return 1.
         res[task] = w_task
     if taskname in res:
         return res[taskname]
