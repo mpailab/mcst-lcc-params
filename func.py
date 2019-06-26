@@ -18,6 +18,8 @@ PWD = os.getcwd()
 SCRIPT_CMP_RUN = os.path.abspath(gl.SCRIPT_CMP_RUN)
 SCRIPT_CMP_INIT = os.path.abspath(gl.SCRIPT_CMP_INIT)
 
+tmpdir_path = None
+
 class ExternalScriptError(BaseException):
     def __init__(self, value):
         self.parameter = value
@@ -89,6 +91,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         
     tmpdir_name = 'tmp' + '_' + str(random.randrange(10**10))
     os.mkdir(tmpdir_name)
+    global tmpdir_path
     tmpdir_path = os.path.join(PWD, tmpdir_name)
     os.chdir(tmpdir_path)
 

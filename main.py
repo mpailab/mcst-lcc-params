@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # External imports
-import configargparse, os, sys
+import configargparse, os, sys, shutil
 
 # Internal imports
 import options
@@ -117,6 +117,7 @@ if args.force or args.mode == 'data':
 PWD = os.getcwd()
 
 import train
+import anneal
 
 try:
     if args.mode == 'data':
@@ -125,16 +126,14 @@ try:
             train.clear()
 
         if args.force:
-            import anneal
+            
             anneal.run()
-
         else:
             train.collect()
 
     elif args.mode == 'find':
 
         if args.force:
-            import anneal
             anneal.run()
 
         else:
@@ -148,5 +147,13 @@ try:
         train.run()
 
 except KeyboardInterrupt:
+    
     os.chdir(PWD)
+    
+    # удаление временной папки
+    tmp_path = anneal.clc.tmpdir_path
+    if tmp_path != None:
+        if os.path.exists(tmp_path):            
+            shutil.rmtree(tmp_path)
+    
     train.close()

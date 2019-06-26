@@ -37,7 +37,7 @@ if gl.VERBOSE == 0:
 if gl.VERBOSE == 1:
     optval = None
     F = None
-    гuns = None
+    runs = None
     
 if gl.VERBOSE >= 2:
     F = None

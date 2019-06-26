@@ -419,14 +419,14 @@ FL = F((1.0,1.0,1.0))
 def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
 
     ax = []
-    for par in group:
-        start, stop = ranges[par]
-        if par.types[par] == bool:
+    for parname in group:
+        start, stop = ranges[parname]
+        if par.types[parname] == bool:
             steps = 1
-        elif par.types[par] == int:
+        elif par.types[parname] == int:
             d = stop - start
             steps = d if d < steps else steps
-        ax.append(np.linspace(start, stop, num=steps+1, dtype=par.types[par]))
+        ax.append(np.linspace(start, stop, num=steps+1, dtype=par.types[parname]))
 
     l = list(map(lambda x: x.flatten().tolist(), np.meshgrid(*ax, sparse=False, indexing='ij')))
 

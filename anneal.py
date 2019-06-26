@@ -11,7 +11,6 @@ from sys import maxsize
 import options as gl
 import statistics as stat
 import func as clc
-from func import calculate_abs_values
 import par, train, verbose
 
 if gl.TEMPERATURE_LAW_TYPE == 1:
@@ -251,7 +250,7 @@ def optimize(procs_dic, par_names,
     # генерация статистики, если new_stat_for_every_step == True
     flag = every_proc_is_individual_task
     if result_default == None:
-        result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag)
+        result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
         j_for_exec_run = 1
     else:
         j_for_exec_run = 0
@@ -275,7 +274,7 @@ def optimize(procs_dic, par_names,
         par_start_value = tmp_dict
         
         if result_start == None:
-            result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
+            result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
@@ -537,9 +536,10 @@ def optimize(procs_dic, par_names,
             print('There is F(result of run.sh on par_dict = ' + str(par_candidate_value) + ') in our database', file=output)
             ind = F_run_result[0].index(par_candidate_value)
             val_F_candidate = F_run_result[1][ind]
+            print('F(...) = ', val_F_candidate, file=output)
         else:
             candidate_is_new = True
-            result_candidate = calculate_abs_values(procs_dic, par_candidate_value, separate_procs = flag)
+            result_candidate = clc.calculate_abs_values(procs_dic, par_candidate_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
             F_run_result[0].append(dict(par_candidate_value))
@@ -547,7 +547,7 @@ def optimize(procs_dic, par_names,
             F_run_result[2].append(None)
             F_run_result[3].append(None)
             ind = -1
-        print('F(...) = ', val_F_candidate, file=verbose.F)
+            print('F(...) = ', val_F_candidate, file=verbose.F)
         
         if val_F_candidate < val_F_best:
             par_best_value = dict(par_candidate_value)
@@ -602,7 +602,7 @@ def seq_optimize(procs_dic, pargroup_seq,
             ):
     
     flag = every_proc_is_individual_task
-    result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag)
+    result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
     
     dis_regpar = stat.get_dis_regpar(procs_dic)
     dis_icvpar = stat.get_dis_icvpar(procs_dic)
@@ -664,7 +664,7 @@ def dcs_optimize(procs_dic,
     
     j_for_exec_run = 0
     if result_default == None:
-        result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag)
+        result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
@@ -686,7 +686,7 @@ def dcs_optimize(procs_dic,
         par_start_value = tmp_dict
         
         if result_start == None:
-            result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
+            result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
@@ -722,7 +722,7 @@ def dcs_optimize(procs_dic,
             if par_value == par_start_value:
                 print('Result of dcs optimization in the level', lv, 'is already known', file=output)
                 continue
-            result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag)
+            result_candidate = clc.calculate_abs_values(procs_dic, par_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
             print('F(...) = ', val_F_candidate, file=verbose.F)
@@ -753,7 +753,7 @@ def optimize_bool_par(procs_dic, parname,
     
     j_for_exec_run = 0
     if result_default == None:
-        result_default = calculate_abs_values(procs_dic, {}, separate_procs = flag)
+        result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
@@ -771,7 +771,7 @@ def optimize_bool_par(procs_dic, parname,
         par_start_value = tmp_dict
         
         if result_start == None:
-            result_start = calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
+            result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
@@ -797,7 +797,7 @@ def optimize_bool_par(procs_dic, parname,
     par_value[parname] = not par_value[parname]
     print('Switch parametor', parname, 'to value : ', par_value[parname], file=output)
     
-    result_candidate = calculate_abs_values(procs_dic, par_value, separate_procs = flag)
+    result_candidate = clc.calculate_abs_values(procs_dic, par_value, separate_procs = flag)
     j_for_exec_run += 1
     val_F_candidate = calculate_F(result_candidate, result_default)
     print('F(...) = ', val_F_candidate, file=verbose.F)

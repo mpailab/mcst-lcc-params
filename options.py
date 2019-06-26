@@ -592,7 +592,7 @@ GL['par_start'] = Global(
 INHERIT_STAT = False
 GL['inherit'] = Global(
      'INHERIT_STAT', 'inherit',
-     'использовать собранную статистику компилятора LCC в не зависимости от значений параметров оптимизирующих преобразований',
+     'всегда использовать предварительно собранную статистику компилятора LCC',
      'bool', None, None, None,
      INHERIT_STAT
 )
