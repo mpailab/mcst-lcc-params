@@ -277,7 +277,6 @@ def optimize(procs_dic, par_names,
             result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
-            print('F(...) = ', val_F_start, file=verbose.F)
         else:    
             if val_F_start == None:
                 val_F_start = calculate_F(result_start, result_default)
@@ -286,7 +285,7 @@ def optimize(procs_dic, par_names,
     val_F_current = val_F_start
     par_current_value = dict(par_start_value)
     print('F_start = ', val_F_current, file=verbose.F)
-    print(file=output)
+    print(file=verbose.runs)
     
     # установка начальных значений для лучшего значения функционала F, лучшего значения параметра
     # и шага алгоритма, на котором они достигаются
@@ -324,10 +323,10 @@ def optimize(procs_dic, par_names,
         print('For solve this problem increase a number of optimizated procedures', file=verbose.err)
         print('Interrupt optimization', file=verbose.err)
         print(file=output)
-        print('The best values for parametors are', par_best_value, file=output)
+        par_value_print('The best values for parametors :', par_best_value, file=verbose.optval)
         print('The best values were found for', i_for_best_value, 'iterations of algorithm', file=output)
         print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-        print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
+        print('The best (t_c, t_e, m) is', result_best, file=output)
         print('The best value for F is', val_F_best, file=output)
         return (par_best_value, val_F_best, result_best)
     
@@ -584,12 +583,12 @@ def optimize(procs_dic, par_names,
                 print('Not moving to the candidate value with chance_move =', chance_move, file=output)
         
         # current_to_new_candidate = current_to_candidate and candidate_is_new
-        print(file=output)
+        print(file=verbose.runs)
     
-    print('The best values for parametors are', par_best_value, file=output)
+    par_value_print('The best values for parametors :', par_best_value, file=verbose.optval)
     print('The best values were found for', i_for_best_value, 'iterations of algorithm', file=output)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-    print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
+    print('The best (t_c, t_e, m) is', result_best, file=output)
     print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
@@ -611,8 +610,9 @@ def seq_optimize(procs_dic, pargroup_seq,
     val_F_current = None
     result_current = None
     for par_group in pargroup_seq:
-        print("---------------------------------------------------------------------------", file=output)
-        print("Parameters:", str(par_group))
+        print("---------------------------------------------------------------------------")
+        print("Parametors:", str(par_group))
+        print()
         
         is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in par_group])
         is_nesting_pargroup = len(par_group) == 1 and par_group[0] in par.nesting
@@ -643,9 +643,10 @@ def seq_optimize(procs_dic, pargroup_seq,
                                                                         val_F_start = val_F_current,
                                                                         result_start = result_current)
     
-    print(file=output)
-    print('The final best value for pars is', par_current_value, file=output)
-    print('The final (t_c, t_e, m) is', result_current, file=verbose.optval)
+    print(file=verbose.optval)
+    print("---------------------------------------------------------------------------")
+    par_value_print('The final values :', par_current_value, file=verbose.optval)
+    print('The final (t_c, t_e, m) is', result_current, file=output)
     print('The final value for F is', val_F_current, file=output)
         
     return par_current_value, val_F_current, result_current
@@ -733,10 +734,10 @@ def dcs_optimize(procs_dic,
         else:
             print('Dcs optimization in the level', lv, 'will not be effective', file=output)
     
-    print(file=output)
-    print('The best values for parametors are', par_best_value, file=output)
+    print(file=verbose.optval)
+    par_value_print('The best values for parametors :', par_best_value, file=verbose.optval)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-    print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
+    print('The best (t_c, t_e, m) is', result_best, file=output)
     print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
@@ -780,7 +781,7 @@ def optimize_bool_par(procs_dic, parname,
                 val_F_start = calculate_F(result_start, result_default)
             
     print('F_start = ', val_F_start, file=verbose.F)
-    print(file=output)
+    print(file=verbose.runs)
     
     # установка начальных значений для лучшего значения функционала F и лучшего значения параметра
     if val_F_start < val_F_default:
@@ -801,20 +802,26 @@ def optimize_bool_par(procs_dic, parname,
     j_for_exec_run += 1
     val_F_candidate = calculate_F(result_candidate, result_default)
     print('F(...) = ', val_F_candidate, file=verbose.F)
+    print(file=verbose.runs)
     
     if val_F_candidate < val_F_best:
         par_best_value = dict(par_value)
         result_best = dict(result_candidate)
         val_F_best = val_F_candidate
     
-    print(file=output)
-    print('The best values for parametors are', par_best_value, file=output)
+    par_value_print('The best values for parametors :', par_best_value, file=verbose.optval)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
-    print('The best (t_c, t_e, m) is', result_best, file=verbose.optval)
+    print('The best (t_c, t_e, m) is', result_best, file=output)
     print('The best value for F is', val_F_best, file=output)
     
     return (par_best_value, val_F_best, result_best)
-    
+
+def par_value_print(head, par_value, file=verbose.optval, space = '    '):
+    print(head, file=file)
+    for par in par_value:
+        print(space, par, ':', par_value[par])
+
+
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
     
@@ -824,7 +831,7 @@ def run():
     # проверка корректности стратегии
     par.check_strategy()
     
-    # Подгружаем базу данных для обучения
+    # Подгружаем базу данных
     train.DB.load()
 
     # Получаем стратегию, спеки, и начальную точку значений параметров
@@ -846,7 +853,7 @@ def run():
         else:
             print("ok")
     elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-        print('Independent optimization for every spec in') # every_spec
+        print('Independent optimization for every spec :') # every_spec
         par.print_specs(spec_procs)
         print('Successive optimization with the strategy :') # seq
         par.print_strategy(strategy)
@@ -874,7 +881,8 @@ def run():
         
         for parnames in strategy:
             print("---------------------------------------------------------------------------")
-            print("Group:", parnames)
+            print("Parametors:", parnames)
+            print()
             
             is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
             is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
@@ -895,7 +903,7 @@ def run():
             else:
                 print("ok")
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-        print('Independent optimization for every spec in') # every_spec
+        print('Independent optimization for every spec :') # every_spec
         par.print_specs(spec_procs)
         print('Independent optimization on every parametors group in the strategy :') # not seq
         par.print_strategy(strategy)
@@ -910,7 +918,8 @@ def run():
             
             for parnames in strategy:
                 print("---------------------------------------------------------------------------")
-                print("Group:", parnames)
+                print("Parametors:", parnames)
+                print()
                 
                 is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
                 is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
