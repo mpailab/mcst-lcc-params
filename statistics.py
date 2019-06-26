@@ -82,59 +82,59 @@ class Dcs_level:
         self.L = L # множество номеров всех найденных мертвых циклов
 
 # Считывает статистику компиляции процедуры procname задачи taskname на фазе regions
-def get_proc(taskname, procname):
+def get_proc(taskname, procname, stat_dir = None):
     proc = Proc()
-    procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
-    file = open(procpath + '/regions.txt')
-    for strr in file:
-        ## отрезаем от strr последний символ, который является символом перехода на новую строку
-        strr = strr[:-1]
-        if strr[0] == 'H':
-            #В этом случае в strr содержится информация о регионе
-            words = strr.split()
-            hnum = words[0].split(':')[1] # номер головы региона
-            if len(words) == 1:
-                # В этом случае регион с номером hnum раньше не встречался
-                proc.regions[hnum] = Region()
-            elif words[1][0] == 'N':
-                # В этом случае в strr записана характеристика добавляемого узла
-                nodenum = words[1].split(':')[1]
-                if hnum != nodenum:
-                    # голову региона не будем добавлять в узлы
-                    if nodenum not in proc.regions[hnum].nodes:
-                        proc.regions[hnum].nodes[nodenum] = Node()
-                    chname = words[2].split(':')[0]
-                    if chname == 'v':
-                        #костыль: в исходном файле должно быть 'v_cnt', а по факту 'v cnt'.
-                        chname = 'v_cnt'
-                        value = words[3].split(':')[1]
-                    else:
-                        value = words[2].split(':')[1]
-                    proc.regions[hnum].nodes[nodenum].chars[chname] = value
+    if stat_dir is None:
+        stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
+    with open(os.path.join(stat_dir, procname, 'regions.txt')) as file:
+        for strr in file:
+            ## отрезаем от strr последний символ, который является символом перехода на новую строку
+            strr = strr[:-1]
+            if strr[0] == 'H':
+                #В этом случае в strr содержится информация о регионе
+                words = strr.split()
+                hnum = words[0].split(':')[1] # номер головы региона
+                if len(words) == 1:
+                    # В этом случае регион с номером hnum раньше не встречался
+                    proc.regions[hnum] = Region()
+                elif words[1][0] == 'N':
+                    # В этом случае в strr записана характеристика добавляемого узла
+                    nodenum = words[1].split(':')[1]
+                    if hnum != nodenum:
+                        # голову региона не будем добавлять в узлы
+                        if nodenum not in proc.regions[hnum].nodes:
+                            proc.regions[hnum].nodes[nodenum] = Node()
+                        chname = words[2].split(':')[0]
+                        if chname == 'v':
+                            #костыль: в исходном файле должно быть 'v_cnt', а по факту 'v cnt'.
+                            chname = 'v_cnt'
+                            value = words[3].split(':')[1]
+                        else:
+                            value = words[2].split(':')[1]
+                        proc.regions[hnum].nodes[nodenum].chars[chname] = value
+                else:
+                    # В этом случае в строке strr записана характеристика региона
+                    name = words[1].split(':')[0]
+                    value = words[1].split(':')[1]
+                    proc.regions[hnum].chars[name] = value
+            elif strr[0] == 'N':
+                #В этом случае в strr содержится информация о характеристике узла
+                num = strr.split()[0].split(':')[1]
+                name = strr.split()[1].split(':')[0]
+                value = strr.split()[1].split(':')[1]
+                if name == "L":
+                    proc.loops[value] = {'ovl' : strr.split()[2].split(":")[1], 
+                                        'red' : strr.split()[3].split(":")[1]}
+                else:
+                    if name == 'type':
+                        #В этом случае узел с номером nodenum раньше не встречался
+                        proc.nodes[num] = Node()
+                    proc.nodes[num].chars[name] = value
             else:
-                # В этом случае в строке strr записана характеристика региона
-                name = words[1].split(':')[0]
-                value = words[1].split(':')[1]
-                proc.regions[hnum].chars[name] = value
-        elif strr[0] == 'N':
-            #В этом случае в strr содержится информация о характеристике узла
-            num = strr.split()[0].split(':')[1]
-            name = strr.split()[1].split(':')[0]
-            value = strr.split()[1].split(':')[1]
-            if name == "L":
-                proc.loops[value] = {'ovl' : strr.split()[2].split(":")[1], 
-                                     'red' : strr.split()[3].split(":")[1]}
-            else:
-                if name == 'type':
-                    #В этом случае узел с номером nodenum раньше не встречался
-                    proc.nodes[num] = Node()
-                proc.nodes[num].chars[name] = value
-        else:
-            #В этом случае в strr содержится информация о характеристике процедуры
-            name = strr.split(':')[0]
-            value = strr.split(':')[1]
-            proc.chars[name] = value
-    file.close()
+                #В этом случае в strr содержится информация о характеристике процедуры
+                name = strr.split(':')[0]
+                value = strr.split(':')[1]
+                proc.chars[name] = value
     return proc
 
 # Считывает статистику компиляции процедуры procname задачи taskname на фазе if_conv
@@ -251,18 +251,20 @@ def comp_procs_list(taskname):
     return os.listdir(os.path.join(STAT_PATH_FOR_READ, taskname))
 
 # Считывает файл, в котором задаются веса для процедур задачи taskname
-def weights_of_exec_procs(taskname):
+def weights_of_exec_procs(taskname, weight_file = None):
     res = {}
-    rfile = open(os.path.join(gl.PROC_WEIGHT_PATH, taskname + '.txt'))
-    for line in rfile:
-        sp_line = line.split()
-        procname = sp_line[0]
-        try:
-            w_proc = float(sp_line[1])
-        except ValueError:
-            print('Warning! Incorrect weight for proc ' + procname, ':', sp_line[1])
-        else:
-            res[procname] = w_proc
+    if weight_file is None:
+        weight_file =  os.path.join(gl.PROC_WEIGHT_PATH, taskname + '.txt')
+    with open(weight_file) as rfile:
+        for line in rfile:
+            sp_line = line.split()
+            procname = sp_line[0]
+            try:
+                w_proc = float(sp_line[1])
+            except ValueError:
+                print('Warning! Incorrect weight for proc ' + procname, ':', sp_line[1])
+            else:
+                res[procname] = w_proc
     return res
 
 # Получение веса задачи taskname из внешнего файла
@@ -273,18 +275,18 @@ def task_cnt(taskname):
         print('         The weight of task', taskname, 'will be equal to :', 1.)
         return 1.
     res = {}
-    rfile = open(gl.TASK_WEIGHT_PATH)
-    for line in rfile:
-        sp_line = line.split()
-        task = sp_line[0]
-        try:
-            w_task = float(sp_line[1])
-        except ValueError:
-            if task == taskname:
-                print('Warning! Incorrect weight for spec ' + taskname, ':', sp_line[1])
-                print('         The weight of task', taskname, 'will be equal to :', 1.)
-                return 1.
-        res[task] = w_task
+    with open(gl.TASK_WEIGHT_PATH) as rfile:
+        for line in rfile:
+            sp_line = line.split()
+            task = sp_line[0]
+            try:
+                w_task = float(sp_line[1])
+            except ValueError:
+                if task == taskname:
+                    print('Warning! Incorrect weight for spec ' + taskname, ':', sp_line[1])
+                    print('         The weight of task', taskname, 'will be equal to :', 1.)
+                    return 1.
+            res[task] = w_task
     if taskname in res:
         return res[taskname]
     else:

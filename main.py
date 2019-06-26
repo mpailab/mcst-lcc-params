@@ -17,16 +17,6 @@ class Formatter(configargparse.HelpFormatter):
         import textwrap
         return [x for l in text.splitlines() for x in textwrap.wrap(l, width) ]
 
-# class DirAction(configargparse.Action):
-#     def __call__(self, parser, namespace, values, option_string=None):
-#         if not os.path.exists(values):
-#             raise ValueError('nargs for store actions must be > 0; if you '
-#                              'have nothing to store, actions such as store '
-#                              'true or store const may be more appropriate')
-#         if const is not None and nargs != OPTIONAL:
-#             raise ValueError('nargs must be %r to supply const' % OPTIONAL)
-#         setattr(namespace, self.dest, values)
-
 parser = configargparse.ArgParser( prog = 'intsys',
                                    description='Запуск интеллектуальной системы для настройки параметров фаз regions, if_conv, dcs.',
                                    formatter_class=Formatter,

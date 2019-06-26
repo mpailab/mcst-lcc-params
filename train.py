@@ -11,6 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Internal imports
 import options as gl
+import statistics as stat
 import par, verbose
 
 #########################################################################################
@@ -421,6 +422,51 @@ def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
 
     return list(zip(*l))
 
+# Read characters of procedures
+def read_procs (spec, procs, stat_dir = None, weight_file = None):
+    
+    proc_order = stat.weights_of_exec_procs(spec, weight_file)
+
+    res = []
+    for proc in procs:
+
+        proc_info = stat.get_proc(spec, proc, stat_dir)
+
+        w = float(proc_order[proc]) if proc in proc_order else 0.0
+
+        nodes = []
+        for n in proc_info.nodes:
+            node = proc_info.nodes[n]
+            nodes.append(Node(int(n), 
+                                gl.NODE_TYPE[node['type']], 
+                                float(node['cnt']), 
+                                int(node['o_num']), 
+                                int(node['c_num']), 
+                                int(node['l_num']), 
+                                int(node['s_num'])))
+
+        loops = []
+        for l in proc_info.loops:
+            loop = proc_info.loops[l]
+            loops.append(Loop(int(l), 
+                                bool(loop['ovl']), 
+                                bool(loop['red'])))
+
+        res.append(Proc(proc, w, nodes, loops,
+                        [int(proc_info.chars['dom_height']),
+                            int(proc_info.chars['dom_weight']),
+                            int(proc_info.chars['dom_succs'])],
+                        [int(proc_info.chars['pdom_height']),
+                            int(proc_info.chars['pdom_weight']),
+                            int(proc_info.chars['pdom_succs'])]))
+    return res
+
+def to_chars (procs):
+    return list(map(lambda p: list(map(lambda x: float(calc(x, p)), CHARS)), procs))
+    
+def read_proc_chars (spec, procs, stat_dir = None, weight_file = None):
+    return to_chars(read_procs(spec, procs, stat_dir, weight_file))
+
 #########################################################################################
 # Collect the raw data
 
@@ -463,49 +509,8 @@ def average (l):
 
 def run ():
 
-    import statistics as stat
-
     # Check statistics correctness
     stat.check(SPECS, True)
-
-    # Read characters of procedures
-    def read (spec, procs):
-        
-        proc_order = stat.weights_of_exec_procs(spec)
-
-        for name in procs:
-
-            proc_info = stat.get_proc(spec, name)
-
-            w = float(proc_order[name]) if name in proc_order else 0.0
-
-            nodes = []
-            for n in proc_info.nodes:
-                node = proc_info.nodes[n]
-                nodes.append(Node(int(n), 
-                                  gl.NODE_TYPE[node['type']], 
-                                  float(node['cnt']), 
-                                  int(node['o_num']), 
-                                  int(node['c_num']), 
-                                  int(node['l_num']), 
-                                  int(node['s_num'])))
-
-            loops = []
-            for l in proc_info.loops:
-                loop = proc_info.loops[l]
-                loops.append(Loop(int(l), 
-                                  bool(loop['ovl']), 
-                                  bool(loop['red'])))
-
-            proc = Proc(name, w, nodes, loops,
-                        [int(proc_info.chars['dom_height']),
-                         int(proc_info.chars['dom_weight']),
-                         int(proc_info.chars['dom_succs'])],
-                        [int(proc_info.chars['pdom_height']),
-                         int(proc_info.chars['pdom_weight']),
-                         int(proc_info.chars['pdom_succs'])])
-
-            return list(map(lambda x: float(calc(x, proc)), CHARS))
 
     print('Train neural network')
 
@@ -520,7 +525,7 @@ def run ():
         procs = SPECS[spec]
 
         # Read characters of procedures
-        C[spec] = read(spec, procs)
+        C[spec] = read_proc_chars(spec, procs)
 
         # Find maximal counter
         cnt = max(cnt, max(map(lambda x: x[0], C[spec])))
@@ -658,39 +663,42 @@ def run ():
 #########################################################################################
 # Use neural network to find parameters values
 
-def init_node (str):
-    h = str.split(':')
-    return Node(int(h[0]), gl.NODE_TYPE[h[1]], float(h[2]), int(h[3]), int(h[4]), int(h[5]), int(h[6]))
-
-def init_loop (str):
-    h = str.split(':')
-    return Loop(int(h[0]), bool(h[1]), bool(h[2]))
-
-def init_proc (str):
-    h = str.split(';')
-    return Proc('tmp', float(h[0]), 
-                list(map(init_node, h[0].split(','))),
-                list(map(init_loop, h[1].split(','))),
-                list(map(int, h[2].split(','))),
-                list(map(int, h[3].split(','))))
-
 # Поиск оптимальные значения параметров компилятора lcc
 def find ():
 
-    if gl.TRAIN_PROC_CHARS is None:
-        verbose.error('Не поданы характеристики процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc.')
+    if not gl.TRAIN_PROC_CHARS and gl.TRAIN_PROC_CHARS_DIR is None:
+        verbose.error('Нет характеристик процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc.')
+
+    if gl.TRAIN_PROC_CHARS and not gl.TRAIN_PROC_CHARS_DIR is None:
+        verbose.warning('Одновременно указаны характеристики процедур и каталог со статистикой процедур, '
+                        'для которых необходимо найти оптимальные значения параметров компилятора lcc. '
+                        'Будут использованы характеристики процедур, заданные опцией --proc_chars.')
+
+    if gl.TRAIN_PROC_CHARS:
+        chars = to_chars([Proc( 'tmp', p[0], [Node(*n) for n in  p[1]], [Loop(*l) for l in  p[2]], p[3], p[4]) for p in gl.TRAIN_PROC_CHARS])
+
+    else:
+        procs = [x[1] for x in os.walk(gl.TRAIN_PROC_CHARS_DIR)]
+
+        for proc in procs:
+            stat_file = os.path.join(gl.TRAIN_PROC_CHARS_DIR, proc, 'regions.txt')
+            if not os.path.isfile(stat_file):
+                verbose.error('Incorrect statictic for proc %r. There is not file %r.' % (proc, stat_file))
+        
+        if gl.TRAIN_PROC_WEIGHTS is None:
+            verbose.error('Weights for procs was not defined. There is not file %r.' % gl.TRAIN_PROC_WEIGHTS)
+
+        chars = read_proc_chars('tmp', procs, gl.TRAIN_PROC_CHARS_DIR, gl.TRAIN_PROC_WEIGHTS)
+        
 
     from tensorflow import keras
-
-    procs = list(map(init_proc, gl.TRAIN_PROC_CHARS.split()))
-    chars = list(map(lambda p: list(map(lambda x: float(calc(x, p)), CHARS)), procs))
 
     print('Optimal values of parameters')
     for p in PARS.keys():
 
         model = keras.models.load_model(os.path.join(MODEL_DIR, p + '_model.h5'))
-        val_grids = list(map(lambda x: model.predict(x), chars))
-        val_grid = np.average(val_grids, weights=np.array(list(map(lambda p: p.weight, procs))))
+        val_grids = [model.predict(p[1:]) for p in chars]
+        val_grid = np.average(val_grids, weights=np.array([p[0] for p in chars]))
         val = np.unravel_index(np.argmax(val_grid), val_grid.shape)
 
         for i in range(len(p)):

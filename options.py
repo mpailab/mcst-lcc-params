@@ -61,7 +61,7 @@ def name (line):
      line = line.strip('"')
      if line == '':
           raise ValueError
-     if len(line.split(' ')) > 1:
+     if len(line.split()) > 1:
           raise ValueError
      return line
 
@@ -74,9 +74,7 @@ def strategy (line):
      lines = line.split(';')
      pars = []
      for l in lines:
-          if l == '':
-               raise ValueError
-          group = [x for x in l.split(' ') if x in PARAMS]
+          group = [x for x in l.split() if x in PARAMS]
           if not group:
                raise ValueError
           group.sort()
@@ -105,7 +103,7 @@ def specs (line):
                continue
           procs = None
           if len(spec) == 2:
-               procs = [x for x in spec[1].split(' ') if x != '']
+               procs = spec[1].split()
                if not procs:
                     raise ValueError
                procs.sort()
@@ -139,8 +137,7 @@ def node_type (line):
 # '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
 # '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов'
 def proc_chars (line):
-     line = line.strip('"')
-     lines = [x for x in line.split(' ') if x != '']
+     lines = line.strip('"').split()
      if not lines:
           raise ValueError
      procs = []
@@ -178,8 +175,7 @@ def proc_chars (line):
 
 # Parse string of the format '<par_name>:<value> ... <par_name>:<value>'
 def defaults (line):
-     line = line.strip('"')
-     lines = [x for x in line.split(' ') if x != '']
+     lines = line.strip('"').split()
      if not lines:
           raise ValueError
      pars = {x : PARAMS[x][1] for x in PARAMS}
@@ -192,8 +188,7 @@ def defaults (line):
 
 # Parse string of the format '<par_name>:<min>:<max> ... <par_name>:<min>:<max>'
 def ranges (line):
-     line = line.strip('"')
-     lines = [x for x in line.split(' ') if x != '']
+     lines = line.strip('"').split()
      if not lines:
           raise ValueError
      pars = {x : PARAMS[x][2] for x in PARAMS}
@@ -211,6 +206,7 @@ modes = {
     'stat'   : 'Группа параметров для обработки статистики задач/процедур',
     'train'  : 'Группа параметров для настроки обучение ИС',
     'func'   : 'Группа параметров для настроки оптимизируемого функционала',
+    'find'   : 'Группа параметров для настроки поиска оптимальных значений параметров компилятора lcc',
     'script' : 'Группа параметров для запуска задач на компиляцию и исполнение',
     'setup'  : 'Установка значений по умолчанию параметров компилятора lcc'
     }
@@ -833,7 +829,8 @@ GL['verbose'] = Global(
 #########################################################################################
 # Модуль обучения ИС
 
-TRAIN_PROC_CHARS = None
+# Характеистики процедур, для которых необходимо найти оптимальные значения параметров
+TRAIN_PROC_CHARS = []
 GL['proc_chars'] = Global(
      'TRAIN_PROC_CHARS', 'proc_chars',
      'характеристики процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc. Данные задаются в следующем формате:\n'
@@ -858,7 +855,25 @@ GL['proc_chars'] = Global(
      '<(p)dom_width>  - ширина дерева (пост)доминаторов\n'
      '<(p)dom_succs>  - максимальное ветвление вершин в дереве (пост)доминаторов',
      'format', None, '<procs>', proc_chars,
-     TRAIN_PROC_CHARS
+     TRAIN_PROC_CHARS, 'find'
+)
+
+# Каталог с статистикой процедур, для которых необходимо найти оптимальные значения параметров
+TRAIN_PROC_CHARS_DIR = None
+GL['proc_chars_dir'] = Global(
+     'TRAIN_PROC_CHARS_DIR', 'proc_chars_dir',
+     'каталог со статистикой процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc',
+     'path_to_dir', None, None, dir,
+     TRAIN_PROC_CHARS_DIR, 'find'
+)
+
+# Файл с весами процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc
+TRAIN_PROC_WEIGHTS = None
+GL['proc_weights'] = Global(
+     'TRAIN_PROC_WEIGHTS', 'proc_weights',
+     'файл с весами процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc',
+     'path_to_file', None, None, file,
+     TRAIN_PROC_WEIGHTS, 'find'
 )
 
 # Удаляются все накопленные данные для обучения
@@ -867,7 +882,7 @@ GL['clear'] = Global(
      'TRAIN_CLEAR', 'clear',
      'удаление всех накопленных данных для обучения',
      'bool', None, None, None,
-     TRAIN_CLEAR
+     TRAIN_CLEAR, 'train'
 )
 
 # Накапливать ли данные для обучения?
@@ -876,7 +891,7 @@ GL['pure'] = Global(
      'TRAIN_PURE', 'pure',
      'не накапливать данные для обучения',
      'bool', None, None, None,
-     TRAIN_PURE
+     TRAIN_PURE, 'train'
 )
 
 # Каталог, в котором расположены данные для обучения ИС
@@ -885,7 +900,7 @@ GL['tr_dir'] = Global(
      'TRAIN_DATA_DIR', 'tr_dir',
      'каталог с данными для обучения ИС',
      'path_to_dir', None, None, path,
-     TRAIN_DATA_DIR
+     TRAIN_DATA_DIR, 'train'
 )
 
 # Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
