@@ -148,12 +148,14 @@ try:
 
 except KeyboardInterrupt:
     
+    # возвращение в основной каталог
     os.chdir(PWD)
     
-    # удаление временной папки
+    # удаление оставшейся временной папки
     tmp_path = anneal.clc.tmpdir_path
     if tmp_path != None:
         if os.path.exists(tmp_path):            
             shutil.rmtree(tmp_path)
-    
+            
+    # сохранение данных
     train.close()

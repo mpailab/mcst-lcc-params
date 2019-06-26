@@ -531,7 +531,7 @@ def run ():
 
     # Treat specs, read its characters and store data
     for spec in SPECS.keys():
-
+        
         procs = SPECS[spec]
 
         # Read characters of procedures
@@ -542,15 +542,15 @@ def run ():
 
         # Store data for every group of parameters
         for gr in PARS.keys():
-
-            k = () if procs is None else tuple(procs)
+            
+            procs_t = () if procs is None else tuple(procs)
             
             # Check that there is the raw data for given group of parameters
-            if not gr in DB.values[spec][k]:
+            if not gr in DB.values[spec][procs_t]:
                 continue
 
             # Form list of the raw data
-            vh = DB.values[spec][k][gr]
+            vh = DB.values[spec][procs_t][gr]
             vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
 
             # Check that data is suitable
