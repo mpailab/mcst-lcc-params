@@ -116,19 +116,19 @@ if args.force or args.mode == 'data':
 # каталог, из которого запущен процесс
 PWD = os.getcwd()
 
+import train
+
 try:
     if args.mode == 'data':
 
         if args.clear:
-            from train import clear
-            clear()
+            train.clear()
 
         if args.force:
             import anneal
             anneal.run()
 
         else:
-            import train
             train.collect()
 
     elif args.mode == 'find':
@@ -138,7 +138,6 @@ try:
             anneal.run()
 
         else:
-            import train
             train.find()
 
     elif args.mode == 'stat':
@@ -146,7 +145,6 @@ try:
         pass
 
     else: # args.mode == 'train':
-        import train
         train.run()
 
 except KeyboardInterrupt:

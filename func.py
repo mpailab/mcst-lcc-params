@@ -15,6 +15,8 @@ import verbose
 
 # Вычилсяем папку, из которой запущен процесс
 PWD = os.getcwd()
+SCRIPT_CMP_RUN = os.path.abspath(gl.SCRIPT_CMP_RUN)
+SCRIPT_CMP_INIT = os.path.abspath(gl.SCRIPT_CMP_INIT)
 
 class ExternalScriptError(BaseException):
     def __init__(self, value):
@@ -25,7 +27,7 @@ class ExternalScriptError(BaseException):
 
 # Инициализация внешнего скрипта
 def init_ext_script(dir, output = verbose.runs):
-    cmd = os.path.abspath(gl.SCRIPT_CMP_INIT) + ' ' + dir
+    cmd = SCRIPT_CMP_INIT + ' ' + dir
     print(cmd, file=output)
     prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     prog.wait()
@@ -33,7 +35,7 @@ def init_ext_script(dir, output = verbose.runs):
 # Запуск внешнего срипта
 def run_ext_script(mode, spec, opts, output = verbose.runs):
     assert(mode in gl.CMP_MODES)
-    cmd = ( os.path.abspath(gl.SCRIPT_CMP_RUN) 
+    cmd = ( SCRIPT_CMP_RUN 
             + ' -' + mode 
             + ' -suite ' + gl.CMP_SUITE 
             + ' -spec ' + spec

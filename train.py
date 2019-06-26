@@ -25,6 +25,8 @@ SPECS = par.specs()
 
 # Dataset directory
 DATA_DIR = gl.TRAIN_DATA_DIR
+if DATA_DIR == None:
+    verbose.error('Directory for train data was not defined')
 
 # Clear database directory
 def clear ():
@@ -306,7 +308,7 @@ class DataBase:
     def __init__ (self):
 
         # Table of values
-        # Format: procs -> (par_1,...,par_n) -> (val_1,...,val_n) -> [(t_c/t0_c, t_e/t0_e, v_mem/v0_mem), ... ]
+        # Format: spec -> procs -> (par_1,...,par_n) -> (val_1,...,val_n) -> [(t_c/t0_c, t_e/t0_e, v_mem/v0_mem), ... ]
         self.values = {}
 
         # Default values for current launch
@@ -321,7 +323,7 @@ class DataBase:
 
         if os.path.isdir(sourse):
             for spec in SPECS.keys():
-                path = os.path.join(sourse, spec + '.bat')
+                path = os.path.join(sourse, spec + '.bd')
                 if os.path.isfile(path):
                     with open(path, 'rb') as f:
                         self.values[spec] = pickle.load(f)
@@ -334,12 +336,11 @@ class DataBase:
 
         if not os.path.isdir(sourse):
             os.makedirs(sourse)
-            
-        for spec in SPECS.keys():
-            if bool(self.values[spec]):
-                path = os.path.join(sourse, spec + '.bat')
-                with open(path, 'wb') as f:
-                    pickle.dump(self.values[spec], f, 2)
+        
+        for spec in self.values.keys():
+            path = os.path.join(sourse, spec + '.bd')
+            with open(path, 'wb') as f:
+                pickle.dump(self.values[spec], f, 2)
                 
     # Add value to database
     # Format of pv: {par_1 : val_1, ..., par_n : val_n}
@@ -348,7 +349,7 @@ class DataBase:
         if gl.TRAIN_PURE:
             return
 
-        if bool(pv):
+        if not pv:
             self.default[spec] = (t_c, t_e, v_mem)
 
         else:
@@ -359,10 +360,19 @@ class DataBase:
             v = tuple(map(lambda x: pv[x], p))
             r = (t_c / self.default[spec][0], t_e / self.default[spec][1], v_mem / self.default[spec][2])
             
-            if spec in self.values and k in self.values[spec] and p in self.values[spec][k] and v in self.values[spec][k][p]:
-                self.values[spec][k][p][v].append(r)
-            else:
+            if not spec in self.values:
+                self.values[spec] = {}
+                
+            if not k in self.values[spec]:
+                self.values[spec][k] = {}
+                
+            if not p in self.values[spec][k]:
+                self.values[spec][k][p] = {}
+                
+            if not v in self.values[spec][k][p]:
                 self.values[spec][k][p][v] = [r]
+            else:
+                self.values[spec][k][p][v].append(r)
 
 # Database
 DB = DataBase()
@@ -533,12 +543,14 @@ def run ():
         # Store data for every group of parameters
         for gr in PARS.keys():
 
+            k = () if procs is None else tuple(procs)
+            
             # Check that there is the raw data for given group of parameters
-            if not gr in DB.values[spec][tuple(procs)]:
+            if not gr in DB.values[spec][k]:
                 continue
 
             # Form list of the raw data
-            vh = DB.values[spec][tuple(procs)][gr]
+            vh = DB.values[spec][k][gr]
             vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
 
             # Check that data is suitable

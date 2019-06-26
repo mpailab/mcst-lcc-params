@@ -46,7 +46,8 @@ def dir (line):
 def path (line):
      from re import search
      line = line.strip('"')
-     if not search(r'[^A-Za-z0-9_\-\\]',os.path.normpath(line)) is None:
+     path = os.path.normpath(line)
+     if not search(r'[^A-Za-z0-9_\-' + os.sep + ']', path) is None:
           raise ValueError
      return line
 
@@ -1008,9 +1009,9 @@ GL['cmp_run'] = Global(
      'SCRIPT_CMP_RUN', 'cmp_run',
      'bash-скрипт для запуска задач на компиляцию и/или исполнение. Имеет формат:\n'
      '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir <path> -server <machine_name>\n'
-     'где -comp   - режим рапуска на компиляцию\n'
-     '    -exec   - режим рапуска на исполнение\n'
-     '    -stat   - режим рапуска на получение статистики\n'
+     'где -comp   - режим запуска на компиляцию\n'
+     '    -exec   - режим запуска на исполнение\n'
+     '    -stat   - режим запуска на получение статистики\n'
      '    -suite  - выбор специфического бэнчмарка\n'
      '    -spec   - выбор специфических задач\n'
      '    -base   - базовый режим запуска компилятора lcc\n'
