@@ -4,6 +4,7 @@
 # External imports
 import os, random, shutil
 from subprocess import Popen, PIPE
+import sys
 from sys import maxsize
 
 # Internal imports
@@ -16,7 +17,11 @@ import verbose
 PWD = os.getcwd()
 
 class ExternalScriptError(BaseException):
-    print('An error in external sript \'' + gl.SCRIPT_CMP_RUN + '\'.')
+    def __init__(self, value):
+        self.parameter = value
+    
+    def __str__(self):
+        return 'An error in external sript %r. %s' % (gl.SCRIPT_CMP_RUN, self.parameter)
 
 # Инициализация внешнего скрипта
 def init_ext_script(dir, output = verbose.runs):
@@ -125,7 +130,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             proclist_pred = el_pred[1]
 
             # Добавление результата запуска в tr_data для el_pred
-            train.DB[taskname_pred].add(proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
+            train.DB.add(taskname_pred, proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
         
         # Запуск на исполнение для el
         exec_proc = run_ext_script('exec', taskname, cmd_pars, output)
@@ -158,7 +163,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
             shutil.rmtree(tmpdir_path)
             raise ExternalScriptError(error)
     # Добавление результата запуска в tr_data для последнего элемента в elements
-    train.DB[taskname].add(proclist, par_value, result_comp[el], result_exec[el], result_maxmem[el])
+    train.DB.add(taskname, proclist, par_value, result_comp[el], result_exec[el], result_maxmem[el])
     
     os.chdir(PWD)
     shutil.rmtree(tmpdir_path)

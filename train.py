@@ -4,33 +4,14 @@
 # External imports
 import os, sys, shutil
 from functools import reduce
-import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-import tensorflow as tf
-from tensorflow import keras
-from scipy import interpolate
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Internal imports
 import options as gl
 import par, verbose
-
-#########################################################################################
-# Checking global variables
-
-# EXTERNALS = [
-#     gl.TRAIN_DATA_DIR
-# ]
-
-# for gl in :
-#     val = options.__dict__[gl.name]
-#     if val == None:
-#         verbose.error('The value of parametor \'' + gl.param + '\' was not defined')
-#     if gl.isFile() or gl.isDir():
-#         if not os.path.exists(options.__dict__[gl.name]):
-#             verbose.error('Wrong value of parametor \'' + gl.param + '\', path \'' + gl.default + '\' does not exist')
 
 #########################################################################################
 # Local variables and data structures
@@ -321,18 +302,15 @@ def calc (param, proc):
 class DataBase:
 
     # Initiate database
-    def __init__ (self, spec):
-
-        # Spec name
-        self.spec = spec
+    def __init__ (self):
 
         # Table of values
         # Format: procs -> (par_1,...,par_n) -> (val_1,...,val_n) -> [(t_c/t0_c, t_e/t0_e, v_mem/v0_mem), ... ]
         self.values = {}
 
         # Default values for current launch
-        # Format : (t0_c, t0_e, v0_mem)
-        self.default = None
+        # Format : spec -> (t0_c, t0_e, v0_mem)
+        self.default = {}
     
     # Load database from sourse
     def load (self, sourse = DATA_DIR):
@@ -340,11 +318,12 @@ class DataBase:
         if gl.TRAIN_PURE:
             return
 
-        if os.path.exists(sourse):
-            path = os.path.join(sourse, self.spec + '.bat')
-            if os.path.isfile(path):
-                with open(path, 'rb') as f:
-                    self.values = pickle.load(f)
+        if os.path.isdir(sourse):
+            for spec in SPECS.keys():
+                path = os.path.join(sourse, spec + '.bat')
+                if os.path.isfile(path):
+                    with open(path, 'rb') as f:
+                        self.values[spec] = pickle.load(f)
     
     # Save database from sourse
     def save (self, sourse = DATA_DIR):
@@ -352,23 +331,24 @@ class DataBase:
         if gl.TRAIN_PURE:
             return
 
-        if not os.path.exists(sourse):
+        if not os.path.isdir(sourse):
             os.makedirs(sourse)
             
-        if bool(self.values):
-            path = os.path.join(sourse, self.spec + '.bat')
-            with open(path, 'wb') as f:
-                pickle.dump(self.values, f, 2)
+        for spec in SPECS.keys():
+            if bool(self.values[spec]):
+                path = os.path.join(sourse, spec + '.bat')
+                with open(path, 'wb') as f:
+                    pickle.dump(self.values[spec], f, 2)
                 
     # Add value to database
     # Format of pv: {par_1 : val_1, ..., par_n : val_n}
-    def add (self, procs, pv, t_c, t_e, v_mem):
+    def add (self, spec, procs, pv, t_c, t_e, v_mem):
 
         if gl.TRAIN_PURE:
             return
 
         if bool(pv):
-            self.default = (t_c, t_e, v_mem)
+            self.default[spec] = (t_c, t_e, v_mem)
 
         else:
             k = () if procs is None else tuple(procs)
@@ -376,19 +356,19 @@ class DataBase:
             p.sort()
             p = tuple(p)
             v = tuple(map(lambda x: pv[x], p))
-            r = (t_c / self.default[0], t_e / self.default[1], v_mem / self.default[2])
+            r = (t_c / self.default[spec][0], t_e / self.default[spec][1], v_mem / self.default[spec][2])
             
-            if k in self.values and p in self.values[k] and v in self.values[k][p]:
-                self.values[k][p][v].append(r)
+            if spec in self.values and k in self.values[spec] and p in self.values[spec][k] and v in self.values[spec][k][p]:
+                self.values[spec][k][p][v].append(r)
             else:
-                self.values[k][p][v] = [r]
+                self.values[spec][k][p][v] = [r]
 
 # Database
-DB = {spec : DataBase(spec) for spec in SPECS.keys()}
+DB = DataBase()
     
 # Close database
 def close ():
-    map(lambda spec: DB[spec].save(), SPECS.keys())
+    DB.save()
 
 # Models directory
 MODEL_DIR = gl.TRAIN_MODEL_DIR
@@ -467,8 +447,8 @@ def collect():
         
         # Add data for default values of parameters
         for spec, procs in SPECS.items():
-            t_c, t_e, v_mem = DB[spec].default
-            DB[spec].add(procs, dict(zip(gr, default)), t_c, t_e, v_mem)
+            t_c, t_e, v_mem = DB.default[spec]
+            DB.add(spec, procs, dict(zip(gr, default)), t_c, t_e, v_mem)
         
         # Calculate values in points and store data
         for point in points:
@@ -549,11 +529,11 @@ def run ():
         for gr in PARS.keys():
 
             # Check that there is the raw data for given group of parameters
-            if not gr in DB[spec].values[tuple(procs)]:
+            if not gr in DB.values[spec][tuple(procs)]:
                 continue
 
             # Form list of the raw data
-            vh = DB[spec].values[tuple(procs)][gr]
+            vh = DB.values[spec][tuple(procs)][gr]
             vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
 
             # Check that data is suitable
@@ -573,6 +553,9 @@ def run ():
 
             # Store data
             D[gr].append([spec, [ i for i, j in vs ], [ j for i, j in vs ]])
+
+    from tensorflow import keras
+    from scipy.interpolate import interp1d, griddata
 
     # Train neural network for a given group of parameters
     for gr in PARS.keys():
@@ -604,9 +587,9 @@ def run ():
                 idx = np.argsort(points)
                 points = points[idx]
                 values = values[idx]
-                f = interpolate.interp1d(points, values, kind=method, axis=0, bounds_error=False, fill_value='extrapolate')
+                f = interp1d(points, values, kind=method, axis=0, bounds_error=False, fill_value='extrapolate')
             else:
-                f = lambda x: interpolate.griddata(points, values, x, method=method, fill_value='extrapolate')
+                f = lambda x: griddata(points, values, x, method=method, fill_value='extrapolate')
 
             # Calculate interpolated values
             val = FL - f(grid)
@@ -696,6 +679,8 @@ def find ():
 
     if gl.TRAIN_PROC_CHARS is None:
         verbose.error('Не поданы характеристики процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc.')
+
+    from tensorflow import keras
 
     procs = list(map(init_proc, gl.TRAIN_PROC_CHARS.split()))
     chars = list(map(lambda p: list(map(lambda x: float(calc(x, p)), CHARS)), procs))
