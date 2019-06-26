@@ -70,8 +70,8 @@ import options as gl
 import verbose
 
 types = {x : gl.PARAMS[x][0] for x in gl.PARAMS}
-defaults = {x : gl.PARAMS[x][1] for x in gl.PARAMS}
-ranges = {x : gl.PARAMS[x][2] for x in gl.PARAMS}
+defaults = gl.PAR_DEFAULTS
+ranges = gl.PAR_RANGES
 
 # список параметров, связанных с дублированием узлов
 doub_kind = [
