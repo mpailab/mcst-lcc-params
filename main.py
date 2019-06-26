@@ -126,7 +126,6 @@ try:
             train.clear()
 
         if args.force:
-            
             anneal.run()
         else:
             train.collect()
@@ -135,7 +134,6 @@ try:
 
         if args.force:
             anneal.run()
-
         else:
             train.find()
 
@@ -156,6 +154,9 @@ except KeyboardInterrupt:
     if tmp_path != None:
         if os.path.exists(tmp_path):            
             shutil.rmtree(tmp_path)
-            
+finally:
     # сохранение данных
-    train.close()
+    if args.mode == 'find' and not args.force:
+        pass
+    else:
+        train.close()

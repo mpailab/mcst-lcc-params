@@ -435,25 +435,27 @@ def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
 # Read characters of procedures
 def read_procs (spec, procs, stat_dir = None, weight_file = None):
     
-    proc_order = stat.weights_of_exec_procs(spec, weight_file)
+    procs_and_weights = stat.get_procs_and_weights(spec, procs)
+    procs = procs_and_weights[0]
+    proc_order = procs_and_weights[1]
 
     res = []
     for proc in procs:
 
         proc_info = stat.get_proc(spec, proc, stat_dir)
-
-        w = float(proc_order[proc]) if proc in proc_order else 0.0
+        
+        w_proc = stat.proc_weight(proc_order, proc)
 
         nodes = []
         for n in proc_info.nodes:
             node = proc_info.nodes[n]
-            nodes.append(Node(int(n), 
-                                gl.NODE_TYPE[node['type']], 
-                                float(node['cnt']), 
-                                int(node['o_num']), 
-                                int(node['c_num']), 
-                                int(node['l_num']), 
-                                int(node['s_num'])))
+            nodes.append(Node(int(n),
+                                gl.NODE_TYPE[node.chars['type']], 
+                                float(node.chars['cnt']), 
+                                int(node.chars['o_num']), 
+                                int(node.chars['c_num']), 
+                                int(node.chars['l_num']), 
+                                int(node.chars['s_num'])))
 
         loops = []
         for l in proc_info.loops:
@@ -462,7 +464,7 @@ def read_procs (spec, procs, stat_dir = None, weight_file = None):
                                 bool(loop['ovl']), 
                                 bool(loop['red'])))
 
-        res.append(Proc(proc, w, nodes, loops,
+        res.append(Proc(proc, w_proc, nodes, loops,
                         [int(proc_info.chars['dom_height']),
                             int(proc_info.chars['dom_weight']),
                             int(proc_info.chars['dom_succs'])],
@@ -518,7 +520,9 @@ def average (l):
     return sum(l) / float(len(l))
 
 def run ():
-
+    
+    DB.load()
+    
     # Check statistics correctness
     stat.check(SPECS, True)
 
@@ -546,6 +550,10 @@ def run ():
             procs_t = () if procs is None else tuple(procs)
             
             # Check that there is the raw data for given group of parameters
+            if not spec in DB.values:
+                continue
+            if not procs_t in DB.values[spec]:
+                continue
             if not gr in DB.values[spec][procs_t]:
                 continue
 
@@ -569,9 +577,10 @@ def run ():
                     R[gr][gr[i]] = (min_value, max_value)
 
             # Store data
+            if len(gr) == 1:
+                vs.sort()
             D[gr].append([spec, [ i for i, j in vs ], [ j for i, j in vs ]])
 
-    from tensorflow import keras
     from scipy.interpolate import interp1d, griddata
 
     # Train neural network for a given group of parameters
@@ -579,20 +588,20 @@ def run ():
 
         # Check that data is not empty for a given group of parameters
         if D[gr] == []: 
-            verbose.warning('Train for parameters ' + gr + ' are impossible since not enough data available.')
+            verbose.warning('Train for parameters ' + str(gr) + ' are impossible since not enough data available.')
             continue
 
         # Set interpolation method
         method = INTERP
         if method == 'quadratic' and len(gr) > 1:
-            verbose.warning('Method \'quadratic\' can not be used for training data of parameters ' + gr + ', method \'linear\' will be used.')
+            verbose.warning('Method \'quadratic\' can not be used for training data of parameters ' + str(gr) + ', method \'linear\' will be used.')
             method = 'linear'
         if method == 'cubic' and len(gr) > 2:
-            verbose.warning('Method \'cubic\' can not be used for training data of parameters ' + gr + ', method \'linear\' will be used.')
+            verbose.warning('Method \'cubic\' can not be used for training data of parameters ' + str(gr) + ', method \'linear\' will be used.')
             method = 'linear'
 
         # Create grid for interpolation
-        grid = grid(gr, R[gr], TRAIN_GRID)
+        gridd = grid(gr, R[gr], TRAIN_GRID)
 
         # Fill data list
         data = []
@@ -600,16 +609,17 @@ def run ():
 
             # Calculate interpolation function
             if len(gr) == 1:
-                # Sort points/values together, necessary as input for interp1d
-                idx = np.argsort(points)
-                points = points[idx]
-                values = values[idx]
+                points = list(map(lambda x: x[0], points))
                 f = interp1d(points, values, kind=method, axis=0, bounds_error=False, fill_value='extrapolate')
             else:
-                f = lambda x: griddata(points, values, x, method=method, fill_value='extrapolate')
+                #print(points)
+                #print(values)
+                print(gridd)
+                print(points)
+                f = lambda x: griddata(points, values, x, method=method)
 
             # Calculate interpolated values
-            val = FL - f(grid)
+            val = FL - f(gridd)
 
             # Normalize interpolated values
             if max(val) != 0:
@@ -623,6 +633,7 @@ def run ():
         N = int(DELTA * len(data))
 
         # Create a model of neural network
+        from tensorflow import keras
         model = keras.Sequential([keras.layers.Flatten(input_shape=(48,)),
                                   keras.layers.Dense(int(TRAIN_GRID / 2), activation='relu'),
                                   keras.layers.Dense(int(TRAIN_GRID / 2), activation='relu'),
