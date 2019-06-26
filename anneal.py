@@ -279,9 +279,9 @@ def optimize(procs_dic, par_names,
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
-            
-        if val_F_start == None:
-            val_F_start = calculate_F(result_start, result_default)
+        else:    
+            if val_F_start == None:
+                val_F_start = calculate_F(result_start, result_default)
     
     # инициализация текущего значения функционала
     val_F_current = val_F_start
@@ -596,6 +596,7 @@ def optimize(procs_dic, par_names,
 
 def seq_optimize(procs_dic, pargroup_seq,
              every_proc_is_individual_task = False,
+             par_start_value = None,
              output = verbose.default,
              new_stat_for_every_step = not gl.INHERIT_STAT
             ):
@@ -606,7 +607,7 @@ def seq_optimize(procs_dic, pargroup_seq,
     dis_regpar = stat.get_dis_regpar(procs_dic)
     dis_icvpar = stat.get_dis_icvpar(procs_dic)
     
-    par_current_value = None
+    par_current_value = par_start_value
     val_F_current = None
     result_current = None
     for par_group in pargroup_seq:
@@ -689,8 +690,9 @@ def dcs_optimize(procs_dic,
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
-        if val_F_start == None:
-            val_F_start = calculate_F(result_start, result_default)
+        else:
+            if val_F_start == None:
+                val_F_start = calculate_F(result_start, result_default)
     
     par_value = dict(par_start_value)
     print('F_start = ', val_F_start, file=verbose.F)
@@ -773,8 +775,9 @@ def optimize_bool_par(procs_dic, parname,
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
-        if val_F_start == None:
-            val_F_start = calculate_F(result_start, result_default)
+        else:
+            if val_F_start == None:
+                val_F_start = calculate_F(result_start, result_default)
             
     print('F_start = ', val_F_start, file=verbose.F)
     print(file=output)
@@ -824,9 +827,10 @@ def run():
     # Подгружаем базу данных для обучения
     train.DB.load()
 
-    # Получаем стратегию в рабочем формате, параллельно проверяя ее на корректность
+    # Получаем стратегию, спеки, и начальную точку значений параметров
     strategy = par.strategy()
     spec_procs = par.specs()
+    par_start = gl.PAR_START
 
     if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all
@@ -835,7 +839,7 @@ def run():
         par.print_strategy(strategy)
         
         try:
-            seq_optimize(spec_procs, strategy)
+            seq_optimize(spec_procs, strategy, par_start_value = par_start)
         except clc.ExternalScriptError:
             print('fail')
             print('An error by giving (t_c, t_e, m) from external script')
@@ -852,7 +856,7 @@ def run():
             print("Spec:", specname)
             
             try:
-                seq_optimize({specname: proclist}, strategy)
+                seq_optimize({specname: proclist}, strategy, par_start_value = par_start)
             except clc.ExternalScriptError:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
@@ -877,11 +881,14 @@ def run():
             
             try:
                 if is_dcs_pargroup:
-                    dcs_optimize(spec_procs)
+                    dcs_optimize(spec_procs, par_start_value = par_start)
                 elif is_nesting_pargroup:
-                    optimize_bool_par(spec_procs, parnames[0])
+                    optimize_bool_par(spec_procs, parnames[0], par_start_value = par_start)
                 else:
-                    optimize(spec_procs, parnames, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+                    optimize(spec_procs, parnames,
+                             dis_regpar = dis_regpar,
+                             dis_icvpar = dis_icvpar,
+                             par_start_value = par_start)
             except clc.ExternalScriptError:
                 print('fail')
                 print('An error by giving (t_c, t_e, m) from external script')
@@ -909,11 +916,14 @@ def run():
                 is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
                 try:
                     if is_dcs_pargroup:
-                        dcs_optimize({specname : proclist})
+                        dcs_optimize({specname : proclist}, par_start_value = par_start)
                     elif is_nesting_pargroup:
-                        optimize_bool_par({specname : proclist}, parnames[0])
+                        optimize_bool_par({specname : proclist}, parnames[0], par_start_value = par_start)
                     else:
-                        optimize({specname : proclist}, parnames, dis_regpar = dis_regpar, dis_icvpar = dis_icvpar)
+                        optimize({specname : proclist}, parnames,
+                                 dis_regpar = dis_regpar,
+                                 dis_icvpar = dis_icvpar,
+                                 par_start_value = par_start)
                 except clc.ExternalScriptError:
                     print('fail')
                     print('An error by giving (t_c, t_e, m) from external script')
