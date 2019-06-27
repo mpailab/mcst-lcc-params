@@ -402,54 +402,68 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                     reg_opers_num = int(regn.chars['opers_num']) # regn_opers_limit
                 rel_reg_cnt = reg_cnt / sum_reg_cnt
                 w_regn = regn_weight(reg_cnt, rel_reg_cnt)
-                for node in regn.nodes.values():
+                for num, node in regn.nodes.items():
                     if 'n_cnt' in node.chars:
-                        if 's_enter' in node.chars:
-                            s_enter = int(node.chars['s_enter'])
-                        else:
-                            continue
                         n_cnt = float(node.chars['n_cnt'])
+                    elif 'a_cnt' in node.chars:
+                        n_cnt = float(node.chars['a_cnt'])
+                    else:
+                        continue
+                    if 's_enter' in node.chars:
+                        s_enter = int(node.chars['s_enter'])
+                    else:
+                        continue
+                    if 'v_cnt' in node.chars:
                         v_cnt = float(node.chars['v_cnt'])
-                        w = node_weight(n_cnt, v_cnt, proc_max_cnt) * w_regn
-                        key = []
-                        if gl.DINUMIC_PROC_OPERS_NUM:
-                            proc_opers_num = int(proc.chars['proc_opers_num']) # regn_max_proc_op_sem_size
-                        key.append(proc_opers_num)
-                        if gl.DINUMIC_REGN_OPERS_NUM:
-                            reg_opers_num = int(regn.chars['regn_opers_num']) # regn_opers_limit
-                        key.append(reg_opers_num)               
-                        r_cnt = float(node.chars['r_cnt'])      # regn_heur1
-                        key.append(r_cnt)
-                        if s_enter:
-                            key.append(r_cnt)                       # regn_heur2
-                            o_cnt = float(node.chars['o_cnt'])      # regn_heur3
-                            key.append(o_cnt)
-                            p_cnt = float(node.chars['p_cnt'])      # regn_heur4
-                            key.append(p_cnt)
-                        else:
-                            key.append(maxsize) # на узел без бокового входа параметры regn_heur2, regn_heur3, regn_heur4
-                            key.append(maxsize) # не оказывают влияния
-                            key.append(maxsize)
-                        if 'unb_max_dep' in node.chars and 'unb_sh_alt_prob' in node.chars:
-                            p = int(node.chars['unb_max_dep']) - int(node.chars['unb_min_dep']) # regn_disb_heur
-                            key.append(p)
-                            p = reg_cnt / proc_max_cnt                                          # regn_heur_bal1
-                            key.append(p)
-                            p = n_cnt / proc_max_cnt                                            # regn_heur_bal2
-                            key.append(p) 
-                            p = float(node.chars['unb_sh_alt_prob'])                            # regn_prob_heur
-                            key.append(p)
-                        else:
-                            key.append(None)
-                            key.append(None) # regn_heur_bal1, regn_heur_bal2 имеют смысл только,
-                            key.append(None) # если мы определили несбалансированное схождение
-                            key.append(None)
-                                
-                        key = tuple(key)
-                        if key in dis_par:
-                            dis_par[key] += w
-                        else:
-                            dis_par[key] = w
+                    else:
+                        continue
+                    w = node_weight(n_cnt, v_cnt, proc_max_cnt) * w_regn
+                    key = []
+                    if gl.DINUMIC_PROC_OPERS_NUM:
+                        if not 'proc_opers_num' in node.chars:
+                        # if node.chars['add'] == '0':
+                            continue
+                        proc_opers_num = int(node.chars['proc_opers_num']) # regn_max_proc_op_sem_size
+                    key.append(proc_opers_num)
+                    if gl.DINUMIC_REGN_OPERS_NUM:
+                        if not 'regn_opers_num' in node.chars:
+                        # if node.chars['add'] == '0':
+                            continue
+                        reg_opers_num = int(node.chars['regn_opers_num']) # regn_opers_limit
+                    key.append(reg_opers_num)               
+                    r_cnt = float(node.chars['r_cnt'])      # regn_heur1
+                    key.append(r_cnt)
+                    if s_enter:
+                        key.append(r_cnt)                       # regn_heur2
+                        o_cnt = float(node.chars['o_cnt'])      # regn_heur3
+                        key.append(o_cnt)
+                        p_cnt = float(node.chars['p_cnt'])      # regn_heur4
+                        key.append(p_cnt)
+                    else:
+                        key.append(maxsize) # на узел без бокового входа параметры regn_heur2, regn_heur3, regn_heur4
+                        key.append(maxsize) # не оказывают влияния
+                        key.append(maxsize)
+                    if 'unb_max_dep' in node.chars and 'unb_sh_alt_prob' in node.chars:
+                        p = int(node.chars['unb_max_dep']) - int(node.chars['unb_min_dep']) # regn_disb_heur
+                        key.append(p)
+                        p = reg_cnt / proc_max_cnt                                          # regn_heur_bal1
+                        key.append(p)
+                        p = n_cnt / proc_max_cnt                                            # regn_heur_bal2
+                        key.append(p) 
+                        p = float(node.chars['unb_sh_alt_prob'])                            # regn_prob_heur
+                        key.append(p)
+                    else:
+                        key.append(None)
+                        key.append(None) # regn_heur_bal1, regn_heur_bal2 имеют смысл только,
+                        key.append(None) # если мы определили несбалансированное схождение
+                        key.append(None)
+                            
+                    key = tuple(key)
+                    if key in dis_par:
+                        dis_par[key] += w
+                    else:
+                        dis_par[key] = w
+                        
             return dis_par
 
 def get_unnorm_dis_icvpar_for_proc(taskname, procname):
