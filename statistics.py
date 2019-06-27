@@ -403,31 +403,34 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                 rel_reg_cnt = reg_cnt / sum_reg_cnt
                 w_regn = regn_weight(reg_cnt, rel_reg_cnt)
                 for num, node in regn.nodes.items():
+                    #FIXME убрать все проверки in node.chars в случае отсутствия warning-сообщений при тестировании
+                    #В итоговой версии можно завернуть тело этого цикла в блок try: ... except ValueError: continue
                     if 'n_cnt' in node.chars:
                         n_cnt = float(node.chars['n_cnt'])
-                    elif 'a_cnt' in node.chars:
-                        n_cnt = float(node.chars['a_cnt'])
                     else:
+                        verbose.warning('There is not "n_cnt" : %s %s N:%s' % (taskname, procname, num))
                         continue
                     if 's_enter' in node.chars:
                         s_enter = int(node.chars['s_enter'])
                     else:
-                        continue
+                        verbose.warning('There is not "s_enter" : %s %s N:%s' % (taskname, procname, num))
+                        s_enter = 0
                     if 'v_cnt' in node.chars:
                         v_cnt = float(node.chars['v_cnt'])
                     else:
+                        verbose.warning('There is not "v_cnt" : %s %s N:%s' % (taskname, procname, num))
                         continue
                     w = node_weight(n_cnt, v_cnt, proc_max_cnt) * w_regn
                     key = []
                     if gl.DINUMIC_PROC_OPERS_NUM:
                         if not 'proc_opers_num' in node.chars:
-                        # if node.chars['add'] == '0':
+                            verbose.warning('There is not "proc_opers_num" : %s %s N:%s' % (taskname, procname, num))
                             continue
                         proc_opers_num = int(node.chars['proc_opers_num']) # regn_max_proc_op_sem_size
                     key.append(proc_opers_num)
                     if gl.DINUMIC_REGN_OPERS_NUM:
                         if not 'regn_opers_num' in node.chars:
-                        # if node.chars['add'] == '0':
+                            verbose.warning('There is not "regn_opers_num" : %s %s N:%s' % (taskname, procname, num))
                             continue
                         reg_opers_num = int(node.chars['regn_opers_num']) # regn_opers_limit
                     key.append(reg_opers_num)               
@@ -443,13 +446,29 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                         key.append(maxsize) # на узел без бокового входа параметры regn_heur2, regn_heur3, regn_heur4
                         key.append(maxsize) # не оказывают влияния
                         key.append(maxsize)
-                    if 'unb_max_dep' in node.chars and 'unb_sh_alt_prob' in node.chars:
+                    if 'unb' in node.chars:
+                        unb = node.chars['unb']
+                    else:
+                        verbose.warning('There is not "unb" : %s %s N:%s' % (taskname, procname, num))
+                        continue
+                    
+                    #if 'unb_max_dep' in node.chars and 'unb_sh_alt_prob' in node.chars:
+                    if unb == 1:
+                        if not 'unb_max_dep' in node.chars:
+                            verbose.warning('There is not "unb_max_dep" : %s %s N:%s' % (taskname, procname, num))
+                            continue
+                        if not 'unb_min_dep' in node.chars:
+                            verbose.warning('There is not "unb_min_dep" : %s %s N:%s' % (taskname, procname, num))
+                            continue
                         p = int(node.chars['unb_max_dep']) - int(node.chars['unb_min_dep']) # regn_disb_heur
                         key.append(p)
                         p = reg_cnt / proc_max_cnt                                          # regn_heur_bal1
                         key.append(p)
                         p = n_cnt / proc_max_cnt                                            # regn_heur_bal2
-                        key.append(p) 
+                        key.append(p)
+                        if not 'unb_sh_alt_prob' in node.chars:
+                            verbose.warning('There is not "unb_sh_alt_prob" : %s %s N:%s' % (taskname, procname, num))
+                            continue
                         p = float(node.chars['unb_sh_alt_prob'])                            # regn_prob_heur
                         key.append(p)
                     else:

@@ -612,10 +612,6 @@ def run ():
                 points = list(map(lambda x: x[0], points))
                 f = interp1d(points, values, kind=method, axis=0, bounds_error=False, fill_value='extrapolate')
             else:
-                #print(points)
-                #print(values)
-                print(gridd)
-                print(points)
                 f = lambda x: griddata(points, values, x, method=method)
 
             # Calculate interpolated values
