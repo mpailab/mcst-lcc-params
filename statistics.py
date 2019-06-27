@@ -446,14 +446,8 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                         key.append(maxsize) # на узел без бокового входа параметры regn_heur2, regn_heur3, regn_heur4
                         key.append(maxsize) # не оказывают влияния
                         key.append(maxsize)
-                    if 'unb' in node.chars:
-                        unb = node.chars['unb']
-                    else:
-                        verbose.warning('There is not "unb" : %s %s N:%s' % (taskname, procname, num))
-                        continue
                     
-                    #if 'unb_max_dep' in node.chars and 'unb_sh_alt_prob' in node.chars:
-                    if unb == 1:
+                    if 'unb' in node.chars and node.chars['unb'] == 1:
                         if not 'unb_max_dep' in node.chars:
                             verbose.warning('There is not "unb_max_dep" : %s %s N:%s' % (taskname, procname, num))
                             continue
