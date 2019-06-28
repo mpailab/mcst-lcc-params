@@ -144,7 +144,10 @@ try:
     else: # args.mode == 'train':
         train.run()
 
-except KeyboardInterrupt:
+except KeyboardInterrupt as error:
+
+    if (error):
+        print(error)
     
     # возвращение в основной каталог
     os.chdir(PWD)

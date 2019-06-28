@@ -691,7 +691,7 @@ def check(specs = gl.SPECS, train = False):
         verbose.error('Weights for procs of specs was not defined')
         
     for specname in specs.keys():
-        path = os.path.join(gl.PROC_WEIGHT_PATH, specname)
+        path = os.path.join(gl.PROC_WEIGHT_PATH, specname + '.txt')
         if not os.path.exists(path):
             verbose.error('There is not file with weights for proc of spec  %r : %r.' % (specname, path))
         

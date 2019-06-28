@@ -847,9 +847,9 @@ def run():
         
         try:
             seq_optimize(spec_procs, strategy, par_start_value = par_start)
-        except clc.ExternalScriptError:
+        except clc.ExternalScriptError as error:
             print('fail')
-            print('An error by giving (t_c, t_e, m) from external script')
+            print(error)
         else:
             print("ok")
     elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
@@ -864,9 +864,9 @@ def run():
             
             try:
                 seq_optimize({specname: proclist}, strategy, par_start_value = par_start)
-            except clc.ExternalScriptError:
+            except clc.ExternalScriptError as error:
                 print('fail')
-                print('An error by giving (t_c, t_e, m) from external script')
+                print(error)
             else:
                 print("ok")
 
@@ -897,9 +897,9 @@ def run():
                              dis_regpar = dis_regpar,
                              dis_icvpar = dis_icvpar,
                              par_start_value = par_start)
-            except clc.ExternalScriptError:
+            except clc.ExternalScriptError as error:
                 print('fail')
-                print('An error by giving (t_c, t_e, m) from external script')
+                print(error)
             else:
                 print("ok")
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
@@ -933,8 +933,8 @@ def run():
                                  dis_regpar = dis_regpar,
                                  dis_icvpar = dis_icvpar,
                                  par_start_value = par_start)
-                except clc.ExternalScriptError:
+                except clc.ExternalScriptError as error:
                     print('fail')
-                    print('An error by giving (t_c, t_e, m) from external script')
+                    print(error)
                 else:
                     print("ok")

@@ -489,8 +489,8 @@ def collect():
     def calculate (specs, pars):
         try:
             func.calculate_abs_values(specs, pars)
-        except func.ExternalScriptError:
-            raise KeyboardInterrupt
+        except func.ExternalScriptError as error:
+            raise KeyboardInterrupt(error)
 
     print('Collect the raw data')
     

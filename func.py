@@ -21,11 +21,12 @@ SCRIPT_CMP_INIT = os.path.abspath(gl.SCRIPT_CMP_INIT)
 tmpdir_path = None
 
 class ExternalScriptError(BaseException):
-    def __init__(self, value):
+    def __init__(self, value, script = SCRIPT_CMP_RUN):
+        self.script = script
         self.parameter = value
     
     def __str__(self):
-        return 'An error in external sript %r. %s' % (gl.SCRIPT_CMP_RUN, self.parameter)
+        return 'An error in external sript %r: %s' % (self.script, self.parameter)
 
 # Инициализация внешнего скрипта
 def init_ext_script(dir, output = verbose.runs):
@@ -33,6 +34,11 @@ def init_ext_script(dir, output = verbose.runs):
     print(cmd, file=output)
     prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     prog.wait()
+    res = prog.communicate()
+    if prog.returncode:
+        os.chdir(PWD)
+        shutil.rmtree(tmpdir_path)
+        raise ExternalScriptError(res[1].decode('utf-8'), SCRIPT_CMP_INIT)
 
 # Запуск внешнего срипта
 def run_ext_script(mode, spec, opts, output = verbose.runs):
@@ -108,6 +114,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
         print("comp_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
+        print(tmp_result)
         if comp_proc.returncode:
             print('comp_error#' + tmp_result[1].decode('utf-8'), file=output)
         try:
