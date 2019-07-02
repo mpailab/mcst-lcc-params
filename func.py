@@ -18,31 +18,33 @@ PWD = os.getcwd()
 SCRIPT_CMP_RUN = os.path.abspath(gl.SCRIPT_CMP_RUN)
 SCRIPT_CMP_INIT = os.path.abspath(gl.SCRIPT_CMP_INIT)
 
-tmpdir_path = None
-
 class ExternalScriptError(BaseException):
-    def __init__(self, value, script = SCRIPT_CMP_RUN):
+    def __init__(self, error, script = SCRIPT_CMP_RUN):
         self.script = script
-        self.parameter = value
+        self.error = error.strip()
     
     def __str__(self):
-        return 'An error in external sript %r: %s' % (self.script, self.parameter)
+        return 'An error in external sript %r: %s' % (self.script, self.error)
+
+class ExternalScriptOutput(ExternalScriptError):
+    def __init__(self, error, script = SCRIPT_CMP_RUN):
+        self.script = script
+        self.error = 'could not convert script output %r to float' % error.strip()
 
 # Инициализация внешнего скрипта
 def init_ext_script(output = verbose.runs):
     cmd = SCRIPT_CMP_INIT + ' .'
-    print(cmd, file=output)
+    # print(cmd, file=output)
     prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     prog.wait()
     res = prog.communicate()
     if prog.returncode:
-        os.chdir(PWD)
-        shutil.rmtree(tmpdir_path)
         raise ExternalScriptError(res[1].decode('utf-8'), SCRIPT_CMP_INIT)
 
 # Запуск внешнего срипта
-def run_ext_script(mode, spec, opts, output = verbose.runs):
+def run_ext_script(mode, spec, opts, processes, output = verbose.runs):
     assert(mode in gl.CMP_MODES)
+    wait = 'tail ' + ' '.join(map(lambda p: '--pid=' + str(p.pid), processes)) + ' -f /dev/null; ' if processes else ''
     cmd = ( SCRIPT_CMP_RUN 
             + ' -' + mode 
             + ' -suite ' + gl.CMP_SUITE 
@@ -51,8 +53,8 @@ def run_ext_script(mode, spec, opts, output = verbose.runs):
             + (' -opt ' + opts if opts else '')
             + ' -dir ' + gl.DINUMIC_STAT_PATH
             + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER))
-    print(cmd, file=output)
-    return Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    # print(wait + cmd, file=output)
+    return Popen(wait + cmd, shell=True, stdout=PIPE, stderr=PIPE)
 
 # Опции для передачи внешнему скрипту
 def ext_script_opts(task_name, par_value, procname_list = None): 
@@ -77,110 +79,116 @@ def ext_script_opts(task_name, par_value, procname_list = None):
         cmd = cmd[:-1] # удаляем последний символ (лишний пробел)
         cmd += '\"'
     return cmd
-    
-# Запускает внешние скипты на задачах из procs_dic со значениями параметров из par_value
+
+# Запускает внешние скипты на задачах из specs со значениями параметров из par_value
 # и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
-def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = verbose.runs):
+def calculate_abs_values(specs, par_value, output = verbose.runs):
 
-    exec_proc = None
-    result_comp = {}
-    result_exec = {}
-    result_maxmem = {}
-
-    elements = []
-    for taskname, procname_list in procs_dic.items():
-        if separate_procs:
-            for procname in procname_list:
-                elements.append((taskname, [procname]))
-        else:
-            elements.append((taskname, procname_list))
-        
+    print('Calculate compile time, execution time and maximal memory usage for ' + ('' if par_value else 'default ') + 'parameters', file=output)
+    for par, value in par_value:
+        print(' ', par, '=', str(value), file=output)
+    
+    # Создаем временный каталог
     tmpdir_name = 'tmp' + '_' + str(random.randrange(10**10))
     os.mkdir(tmpdir_name)
-    global tmpdir_path
+
+    # Запоминаем каталог для последующего удаления
     tmpdir_path = os.path.join(PWD, tmpdir_name)
-    os.chdir(tmpdir_path)
 
-    init_ext_script(output)
-        
-    for el in elements:
+    # Стек запущенных процессов
+    stack = []
 
-        taskname = el[0]
-        proclist = el[1]
-        cmd_pars = ext_script_opts(taskname, par_value, proclist)
+    # Таблица результатов: {spec_name -> (comp_time, exec_time, max_mem)}
+    res = {}
 
-        # Запуск на компиляцию для el
-        comp_proc = run_ext_script('comp', taskname, cmd_pars, output)
-        comp_proc.wait()
-        tmp_result = comp_proc.communicate()
-        print("comp_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
-        if comp_proc.returncode:
-            print('comp_error#' + tmp_result[1].decode('utf-8'), file=output)
-        try:
-            result_comp[el] = float(tmp_result[0])
-        except ValueError as error:
-            os.chdir(PWD)
-            shutil.rmtree(tmpdir_path)
-            raise ExternalScriptError(error)
-        
-        if el != elements[0]:
-            # Подсчет времени исполнения для el_pred
-            exec_proc.wait()
-            tmp_result = exec_proc.communicate()
-            print("exec_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
-            if exec_proc.returncode:
-                print('exec_error#' + tmp_result[1].decode('utf-8'), file=output)
-            try:
-                result_exec[el_pred] = float(tmp_result[0])
-            except ValueError as error:
-                os.chdir(PWD)
-                shutil.rmtree(tmpdir_path)
-                raise ExternalScriptError(error)
-            
-            taskname_pred = el_pred[0]
-            proclist_pred = el_pred[1]
-
-            # Добавление результата запуска в tr_data для el_pred
-            train.DB.add(taskname_pred, proclist_pred, par_value, result_comp[el_pred], result_exec[el_pred], result_maxmem[el_pred])
-        
-        # Запуск на исполнение для el
-        exec_proc = run_ext_script('exec', taskname, cmd_pars, output)
-        el_pred = el
-        
-        # Подсчет объема потребляемой памяти для el
-        comp_proc = run_ext_script('stat', taskname, cmd_pars, output)
-        comp_proc.wait()
-        tmp_result = comp_proc.communicate()
-        print("max_mem#" + tmp_result[0].decode('utf-8'), end='', file=output)
-        if comp_proc.returncode:
-            print('comp_with_stat_error#' + tmp_result[1].decode('utf-8'), file=output)
-        try:
-            result_maxmem[el] = float(tmp_result[0])
-        except ValueError as error:
-            os.chdir(PWD)
-            shutil.rmtree(tmpdir_path)
-            raise ExternalScriptError(error)
-    
-    # Подсчет времени исполнения для последнего элемента в elements
-    exec_proc.wait()
-    tmp_result = exec_proc.communicate()
-    print("exec_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
-    if exec_proc.returncode:
-        print('exec_error#' + tmp_result[1].decode('utf-8'), file=output)
     try:
-        result_exec[el] = float(tmp_result[0])
-    except ValueError as error:
-            os.chdir(PWD)
-            shutil.rmtree(tmpdir_path)
-            raise ExternalScriptError(error)
-    # Добавление результата запуска в tr_data для последнего элемента в elements
-    train.DB.add(taskname, proclist, par_value, result_comp[el], result_exec[el], result_maxmem[el])
-    
-    os.chdir(PWD)
-    shutil.rmtree(tmpdir_path)
-    
-    result = {}
-    for el in elements:
-        result[el] = (result_comp[el], result_exec[el], result_maxmem[el])
-    
-    return result
+
+        # Переходим в новый каталог
+        os.chdir(tmpdir_path)
+
+        # Инициализируем внешний скрипт
+        init_ext_script(output)
+
+        # Запускаем внешний скрипт для каждого спека по отдельности
+        for spec, procs in specs.items():
+
+            # Готовим входные аргументы для внешнего срипта
+            opts = ext_script_opts(spec, par_value, procs)
+
+            # Запускаем внешний скрипт на компиляцию
+            comp_proc = run_ext_script('comp', spec, opts, ([] if not stack else [stack[-1][3]]), output)
+
+            # Запускаем внешний скрипт на исполнение
+            exec_proc = run_ext_script('exec', spec, opts, ([comp_proc] if not stack else [comp_proc, stack[-1][2]]), output)
+
+            # Запускаем внешний скрипт на компиляцию с получением статистики
+            stat_proc = run_ext_script('stat', spec, opts, [comp_proc], output)
+
+            # Запоминаем запущенный процесс
+            stack.append((spec, comp_proc, exec_proc, stat_proc))
+
+        # Обрабатываем результаты
+        for spec, comp_proc, exec_proc, stat_proc in stack:
+
+            print(spec + ' ... ', end='', file=output, flush=True)
+
+            # Получаем время компиляции
+            # comp_proc.wait()
+            comp_res = comp_proc.communicate()
+            if comp_proc.returncode:
+                raise ExternalScriptError(comp_res[1].decode('utf-8'))
+            try:
+                comp_time = float(comp_res[0])
+            except ValueError as error:
+                raise ExternalScriptOutput(comp_res[0].decode('utf-8'))
+
+            # Получаем время исполнения
+            # exec_proc.wait()
+            exec_res = exec_proc.communicate()
+            if exec_proc.returncode:
+                raise ExternalScriptError(exec_res[1].decode('utf-8'))
+            try:
+                exec_time = float(exec_res[0])
+            except ValueError as error:
+                raise ExternalScriptOutput(exec_res[0].decode('utf-8'))
+
+            # Получаем максимальный объем потребления памяти
+            # stat_proc.wait()
+            stat_res = stat_proc.communicate()
+            if stat_proc.returncode:
+                raise ExternalScriptError(stat_res[1].decode('utf-8'))
+            try:
+                max_mem = float(stat_res[0])
+            except ValueError as error:
+                raise ExternalScriptOutput(stat_res[0].decode('utf-8'))
+
+            # Добавляем полученные результаты в базу данных
+            train.DB.add(spec, specs[spec], par_value, comp_time, exec_time, max_mem)
+
+            # Заполняем таблицу результатов
+            res[spec] = (comp_time, exec_time, max_mem)
+
+            print('ok : comp_time = ' + str(comp_time) + ', exec_time = ' + str(exec_time) + ', max_mem = ' + str(max_mem), file=output)
+
+    except ExternalScriptError as error:
+
+        print('fail', file=output)
+        raise Exception(error)
+
+    except KeyboardInterrupt as error:
+
+        raise KeyboardInterrupt(error)
+
+    finally:
+
+        # Удаляем запущенные процессы
+        for _, comp_proc, exec_proc, stat_proc in stack:
+            comp_proc.kill()
+            exec_proc.kill()
+            stat_proc.kill()
+
+        # Возвращаемся в исходный каталог и удаляем временные файлы
+        os.chdir(PWD)
+        shutil.rmtree(tmpdir_path)
+        
+    return res

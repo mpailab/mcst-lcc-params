@@ -473,8 +473,11 @@ def read_procs (spec, procs, stat_dir = None, weight_file = None):
                             int(proc_info.chars['pdom_succs'])]))
     return res
 
+def proc_to_chars (proc):
+    return list(map(lambda x: float(calc(x, proc)), CHARS))
+
 def to_chars (procs):
-    return list(map(lambda p: list(map(lambda x: float(calc(x, p)), CHARS)), procs))
+    return list(map(proc_to_chars, procs))
     
 def read_proc_chars (spec, procs, stat_dir = None, weight_file = None):
     return to_chars(read_procs(spec, procs, stat_dir, weight_file))

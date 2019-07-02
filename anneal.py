@@ -218,7 +218,6 @@ def get_value(parname, value_par, inf_value_par, sup_value_par, position, min_po
             return sup_value_par[parname]
         
 def optimize(procs_dic, par_names,
-             every_proc_is_individual_task = False,\
              par_start_value = None,\
              output = verbose.default,\
              dis_regpar = None,\
@@ -248,9 +247,8 @@ def optimize(procs_dic, par_names,
     
     # вычисление времени компиляции, времени исполнения и потребляемтой памяти заданных спеков при значении параметров по умолчанию
     # генерация статистики, если new_stat_for_every_step == True
-    flag = every_proc_is_individual_task
     if result_default == None:
-        result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
+        result_default = clc.calculate_abs_values(procs_dic, {})
         j_for_exec_run = 1
     else:
         j_for_exec_run = 0
@@ -274,7 +272,7 @@ def optimize(procs_dic, par_names,
         par_start_value = tmp_dict
         
         if result_start == None:
-            result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
+            result_start = clc.calculate_abs_values(procs_dic, par_start_value)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
         else:    
@@ -538,7 +536,7 @@ def optimize(procs_dic, par_names,
             print('F(...) = ', val_F_candidate, file=output)
         else:
             candidate_is_new = True
-            result_candidate = clc.calculate_abs_values(procs_dic, par_candidate_value, separate_procs = flag)
+            result_candidate = clc.calculate_abs_values(procs_dic, par_candidate_value)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
             F_run_result[0].append(dict(par_candidate_value))
@@ -594,14 +592,12 @@ def optimize(procs_dic, par_names,
     return (par_best_value, val_F_best, result_best)
 
 def seq_optimize(procs_dic, pargroup_seq,
-             every_proc_is_individual_task = False,
-             par_start_value = None,
-             output = verbose.default,
-             new_stat_for_every_step = not gl.INHERIT_STAT
-            ):
+                 par_start_value = None,
+                 output = verbose.default,
+                 new_stat_for_every_step = not gl.INHERIT_STAT
+                ):
     
-    flag = every_proc_is_individual_task
-    result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
+    result_default = clc.calculate_abs_values(procs_dic, {})
     
     dis_regpar = stat.get_dis_regpar(procs_dic)
     dis_icvpar = stat.get_dis_icvpar(procs_dic)
@@ -619,7 +615,6 @@ def seq_optimize(procs_dic, pargroup_seq,
         
         if is_dcs_pargroup:
             par_current_value, val_F_current, result_current = dcs_optimize(procs_dic,
-                                                                            every_proc_is_individual_task = flag,
                                                                             par_start_value = par_current_value,
                                                                             result_default = result_default,
                                                                             val_F_start = val_F_current,
@@ -627,7 +622,6 @@ def seq_optimize(procs_dic, pargroup_seq,
         elif is_nesting_pargroup:
             par_current_value, val_F_current, result_current = optimize_bool_par(procs_dic,
                                                                                  par_group[0],
-                                                                                 every_proc_is_individual_task = flag,
                                                                                  par_start_value = par_current_value,
                                                                                  result_default = result_default,
                                                                                  val_F_start = val_F_current,
@@ -635,7 +629,6 @@ def seq_optimize(procs_dic, pargroup_seq,
         else:
             par_current_value, val_F_current, result_current = optimize(procs_dic,
                                                                         par_group,
-                                                                        every_proc_is_individual_task = flag,
                                                                         par_start_value = par_current_value,
                                                                         dis_regpar = dis_regpar,
                                                                         dis_icvpar = dis_icvpar,
@@ -658,14 +651,11 @@ def dcs_optimize(procs_dic,
                  par_start_value = None,
                  val_F_start = None,
                  result_start = None,
-                 every_proc_is_individual_task = False,
                  check_zero_level = True):
-    
-    flag = every_proc_is_individual_task
     
     j_for_exec_run = 0
     if result_default == None:
-        result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
+        result_default = clc.calculate_abs_values(procs_dic, {})
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
@@ -687,7 +677,7 @@ def dcs_optimize(procs_dic,
         par_start_value = tmp_dict
         
         if result_start == None:
-            result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
+            result_start = clc.calculate_abs_values(procs_dic, par_start_value)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
@@ -723,7 +713,7 @@ def dcs_optimize(procs_dic,
             if par_value == par_start_value:
                 print('Result of dcs optimization in the level', lv, 'is already known', file=output)
                 continue
-            result_candidate = clc.calculate_abs_values(procs_dic, par_value, separate_procs = flag)
+            result_candidate = clc.calculate_abs_values(procs_dic, par_value)
             j_for_exec_run += 1
             val_F_candidate = calculate_F(result_candidate, result_default)
             print('F(...) = ', val_F_candidate, file=verbose.F)
@@ -747,14 +737,11 @@ def optimize_bool_par(procs_dic, parname,
                  output = verbose.default,
                  par_start_value = None,
                  val_F_start = None,
-                 result_start = None,
-                 every_proc_is_individual_task = False):
-    
-    flag = every_proc_is_individual_task
+                 result_start = None):
     
     j_for_exec_run = 0
     if result_default == None:
-        result_default = clc.calculate_abs_values(procs_dic, {}, separate_procs = flag)
+        result_default = clc.calculate_abs_values(procs_dic, {})
         j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
@@ -772,7 +759,7 @@ def optimize_bool_par(procs_dic, parname,
         par_start_value = tmp_dict
         
         if result_start == None:
-            result_start = clc.calculate_abs_values(procs_dic, par_start_value, separate_procs = flag)
+            result_start = clc.calculate_abs_values(procs_dic, par_start_value)
             j_for_exec_run += 1
             val_F_start = calculate_F(result_start, result_default)
             print('F(...) = ', val_F_start, file=verbose.F)
@@ -798,7 +785,7 @@ def optimize_bool_par(procs_dic, parname,
     par_value[parname] = not par_value[parname]
     print('Switch parametor', parname, 'to value : ', par_value[parname], file=output)
     
-    result_candidate = clc.calculate_abs_values(procs_dic, par_value, separate_procs = flag)
+    result_candidate = clc.calculate_abs_values(procs_dic, par_value)
     j_for_exec_run += 1
     val_F_candidate = calculate_F(result_candidate, result_default)
     print('F(...) = ', val_F_candidate, file=verbose.F)
@@ -847,11 +834,9 @@ def run():
         
         try:
             seq_optimize(spec_procs, strategy, par_start_value = par_start)
-        except clc.ExternalScriptError as error:
-            print('fail')
+        except BaseException as error:
             print(error)
-        else:
-            print("ok")
+
     elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Independent optimization for every spec :') # every_spec
         par.print_specs(spec_procs)
@@ -864,11 +849,8 @@ def run():
             
             try:
                 seq_optimize({specname: proclist}, strategy, par_start_value = par_start)
-            except clc.ExternalScriptError as error:
-                print('fail')
+            except BaseException as error:
                 print(error)
-            else:
-                print("ok")
 
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Synchronous optimization of specs :')  # all
@@ -897,11 +879,9 @@ def run():
                              dis_regpar = dis_regpar,
                              dis_icvpar = dis_icvpar,
                              par_start_value = par_start)
-            except clc.ExternalScriptError as error:
-                print('fail')
+            except BaseException as error:
                 print(error)
-            else:
-                print("ok")
+
     elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
         print('Independent optimization for every spec :') # every_spec
         par.print_specs(spec_procs)
@@ -933,8 +913,5 @@ def run():
                                  dis_regpar = dis_regpar,
                                  dis_icvpar = dis_icvpar,
                                  par_start_value = par_start)
-                except clc.ExternalScriptError as error:
-                    print('fail')
+                except BaseException as error:
                     print(error)
-                else:
-                    print("ok")
