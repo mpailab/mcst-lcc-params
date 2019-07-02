@@ -29,8 +29,8 @@ class ExternalScriptError(BaseException):
         return 'An error in external sript %r: %s' % (self.script, self.parameter)
 
 # Инициализация внешнего скрипта
-def init_ext_script(dir, output = verbose.runs):
-    cmd = SCRIPT_CMP_INIT + ' ' + dir
+def init_ext_script(output = verbose.runs):
+    cmd = SCRIPT_CMP_INIT + ' .'
     print(cmd, file=output)
     prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     prog.wait()
@@ -48,17 +48,17 @@ def run_ext_script(mode, spec, opts, output = verbose.runs):
             + ' -suite ' + gl.CMP_SUITE 
             + ' -spec ' + spec
             + ' -' + gl.COMP_MODE
-            + ' -opt ' + opts
+            + (' -opt ' + opts if opts else '')
             + ' -dir ' + gl.DINUMIC_STAT_PATH
             + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER))
     print(cmd, file=output)
     return Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
 
 # Опции для передачи внешнему скрипту
-def ext_script_opts(task_name, par_value, procname_list = None):
-    cmd = task_name 
+def ext_script_opts(task_name, par_value, procname_list = None): 
+    cmd = ""
     if len(par_value) != 0 or procname_list != None:
-        cmd += ' \"'
+        cmd += '\"'
         for par_name in par_value.keys():
             if par.types[par_name] == float:
                 cmd += '--letf=' + par_name + ':' + str(par_value[par_name]) + ' '
@@ -101,7 +101,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
     tmpdir_path = os.path.join(PWD, tmpdir_name)
     os.chdir(tmpdir_path)
 
-    init_ext_script(tmpdir_name, output)
+    init_ext_script(output)
         
     for el in elements:
 
@@ -114,7 +114,6 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
         print("comp_time#" + tmp_result[0].decode('utf-8'), end='', file=output)
-        print(tmp_result)
         if comp_proc.returncode:
             print('comp_error#' + tmp_result[1].decode('utf-8'), file=output)
         try:
@@ -149,7 +148,7 @@ def calculate_abs_values(procs_dic, par_value, separate_procs = False, output = 
         el_pred = el
         
         # Подсчет объема потребляемой памяти для el
-        comp_proc = run_ext_script('comp', taskname, cmd_pars, output)
+        comp_proc = run_ext_script('stat', taskname, cmd_pars, output)
         comp_proc.wait()
         tmp_result = comp_proc.communicate()
         print("max_mem#" + tmp_result[0].decode('utf-8'), end='', file=output)

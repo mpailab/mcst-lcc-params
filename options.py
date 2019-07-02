@@ -41,7 +41,7 @@ def dir (line):
      line = line.strip('"')
      if not os.path.isdir(line):
           raise ValueError
-     return line
+     return os.path.abspath(line)
 
 def path (line):
      from re import search
@@ -49,13 +49,13 @@ def path (line):
      path = os.path.normpath(line)
      if not search(r'[^A-Za-z0-9_\-' + os.sep + ']', path) is None:
           raise ValueError
-     return line
+     return os.path.abspath(line)
 
 def file (line):
      line = line.strip('"')
      if not os.path.isfile(line):
           raise ValueError
-     return line
+     return os.path.abspath(line)
 
 # Parse string of the format '<name>'
 def name (line):
@@ -1028,7 +1028,7 @@ GL['cmp_run'] = Global(
      SCRIPT_CMP_RUN, 'script'
 )
 
-# Режимы запуска задач на компиляцию
+# Режимы запуска задач на компиляцию/исполнение
 CMP_MODES = {'comp':1, 'exec':1, 'stat':1}
 
 # Выбор специфического бэнчмарка

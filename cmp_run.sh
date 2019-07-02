@@ -14,6 +14,14 @@ IS_PEAK=0
 OPTS=""
 DIR=""
 SERVER=""
+MODE=""
+
+# Нештатный выход из скрипта
+die()
+{
+    echo -e "error: $@"
+    exit 1
+}
 
 # Обрабатываем аргументы, поданные скрипту
 until [ -z "$1" ]
@@ -63,7 +71,6 @@ done
 [ "$SUITE" != "" ] || die "no parameter for -suite option"
 [ "$SPEC" != "" ] || die "no parameter for -spec option"
 [ $IS_BASE == 1 ] || [ $IS_PEAK == 1 ] || die "no <-base|-peak> option"
-[ "$OPTS" != "" ] || die "no parameter for -opt option"
 [ "$DIR" != "" ] || die "no parameter for -dir option"
 [ "$SERVER" != "" ] || die "no parameter for -server option"
 
@@ -90,11 +97,13 @@ fi
 if [ $IS_BASE == 1 ]
 then
     ARGS="$ARGS -base"
+    MODE="base"
 fi
 
 if [ $IS_PEAK == 1 ]
 then
     ARGS="$ARGS -peak"
+    MODE="peak"
 fi
 
 if [ $IS_STAT == 1 ]
@@ -102,30 +111,36 @@ then
     OPTS="$OPTS --true=msu_print --lets=msu_test_name:$SPEC --lets=msu_dir_name:$DIR"
     ARGS="$ARGS -new -new-opt \"$OPTS\" -force -max-mem"
 else
-    ARGS="$ARGS -old -old-opt \"$OPTS\" -force"
+    if [ "$OPTS" == "" ]
+    then 
+        ARGS="$ARGS -old -force"
+    else
+        ARGS="$ARGS -old -old-opt \"$OPTS\" -force"
+    fi
 fi
 
 # Запускаем срипт на специфической машине
 rsh $SERVER "cd $PWD; ./cmp.sh $ARGS &> /dev/null"
+wait
 
 # Обрабатываем результаты срипта
 RES=""
 
 if [ $IS_COMP == 1 ]
 then
-    RES=`cat ./work.peak.old/$SPEC.comp_time | 
+    RES=`cat ./work.$MODE.old/$SPEC.comp_time | 
          awk -F "_" '{ i++; s += $4 } END { if (i>0) print s; else print "error" }'`
 fi
 
 if [ $IS_EXEC == 1 ]
 then
-    RES=`cat ./work.peak.old/$SPEC.exec_time_ref | 
+    RES=`cat ./work.$MODE.old/$SPEC.exec_time_ref | 
          awk -F "_" '{ i++; s += $4 } END { if (i>0) print s; else print "error" }'`
 fi
 
 if [ $IS_STAT == 1 ]
 then
-    RES=`cat ./work.peak.new/$SPEC.mem | 
+    RES=`cat ./work.$MODE.new/$SPEC.mem | 
          awk '{ if( s < $4 ) s = $4; } END { print s }'`
 fi
 
