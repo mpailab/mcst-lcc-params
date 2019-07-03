@@ -12,6 +12,12 @@ import options as gl
 devnull = open(devnull, 'w')
 width = 100
 
+# Режимы вывода сообщений на экран
+silent = None                                 # Минимальная печать сообщений
+screen = None if gl.VERBOSE > 0 else devnull  # Обычная печать сообщений
+trace  = None if gl.VERBOSE > 1 else devnull  # Трассировка событий (создание/удаление файлов, чтение/запись статистики и т.п.)
+debug  = None if gl.VERBOSE > 2 else devnull  # Подробная печать сообщений, необходимых для отладки
+
 ## Виды информации, выводимой на экнан
 ## если = devnull -> не печатать на экран
 ## если = None -> печатать на экран

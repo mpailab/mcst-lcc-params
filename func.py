@@ -82,7 +82,10 @@ def ext_script_opts(task_name, par_value, procname_list = None):
 
 # Запускает внешние скипты на задачах из specs со значениями параметров из par_value
 # и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
-def calculate_abs_values(specs, par_value, output = verbose.runs):
+def calculate_abs_values(specs, par_value):
+
+    # Настраиваем печать сообщений
+    output = verbose.screen
 
     print('\nCalculate compile time, execution time and maximal memory usage for ' + ('' if par_value else 'default ') + 'parameters', file=output)
     for par, value in par_value:
