@@ -225,7 +225,7 @@ def optimize(procs_dic, par_names,
              result_start,
              result_default,
              new_stat_for_every_step = not gl.INHERIT_STAT,
-             output = verbose.default
+             output = verbose.debug
             ):
     '''
     procs_dic: taskname -> list_of_some_procnames_of_taskname (for some taskname)
@@ -569,7 +569,7 @@ def dcs_optimize(procs_dic,
                  result_default,
                  check_zero_level = True,
                  dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT,
-                 output = verbose.default
+                 output = verbose.debug
                  ):
     
     j_for_exec_run = 0
@@ -709,31 +709,38 @@ def run():
     specs = par.specs()
     par_start = gl.PAR_START
     is_seq = gl.SEQ_OPTIMIZATION_WITH_STRATEGY
+    
+    output = verbose.screen
 
-    print('Run annealing for specs')
+    print('Run annealing for specs', file = output)
     for spec, procs in specs.items():
-        print(' ', spec, ':', (', '.join(procs) if procs else 'all procedures'))
+        print(' ', spec, ':', (', '.join(procs) if procs else 'all procedures'), file = output)
 
-    print('with respect to the ' + ('sequential' if is_seq else 'independent') + ' strategy')
+    print('with respect to the ' + ('sequential' if is_seq else 'independent') + ' strategy', file = output)
     for group in strategy:
-        print(' ', ', '.join(group))
+        print(' ', ', '.join(group), file = output)
         
     # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для значений параметров по умолчанию
-    defaults = clc.calculate_abs_values(specs, {})
+    try:
+        defaults = clc.calculate_abs_values(specs, {})
+    except Exception as error:
+        print('An error with calculating default (t_c, t_e, m) : %s', error):
+        sys.exit()
+        
     
     # проверка корректности статистики
     stat.check()
     
     # Получаем распределения параметров
-    print('Calculate parameters distribution ... ', end='', flush=True)
+    print('Calculate parameters distribution ... ', end='', flush=True, file = verbose.trace)
     dis_regpar = stat.get_dis_regpar(specs)
     dis_icvpar = stat.get_dis_icvpar(specs)
-    print('ok')
+    print('ok', file = verbose.trace)
     
     pv, fv, rv = par_start, calculate_F(defaults, defaults), defaults
     for group in strategy:
         print('\n---------------------------------------------------------------------------')
-        print('Group of parametors: %s\n' % str(group))
+        print('Group of parametors: %s\n' % str(group), file = verbose.output)
         
         try:
             if any (p in par.dcs for p in group):
@@ -755,6 +762,6 @@ def run():
     
     if is_seq:
         par_value_print('The final values :', pv, file=verbose.optval)
-        print('The final (t_c, t_e, m) is', fv, file=verbose.default)
-        print('The final value for F is', rv, file=verbose.default)
+        print('The final (t_c, t_e, m) is', fv, file=verbose.debug)
+        print('The final value for F is', rv, file=verbose.debug)
 

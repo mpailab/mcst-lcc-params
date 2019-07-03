@@ -32,7 +32,7 @@ class ExternalScriptOutput(ExternalScriptError):
         self.error = 'could not convert script output %r to float' % error.strip()
 
 # Инициализация внешнего скрипта
-def init_ext_script(output = verbose.runs):
+def init_ext_script():
     cmd = SCRIPT_CMP_INIT + ' .'
     # print(cmd, file=output)
     prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
@@ -42,7 +42,7 @@ def init_ext_script(output = verbose.runs):
         raise ExternalScriptError(res[1].decode('utf-8'), SCRIPT_CMP_INIT)
 
 # Запуск внешнего срипта
-def run_ext_script(mode, spec, opts, processes, output = verbose.runs):
+def run_ext_script(mode, spec, opts, processes):
     assert(mode in gl.CMP_MODES)
     wait = 'tail ' + ' '.join(map(lambda p: '--pid=' + str(p.pid), processes)) + ' -f /dev/null; ' if processes else ''
     cmd = ( SCRIPT_CMP_RUN 
@@ -110,7 +110,7 @@ def calculate_abs_values(specs, par_value):
         os.chdir(tmpdir_path)
 
         # Инициализируем внешний скрипт
-        init_ext_script(output)
+        init_ext_script()
 
         # Запускаем внешний скрипт для каждого спека по отдельности
         for spec, procs in specs.items():
@@ -119,13 +119,13 @@ def calculate_abs_values(specs, par_value):
             opts = ext_script_opts(spec, par_value, procs)
 
             # Запускаем внешний скрипт на компиляцию
-            comp_proc = run_ext_script('comp', spec, opts, ([] if not stack else [stack[-1][3]]), output)
+            comp_proc = run_ext_script('comp', spec, opts, ([] if not stack else [stack[-1][3]]))
 
             # Запускаем внешний скрипт на исполнение
-            exec_proc = run_ext_script('exec', spec, opts, ([comp_proc] if not stack else [comp_proc, stack[-1][2]]), output)
+            exec_proc = run_ext_script('exec', spec, opts, ([comp_proc] if not stack else [comp_proc, stack[-1][2]]))
 
             # Запускаем внешний скрипт на компиляцию с получением статистики
-            stat_proc = run_ext_script('stat', spec, opts, [comp_proc], output)
+            stat_proc = run_ext_script('stat', spec, opts, [comp_proc])
 
             # Запоминаем запущенный процесс
             stack.append((spec, comp_proc, exec_proc, stat_proc))
