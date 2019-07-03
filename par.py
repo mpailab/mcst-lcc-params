@@ -159,7 +159,7 @@ def strategy():
 
 def check_strategy(strategy = gl.OPTIMIZATION_STRATEGY):
     for group in strategy:
-        dcs_par_exist = reduce(lambda x, y: x or y, [parname in dcs + ['dcs'] for parname in group])
+        dcs_par_exist = reduce(lambda x, y: x or y, [parname in dcs for parname in group])
         nesting_par_exist = reduce(lambda x, y: x or y, [parname in nesting for parname in group])
         reg_or_icv_par_exist = reduce(lambda x, y: x or y, [parname in reg_seq + icv_seq for parname in group])
         if reg_or_icv_par_exist:

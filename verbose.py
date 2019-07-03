@@ -23,34 +23,19 @@ debug  = None if gl.VERBOSE > 2 else devnull  # Подробная печать 
 ## если = None -> печатать на экран
 
 # F(...) = ...
-F = devnull
+F = trace
 
 # ./.../run.sh ....
-runs = devnull
+runs = trace
 
 # The best (t_c, t_e, mem) is ...
-optval = devnull
+optval = silent
 
 # Сообщения об ошибках
-err = None
+err = silent
 
 # Прочее
-default = devnull
-
-if gl.VERBOSE == 0:
-    optval = None
-    
-if gl.VERBOSE == 1:
-    optval = None
-    F = None
-    runs = None
-    
-if gl.VERBOSE >= 2:
-    F = None
-    runs = None
-    optval = None
-    err = None
-    default = None
+default = debug
 
 def warning (str, output = None):
     print('Warning!', '\n         '.join(textwrap.wrap(str, width - 9)), file = output)

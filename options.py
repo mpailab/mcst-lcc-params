@@ -812,7 +812,7 @@ VERBOSE = 0
 GL['verbose'] = Global(
      'VERBOSE', 'verbose',
      'степень подробности вывода информации на экран во время работы ИС',
-     'disc', [0, 1, 2], None, int,
+     'disc', [0, 1, 2, 3], None, int,
      VERBOSE
 )
 

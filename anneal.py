@@ -736,7 +736,7 @@ def run():
         print('Group of parametors: %s\n' % str(group))
         
         try:
-            if any (p in par.dcs + ['dcs'] for p in group):
+            if any (p in par.dcs for p in group):
                 next_pv, next_fv, next_rv = dcs_optimize(specs, pv, fv, rv, defaults)
 
             elif any (p in par.nesting for p in group):
