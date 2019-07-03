@@ -87,53 +87,53 @@ def get_proc(taskname, procname, stat_dir = None):
     if stat_dir is None:
         stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
     with open(os.path.join(stat_dir, procname, 'regions.txt')) as file:
-        for strr in file:
-            ## отрезаем от strr последний символ, который является символом перехода на новую строку
-            strr = strr[:-1]
-            if strr[0] == 'H':
-                #В этом случае в strr содержится информация о регионе
-                words = strr.split()
+        for line in file:
+            ## отрезаем от line последний символ, который является символом перехода на новую строку
+            line = line[:-1]
+            if line[0] == 'H':
+                #В этом случае в line содержится информация о регионе
+                words = line.split()
                 hnum = words[0].split(':')[1] # номер головы региона
                 if len(words) == 1:
                     # В этом случае регион с номером hnum раньше не встречался
                     proc.regions[hnum] = Region()
                 elif words[1][0] == 'N':
-                    # В этом случае в strr записана характеристика добавляемого узла
+                    # В этом случае в line записана характеристика добавляемого узла
                     nodenum = words[1].split(':')[1]
                     if hnum != nodenum:
                         # голову региона не будем добавлять в узлы
                         if nodenum not in proc.regions[hnum].nodes:
                             proc.regions[hnum].nodes[nodenum] = Node()
-                        chname = words[2].split(':')[0]
-                        if chname == 'v':
-                            #костыль: в исходном файле должно быть 'v_cnt', а по факту 'v cnt'.
-                            chname = 'v_cnt'
-                            value = words[3].split(':')[1]
-                        else:
-                            value = words[2].split(':')[1]
+                        wparts = words[2].split(':')
+                        chname = wparts[0]
+                        value = wparts[1]
                         proc.regions[hnum].nodes[nodenum].chars[chname] = value
                 else:
-                    # В этом случае в строке strr записана характеристика региона
-                    name = words[1].split(':')[0]
-                    value = words[1].split(':')[1]
+                    # В этом случае в строке line записана характеристика региона
+                    wparts = words[1].split(':')
+                    name = wparts[0]
+                    value = wparts[1]
                     proc.regions[hnum].chars[name] = value
-            elif strr[0] == 'N':
-                #В этом случае в strr содержится информация о характеристике узла
-                num = strr.split()[0].split(':')[1]
-                name = strr.split()[1].split(':')[0]
-                value = strr.split()[1].split(':')[1]
+            elif line[0] == 'N':
+                #В этом случае в line содержится информация о характеристике узла
+                words = line.split()
+                num = words[0].split(':')[1]
+                wparts = words[1].split(':')
+                name = wparts[0]
+                value = wparts[1]
                 if name == "L":
-                    proc.loops[value] = {'ovl' : strr.split()[2].split(":")[1], 
-                                        'red' : strr.split()[3].split(":")[1]}
+                    proc.loops[value] = {'ovl' : words[2].split(":")[1], 
+                                        'red' : words[3].split(":")[1]}
                 else:
                     if name == 'type':
                         #В этом случае узел с номером nodenum раньше не встречался
                         proc.nodes[num] = Node()
                     proc.nodes[num].chars[name] = value
             else:
-                #В этом случае в strr содержится информация о характеристике процедуры
-                name = strr.split(':')[0]
-                value = strr.split(':')[1]
+                #В этом случае в line содержится информация о характеристике процедуры
+                parts = line.split(':') 
+                name = parts[0]
+                value = parts[1]
                 proc.chars[name] = value
     return proc
 
@@ -142,31 +142,33 @@ def get_icv_proc(taskname, procname):
     proc = Icv_Proc()
     procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
     file = open(procpath + '/if_conv.txt')
-    for strr in file:
-        # отрезаем от strr последний символ, который является символом перехода на новую строку
-        strr = strr[:-1]
-        if strr[0] == 'H':
-            #В этом случае в strr содержится информация о регионе
-            words = strr.split()
+    for line in file:
+        # отрезаем от line последний символ, который является символом перехода на новую строку
+        line = line[:-1]
+        if line[0] == 'H':
+            #В этом случае в line содержится информация о регионе
+            words = line.split()
             hnum = words[0].split(':')[1] # номер головы региона
-            reg_charname = words[1].split(':')[0]
+            parts = words[1].split(':')
+            reg_charname = parts[0]
             if reg_charname == 'E':
-                # В этом случае в strr записана характеристика участка
-                enum = words[1].split(':')[1]
+                # В этом случае в line записана характеристика участка
+                enum = parts[1]
                 if enum not in proc.regions[hnum].sects:
                     proc.regions[hnum].sects[enum] = Node() # програмно участок ведет себя как класс Node
-                chname = words[2].split(':')[0]
-                value = words[2].split(':')[1]
+                wparts = words[2].split(':')
+                chname = wparts[0]
+                value = wparts[1]
                 proc.regions[hnum].sects[enum].chars[chname] = value
             elif reg_charname == 'cnt':
                 proc.regions[hnum] = Icv_Region()
-                proc.regions[hnum].chars['cnt'] = words[1].split(':')[1]
+                proc.regions[hnum].chars['cnt'] = parts[1]
             else:
-                #тогда в strr содержится информация о характеристики региона
-                proc.regions[hnum].chars[reg_charname] = words[1].split(':')[1]
+                #тогда в line содержится информация о характеристики региона
+                proc.regions[hnum].chars[reg_charname] = parts[1]
         else:
-            #В этом случае в strr содержится информация о характеристике процедуры
-            words = strr.split(':')
+            #В этом случае в line содержится информация о характеристике процедуры
+            words = line.split(':')
             name = words[0]
             value = words[1]
             proc.chars[name] = value
@@ -201,25 +203,25 @@ def dcs_level(procpath, lv):
     lvpath = procpath + '/dcs_' + str(lv) + '.txt'
     ffile = open(lvpath)
     
-    strr = ffile.readline()[:-1]
-    procname = strr.split(':')[1]
+    line = ffile.readline()[:-1]
+    procname = line.split(':')[1]
     
-    strr = ffile.readline()[:-1]
-    n_num = int(strr.split(':')[1])
+    line = ffile.readline()[:-1]
+    n_num = int(line.split(':')[1])
     
-    strr = ffile.readline()[:-1]
-    e_num = int(strr.split(':')[1])
+    line = ffile.readline()[:-1]
+    e_num = int(line.split(':')[1])
     
-    strr = ffile.readline()[:-1]
-    l_num = int(strr.split(':')[1])
+    line = ffile.readline()[:-1]
+    l_num = int(line.split(':')[1])
     
     N = set()
     E = set()
     L = set()
     
-    for strr in ffile:
-        strr = strr[:-1]
-        spl_end = strr.split()[1].split(':')
+    for line in ffile:
+        line = line[:-1]
+        spl_end = line.split()[1].split(':')
         key = spl_end[0]
         value = int(spl_end[1])
         if key == 'E':
