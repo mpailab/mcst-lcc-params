@@ -798,15 +798,6 @@ GL['specs'] = Global(
      SPECS
 )
 
-# Синхронная оптимизация
-SYNCHRONOUS_OPTIMIZATION_FOR_SPECS = False
-GL['sync'] = Global(
-     'SYNCHRONOUS_OPTIMIZATION_FOR_SPECS', 'sync',
-     'синхранная оптимизация задач, определенных параметром specs',
-     'bool', None, None, None,
-     SYNCHRONOUS_OPTIMIZATION_FOR_SPECS
-)
-
 # Каталог, в котором формируются выходные файлы
 #OUTPUTDIR = "."
 #GL['output'] = Global(

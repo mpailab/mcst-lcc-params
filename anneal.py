@@ -218,14 +218,14 @@ def get_value(parname, value_par, inf_value_par, sup_value_par, position, min_po
             return sup_value_par[parname]
         
 def optimize(procs_dic, par_names,
-             par_start_value = None,\
-             output = verbose.default,\
-             dis_regpar = None,\
-             dis_icvpar = None,
-             result_default = None,
-             val_F_start = None,
-             result_start = None,
-             new_stat_for_every_step = not gl.INHERIT_STAT
+             dis_regpar,
+             dis_icvpar,
+             par_start_value,
+             val_F_start,
+             result_start,
+             result_default,
+             new_stat_for_every_step = not gl.INHERIT_STAT,
+             output = verbose.default
             ):
     '''
     procs_dic: taskname -> list_of_some_procnames_of_taskname (for some taskname)
@@ -243,41 +243,22 @@ def optimize(procs_dic, par_names,
     # установка значения по умолчанию для параметров
     par_default_value = {}
     for parname in reg_parnames + icv_parnames:
-            par_default_value[parname] = par.defaults[parname]
+        par_default_value[parname] = par.defaults[parname]
     
-    # вычисление времени компиляции, времени исполнения и потребляемтой памяти заданных спеков при значении параметров по умолчанию
-    # генерация статистики, если new_stat_for_every_step == True
-    if result_default == None:
-        result_default = clc.calculate_abs_values(procs_dic, {})
-        j_for_exec_run = 1
-    else:
-        j_for_exec_run = 0
+    j_for_exec_run = 0
     
     # вычисление значения функционала при значении параметров по умолчанию
     val_F_default = calculate_F(result_default, result_default)
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров
-    if par_start_value == None:
-        par_start_value = dict(par_default_value)
-        result_start = dict(result_default)
-        val_F_start = val_F_default
-    else:
-        # в par_start_value могут быть заданы значения для тех параметров, которых нет в par_names,
-        # и наоборот, не всем параметрам из par_names отображение par_start_value может сопоставлять значения.
-        # Дополним par_start_value значениями по умолчанию для тех параметров из par_names,
-        # которым par_start_value не сопоставлет никакого значения
-        tmp_dict = dict(par_default_value)
-        tmp_dict.update(par_start_value)
-        par_start_value = tmp_dict
-        
-        if result_start == None:
-            result_start = clc.calculate_abs_values(procs_dic, par_start_value)
-            j_for_exec_run += 1
-            val_F_start = calculate_F(result_start, result_default)
-        else:    
-            if val_F_start == None:
-                val_F_start = calculate_F(result_start, result_default)
+    # в par_start_value могут быть заданы значения для тех параметров, которых нет в par_names,
+    # и наоборот, не всем параметрам из par_names отображение par_start_value может сопоставлять значения.
+    # Дополним par_start_value значениями по умолчанию для тех параметров из par_names,
+    # которым par_start_value не сопоставлет никакого значения
+    tmp_dict = dict(par_default_value)
+    tmp_dict.update(par_start_value)
+    par_start_value = tmp_dict
     
     # инициализация текущего значения функционала
     val_F_current = val_F_start
@@ -296,16 +277,6 @@ def optimize(procs_dic, par_names,
         par_best_value = dict(par_default_value)
         result_best = dict(result_default)
         val_F_best = val_F_default
-    
-    # вычисление функции весов характеристик, отвечающим заданным параметрам фазы regions
-    if len(reg_parnames) != 0:
-        if dis_regpar == None:
-            dis_regpar = stat.get_dis_regpar(procs_dic)
-    
-    # вычисление функции весов характеристик, отвечающим заданным параметрам фазы if_conv
-    if len(icv_parnames) != 0:
-        if dis_icvpar == None:
-            dis_icvpar = stat.get_dis_icvpar(procs_dic)
     
     # вычисление распределений параметров 
     value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
@@ -591,99 +562,30 @@ def optimize(procs_dic, par_names,
     
     return (par_best_value, val_F_best, result_best)
 
-def seq_optimize(procs_dic, pargroup_seq,
-                 par_start_value = None,
-                 output = verbose.default,
-                 new_stat_for_every_step = not gl.INHERIT_STAT
-                ):
-    
-    result_default = clc.calculate_abs_values(procs_dic, {})
-    
-    dis_regpar = stat.get_dis_regpar(procs_dic)
-    dis_icvpar = stat.get_dis_icvpar(procs_dic)
-    
-    par_current_value = par_start_value
-    val_F_current = None
-    result_current = None
-    for par_group in pargroup_seq:
-        print("---------------------------------------------------------------------------")
-        print("Parametors:", str(par_group))
-        print()
-        
-        is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in par_group])
-        is_nesting_pargroup = len(par_group) == 1 and par_group[0] in par.nesting
-        
-        if is_dcs_pargroup:
-            par_current_value, val_F_current, result_current = dcs_optimize(procs_dic,
-                                                                            par_start_value = par_current_value,
-                                                                            result_default = result_default,
-                                                                            val_F_start = val_F_current,
-                                                                            result_start = result_current)
-        elif is_nesting_pargroup:
-            par_current_value, val_F_current, result_current = optimize_bool_par(procs_dic,
-                                                                                 par_group[0],
-                                                                                 par_start_value = par_current_value,
-                                                                                 result_default = result_default,
-                                                                                 val_F_start = val_F_current,
-                                                                                 result_start = result_current)
-        else:
-            par_current_value, val_F_current, result_current = optimize(procs_dic,
-                                                                        par_group,
-                                                                        par_start_value = par_current_value,
-                                                                        dis_regpar = dis_regpar,
-                                                                        dis_icvpar = dis_icvpar,
-                                                                        result_default = result_default,
-                                                                        val_F_start = val_F_current,
-                                                                        result_start = result_current)
-    
-    print(file=verbose.optval)
-    print("---------------------------------------------------------------------------")
-    par_value_print('The final values :', par_current_value, file=verbose.optval)
-    print('The final (t_c, t_e, m) is', result_current, file=output)
-    print('The final value for F is', val_F_current, file=output)
-        
-    return par_current_value, val_F_current, result_current
-
 def dcs_optimize(procs_dic,
+                 par_start_value,
+                 val_F_start,
+                 result_start,
+                 result_default,
+                 check_zero_level = True,
                  dcs_zero_limit = gl.DSC_IMPOTANCE_LIMIT,
-                 result_default = None,
-                 output = verbose.default,
-                 par_start_value = None,
-                 val_F_start = None,
-                 result_start = None,
-                 check_zero_level = True):
+                 output = verbose.default
+                 ):
     
     j_for_exec_run = 0
-    if result_default == None:
-        result_default = clc.calculate_abs_values(procs_dic, {})
-        j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
     par_default_value = {parname : par.defaults[parname] for parname in par.dcs}
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров
-    if par_start_value == None:
-        par_start_value = par_default_value
-        result_start = dict(result_default)
-        val_F_start = val_F_default
-    else:
-        # в par_start_value могут быть заданы значения для тех параметров, которых нет в par.dcs,
-        # и наоборот, не всем параметрам из par.dcs отображение par_start_value может сопоставлять значения.
-        # Дополним par_start_value значениями по умолчанию для тех параметров из par.dcs,
-        # которым par_start_value не сопоставлет никакого значения
-        tmp_dict = dict(par_default_value)
-        tmp_dict.update(par_start_value)
-        par_start_value = tmp_dict
-        
-        if result_start == None:
-            result_start = clc.calculate_abs_values(procs_dic, par_start_value)
-            j_for_exec_run += 1
-            val_F_start = calculate_F(result_start, result_default)
-            print('F(...) = ', val_F_start, file=verbose.F)
-        else:
-            if val_F_start == None:
-                val_F_start = calculate_F(result_start, result_default)
+    # в par_start_value могут быть заданы значения для тех параметров, которых нет в par.dcs,
+    # и наоборот, не всем параметрам из par.dcs отображение par_start_value может сопоставлять значения.
+    # Дополним par_start_value значениями по умолчанию для тех параметров из par.dcs,
+    # которым par_start_value не сопоставлет никакого значения
+    tmp_dict = dict(par_default_value)
+    tmp_dict.update(par_start_value)
+    par_start_value = tmp_dict
     
     par_value = dict(par_start_value)
     print('F_start = ', val_F_start, file=verbose.F)
@@ -733,39 +635,23 @@ def dcs_optimize(procs_dic,
     return (par_best_value, val_F_best, result_best)
     
 def optimize_bool_par(procs_dic, parname,
-                 result_default = None,
-                 output = verbose.default,
-                 par_start_value = None,
-                 val_F_start = None,
-                 result_start = None):
+                      par_start_value,
+                      val_F_start,
+                      result_start,
+                      result_default,
+                      output = verbose.default
+                      ):
     
     j_for_exec_run = 0
-    if result_default == None:
-        result_default = clc.calculate_abs_values(procs_dic, {})
-        j_for_exec_run += 1
     val_F_default = calculate_F(result_default, result_default)
     
     par_default_value = {parname : par.defaults[parname]}
     
     # установка начальных значений для параметров
     # вычисление значения функционала при начальном значении параметров
-    if par_start_value == None:
-        par_start_value = par_default_value
-        result_start = dict(result_default)
-        val_F_start = val_F_default
-    else:
-        tmp_dict = dict(par_default_value)
-        tmp_dict.update(par_start_value)
-        par_start_value = tmp_dict
-        
-        if result_start == None:
-            result_start = clc.calculate_abs_values(procs_dic, par_start_value)
-            j_for_exec_run += 1
-            val_F_start = calculate_F(result_start, result_default)
-            print('F(...) = ', val_F_start, file=verbose.F)
-        else:
-            if val_F_start == None:
-                val_F_start = calculate_F(result_start, result_default)
+    tmp_dict = dict(par_default_value)
+    tmp_dict.update(par_start_value)
+    par_start_value = tmp_dict
             
     print('F_start = ', val_F_start, file=verbose.F)
     print(file=verbose.runs)
@@ -823,95 +709,52 @@ def run():
 
     # Получаем стратегию, спеки, и начальную точку значений параметров
     strategy = par.strategy()
-    spec_procs = par.specs()
+    specs = par.specs()
     par_start = gl.PAR_START
+    is_seq = gl.SEQ_OPTIMIZATION_WITH_STRATEGY
 
-    if gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-        print('Synchronous optimization of specs :')  # all
-        par.print_specs(spec_procs)
-        print('Successive optimization with the strategy :') # seq
-        par.print_strategy(strategy)
+    print('Run annealing for specs')
+    for spec, procs in specs.items():
+        print(' ', spec, ':', (', '.join(procs) if procs else 'all procedures'))
+
+    print('with respect to the ' + ('sequential' if is_seq else 'independent') + ' strategy')
+    for group in strategy:
+        print(' ', ', '.join(group))
+        
+    # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для значений параметров по умолчанию
+    defaults = clc.calculate_abs_values(specs, {})
+    
+    # Получаем распределения параметров
+    print('Calculate parameters distribution ... ', end='', flush=True)
+    dis_regpar = stat.get_dis_regpar(specs)
+    dis_icvpar = stat.get_dis_icvpar(specs)
+    print('ok')
+    
+    pv, fv, rv = par_start, calculate_F(defaults, defaults), defaults
+    for group in strategy:
+        print('\n---------------------------------------------------------------------------')
+        print('Group of parametors: %s\n' % str(group))
         
         try:
-            seq_optimize(spec_procs, strategy, par_start_value = par_start)
-        except BaseException as error:
+            if any (p in par.dcs for p in group):
+                next_pv, next_fv, next_rv = dcs_optimize(specs, pv, fv, rv, defaults)
+
+            elif any (p in par.nesting for p in group):
+                next_pv, next_fv, next_rv = optimize_bool_par(specs, group[0], pv, fv, rv, defaults)
+
+            else:
+                next_pv, next_fv, next_rv = optimize(specs, group, dis_regpar, dis_icvpar, pv, fv, rv, defaults)
+
+            if is_seq:
+                pv, fv, rv = next_pv, next_fv, next_rv
+    
+        except Exception as error:
             print(error)
 
-    elif gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-        print('Independent optimization for every spec :') # every_spec
-        par.print_specs(spec_procs)
-        print('Successive optimization with the strategy :') # seq
-        par.print_strategy(strategy)
-        
-        for specname, proclist in spec_procs.items():
-            print("---------------------------------------------------------------------------")
-            print("Spec:", specname)
-            
-            try:
-                seq_optimize({specname: proclist}, strategy, par_start_value = par_start)
-            except BaseException as error:
-                print(error)
+    print('\n---------------------------------------------------------------------------\n')
+    
+    if is_seq:
+        par_value_print('The final values :', pv, file=verbose.optval)
+        print('The final (t_c, t_e, m) is', fv, file=verbose.default)
+        print('The final value for F is', rv, file=verbose.default)
 
-    elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-        print('Synchronous optimization of specs :')  # all
-        par.print_specs(spec_procs)
-        print('Independent optimization on every parametors group in the strategy :') # not seq
-        par.print_strategy(strategy)
-        
-        dis_regpar = stat.get_dis_regpar(spec_procs)
-        dis_icvpar = stat.get_dis_icvpar(spec_procs)
-        
-        for parnames in strategy:
-            print("---------------------------------------------------------------------------")
-            print("Parametors:", parnames)
-            print()
-            
-            is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
-            is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
-            
-            try:
-                if is_dcs_pargroup:
-                    dcs_optimize(spec_procs, par_start_value = par_start)
-                elif is_nesting_pargroup:
-                    optimize_bool_par(spec_procs, parnames[0], par_start_value = par_start)
-                else:
-                    optimize(spec_procs, parnames,
-                             dis_regpar = dis_regpar,
-                             dis_icvpar = dis_icvpar,
-                             par_start_value = par_start)
-            except BaseException as error:
-                print(error)
-
-    elif not gl.SEQ_OPTIMIZATION_WITH_STRATEGY and not gl.SYNCHRONOUS_OPTIMIZATION_FOR_SPECS:
-        print('Independent optimization for every spec :') # every_spec
-        par.print_specs(spec_procs)
-        print('Independent optimization on every parametors group in the strategy :') # not seq
-        par.print_strategy(strategy)
-        
-        for specname, proclist in spec_procs.items():
-            print("---------------------------------------------------------------------------")
-            print("---------------------------------------------------------------------------")
-            print("Spec:", specname)
-            
-            dis_regpar = stat.get_dis_regpar({specname : proclist})
-            dis_icvpar = stat.get_dis_icvpar({specname : proclist})
-            
-            for parnames in strategy:
-                print("---------------------------------------------------------------------------")
-                print("Parametors:", parnames)
-                print()
-                
-                is_dcs_pargroup = reduce(lambda x, y: x and y, [p in par.dcs or p == 'dcs' for p in parnames])
-                is_nesting_pargroup = len(parnames) == 1 and parnames[0] in par.nesting
-                try:
-                    if is_dcs_pargroup:
-                        dcs_optimize({specname : proclist}, par_start_value = par_start)
-                    elif is_nesting_pargroup:
-                        optimize_bool_par({specname : proclist}, parnames[0], par_start_value = par_start)
-                    else:
-                        optimize({specname : proclist}, parnames,
-                                 dis_regpar = dis_regpar,
-                                 dis_icvpar = dis_icvpar,
-                                 par_start_value = par_start)
-                except BaseException as error:
-                    print(error)

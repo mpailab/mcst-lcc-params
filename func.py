@@ -18,7 +18,7 @@ PWD = os.getcwd()
 SCRIPT_CMP_RUN = os.path.abspath(gl.SCRIPT_CMP_RUN)
 SCRIPT_CMP_INIT = os.path.abspath(gl.SCRIPT_CMP_INIT)
 
-class ExternalScriptError(BaseException):
+class ExternalScriptError(Exception):
     def __init__(self, error, script = SCRIPT_CMP_RUN):
         self.script = script
         self.error = error.strip()
@@ -84,7 +84,7 @@ def ext_script_opts(task_name, par_value, procname_list = None):
 # и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
 def calculate_abs_values(specs, par_value, output = verbose.runs):
 
-    print('Calculate compile time, execution time and maximal memory usage for ' + ('' if par_value else 'default ') + 'parameters', file=output)
+    print('\nCalculate compile time, execution time and maximal memory usage for ' + ('' if par_value else 'default ') + 'parameters', file=output)
     for par, value in par_value:
         print(' ', par, '=', str(value), file=output)
     
@@ -130,7 +130,7 @@ def calculate_abs_values(specs, par_value, output = verbose.runs):
         # Обрабатываем результаты
         for spec, comp_proc, exec_proc, stat_proc in stack:
 
-            print(spec + ' ... ', end='', file=output, flush=True)
+            print('  ' + spec + ' ... ', end='', file=output, flush=True)
 
             # Получаем время компиляции
             # comp_proc.wait()
@@ -168,7 +168,10 @@ def calculate_abs_values(specs, par_value, output = verbose.runs):
             # Заполняем таблицу результатов
             res[spec] = (comp_time, exec_time, max_mem)
 
-            print('ok : comp_time = ' + str(comp_time) + ', exec_time = ' + str(exec_time) + ', max_mem = ' + str(max_mem), file=output)
+            print('ok', file=output)
+            print('    comp_time = ' + str(comp_time), file=output)
+            print('    exec_time = ' + str(exec_time), file=output)
+            print('    max_mem = ' + str(max_mem), file=output)
 
     except ExternalScriptError as error:
 
@@ -190,5 +193,7 @@ def calculate_abs_values(specs, par_value, output = verbose.runs):
         # Возвращаемся в исходный каталог и удаляем временные файлы
         os.chdir(PWD)
         shutil.rmtree(tmpdir_path)
+    
+    print(file=output)
         
     return res

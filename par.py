@@ -171,42 +171,5 @@ def check_strategy(strategy = gl.OPTIMIZATION_STRATEGY):
             if dcs_par_exist and nesting_par_exist:
                 verbose.error('Wrong parametors group : %s. dcs-parametors and parametor %r must be in separated groups.' % (group, nesting[0]))
 
-def encode_strategy(strategy):
-    """
-        Преобразовать стратегию оптимизации из рабочего формата интеллектуальной системы в строковой формат 
-    """
-    return reduce(lambda x, y: x + '; ' + y, [reduce(lambda x, y: x + ' ' + y, group) for group in strategy])
-    
-def print_strategy(strategy, output = None):
-    """
-        Напечатать стратегию в красивом многострочном виде
-    """
-    for group in strategy:
-        print('   ', reduce(lambda x, y: x + ', ' + y, group), file=output)
-
-
 def specs():
     return gl.SPECS
-
-def encode_specs(spec_procs):
-    """
-        Преобразовать спеки из рабочего формата в строковой формат
-    """
-    def sp_encode(xxx_todo_changeme):
-        (specname, proclist) = xxx_todo_changeme
-        if not proclist:
-            return specname
-        else:
-            return specname + ': ' + reduce(lambda x, y: x + ' ' + y, proclist)
-    return reduce(lambda x, y: x + ', ' + y, map(sp_encode, spec_procs.items()))
-
-def print_specs(spec_procs, output = None):
-    """
-        Напечатать словарь spec_proсs в красивом многострочном виде
-    """
-    for specname, proclist in spec_procs.items():
-        whitespace = '   '
-        if proclist:
-            print(whitespace, specname + ': ' + reduce(lambda x, y: x + ', ' + y, proclist), file=output)
-        else:
-            print(whitespace, specname, file=output)
