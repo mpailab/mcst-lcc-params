@@ -52,9 +52,9 @@ if gl.VERBOSE >= 2:
     err = None
     default = None
 
-def warning (str):
-    print('Warning!', '\n         '.join(textwrap.wrap(str, width - 9)))
+def warning (str, output = None):
+    print('Warning!', '\n         '.join(textwrap.wrap(str, width - 9)), file = output)
 
-def error (str):
-    print('Error!', '\n       '.join(textwrap.wrap(str, width - 7)))
+def error (str, output = None):
+    print('Error!', '\n       '.join(textwrap.wrap(str, width - 7)), file = output)
     sys.exit()

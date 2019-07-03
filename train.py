@@ -527,7 +527,7 @@ def run ():
     DB.load()
     
     # Check statistics correctness
-    stat.check(SPECS, True)
+    stat.check(SPECS)
 
     print('Train neural network')
 

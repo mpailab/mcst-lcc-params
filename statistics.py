@@ -629,38 +629,36 @@ def get_dcs_dis(procs_dic,
 #########################################################################################
 # Module check_stat
 
-def check(specs = gl.SPECS, train = False):
+def check(specs = gl.SPECS):
     
-    if gl.INHERIT_STAT or train:
+    if STAT_PATH_FOR_READ == None:
+        verbose.error('The statictic was not defined')
 
-        if STAT_PATH_FOR_READ == None:
-            verbose.error('The statictic was not defined')
-
-        for specname, proclist in specs.items():
-            specpath = os.path.join(STAT_PATH_FOR_READ, specname)
-            if not os.path.exists(specpath):
-                verbose.error('There is not statictic for task %r.' % specname)
-            if proclist == None:
-                proclist = os.listdir(specpath)
-            for procname in proclist:
-                path = os.path.join(specpath, procname)
-                if not os.path.exists(path):
-                    verbose.error('There is not statictic for proc %r of task %r.' % (procname, specname))
-                    
-                path_reg = os.path.join(path, 'regions.txt')
-                if not os.path.exists(path_reg):
-                    verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_reg))
-                    
-                path_icv = os.path.join(path, 'if_conv.txt')
-                if not os.path.exists(path_icv):
-                    verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_icv))
-                    
-                dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
-                for lv in dcs_levels:
-                    lv_file = 'dcs_' + str(lv) + '.txt'
-                    path_lv = os.path.join(path, lv_file)
-                    if not os.path.exists(path_lv):
-                        verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_lv))
+    for specname, proclist in specs.items():
+        specpath = os.path.join(STAT_PATH_FOR_READ, specname)
+        if not os.path.exists(specpath):
+            verbose.error('There is not statictic for task %r.' % specname)
+        if proclist == None:
+            proclist = os.listdir(specpath)
+        for procname in proclist:
+            path = os.path.join(specpath, procname)
+            if not os.path.exists(path):
+                verbose.error('There is not statictic for proc %r of task %r.' % (procname, specname))
+                
+            path_reg = os.path.join(path, 'regions.txt')
+            if not os.path.exists(path_reg):
+                verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_reg))
+                
+            path_icv = os.path.join(path, 'if_conv.txt')
+            if not os.path.exists(path_icv):
+                verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_icv))
+                
+            dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
+            for lv in dcs_levels:
+                lv_file = 'dcs_' + str(lv) + '.txt'
+                path_lv = os.path.join(path, lv_file)
+                if not os.path.exists(path_lv):
+                    verbose.error('Incorrect statictic for proc %r of task %r. There is not file %r.' % (procname, specname, path_lv))
         
     if gl.PROC_WEIGHT_PATH == None:
         verbose.error('Weights for procs of specs was not defined')

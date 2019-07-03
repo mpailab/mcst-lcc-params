@@ -697,9 +697,6 @@ def par_value_print(head, par_value, file=verbose.optval, space = '    '):
 
 # Запуск ИС в подрежиме "метод имитации отжига"
 def run():
-    
-    # проверка корректности статистики
-    stat.check()
 
     # проверка корректности стратегии
     par.check_strategy()
@@ -724,6 +721,9 @@ def run():
     # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для значений параметров по умолчанию
     defaults = clc.calculate_abs_values(specs, {})
     
+    # проверка корректности статистики
+    stat.check()
+    
     # Получаем распределения параметров
     print('Calculate parameters distribution ... ', end='', flush=True)
     dis_regpar = stat.get_dis_regpar(specs)
@@ -736,7 +736,7 @@ def run():
         print('Group of parametors: %s\n' % str(group))
         
         try:
-            if any (p in par.dcs for p in group):
+            if any (p in par.dcs + ['dcs'] for p in group):
                 next_pv, next_fv, next_rv = dcs_optimize(specs, pv, fv, rv, defaults)
 
             elif any (p in par.nesting for p in group):
