@@ -23,13 +23,17 @@ debug  = None if gl.VERBOSE > 2 else devnull  # Подробная печать 
 ## если = None -> печатать на экран
 
 # F(...) = ...
-F = trace
-
+F = debug
 # ./.../run.sh ....
-runs = trace
+runs = debug
 
-# The best (t_c, t_e, mem) is ...
-optval = silent
+if gl.SEQ_OPTIMIZATION_WITH_STRATEGY:
+    optval = screen
+    groupname = screen
+else:
+    optval = silent
+    groupname = silent
+
 
 # Сообщения об ошибках
 err = silent

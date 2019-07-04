@@ -6,6 +6,9 @@
 # External imports
 import os
 
+class IntsysError(Exception):
+    pass
+
 PARAMS = {
     'regn_max_proc_op_sem_size' : (int, 16000, (0,50000)),
     'regn_heur1' : (float, 0.037, (0.0,1.0)),
@@ -175,17 +178,20 @@ def proc_chars (line):
      return procs
 
 # Parse string of the format '<par_name>:<value> ... <par_name>:<value>'
-def defaults (line):
+def defaults (line, allpars = True):
      lines = line.strip('"').split()
      if not lines:
           raise ValueError
-     pars = {x : PARAMS[x][1] for x in PARAMS}
+     pars = {x : PARAMS[x][1] for x in PARAMS} if allpars else {}
      for l in lines:
           d = l.split(':')
           if len(d) != 2 or any (x == '' for x in d) or not d[0] in PARAMS:
                raise ValueError
           pars[d[0]] = PARAMS[d[0]][0](d[1])
      return pars
+ 
+def starts (line):
+     return defaults(line, allpars = False)
 
 # Parse string of the format '<par_name>:<min>:<max> ... <par_name>:<min>:<max>'
 def ranges (line):
@@ -580,11 +586,11 @@ GL['weight_limit'] = Global(
 
 # Значения параметров компилятора lcc, в окрестности которых осуществляется поиск
 # Если не заданы, то поиск осуществляется в окрестности значений параметров по-умолчанию
-PAR_START = None
+PAR_START = {}
 GL['par_start'] = Global(
      'PAR_START', 'par_start',
      'значения параметров компилятора lcc, в окрестности которых осуществляется поиск',
-     'format', None, '<par_name>:<value> ... <par_name>:<value>', defaults,
+     'format', None, '<par_name>:<value> ... <par_name>:<value>', starts,
      PAR_START, 'anneal'
 )
 

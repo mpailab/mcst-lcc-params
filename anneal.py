@@ -626,7 +626,7 @@ def dcs_optimize(procs_dic,
         else:
             print('Dcs optimization in the level', lv, 'will not be effective', file=output)
     
-    print(file=verbose.optval)
+    print(file=output)
     par_value_print('The best values for parametors :', par_best_value, file=verbose.optval)
     print('The run-scripts was started for', j_for_exec_run * len(procs_dic), 'times', file=output)
     print('The best (t_c, t_e, m) is', result_best, file=output)
@@ -689,10 +689,10 @@ def optimize_bool_par(procs_dic, parname,
     
     return (par_best_value, val_F_best, result_best)
 
-def par_value_print(head, par_value, file=verbose.optval, space = '    '):
-    print(head, file=file)
+def par_value_print(head, par_value, file=verbose.optval, space = '    ' if gl.VERBOSE else '', sep = ':'):
+    print(head, file=verbose.screen)
     for par in par_value:
-        print(space, par, ':', par_value[par])
+        print(space, par, sep, par_value[par], file=file)
 
 
 # Запуск ИС в подрежиме "метод имитации отжига"
@@ -711,36 +711,51 @@ def run():
     is_seq = gl.SEQ_OPTIMIZATION_WITH_STRATEGY
     
     output = verbose.screen
+    space = '  '
 
     print('Run annealing for specs', file = output)
     for spec, procs in specs.items():
-        print(' ', spec, ':', (', '.join(procs) if procs else 'all procedures'), file = output)
+        print(space, spec, ':', (', '.join(procs) if procs else 'all procedures'), file = output)
 
     print('with respect to the ' + ('sequential' if is_seq else 'independent') + ' strategy', file = output)
     for group in strategy:
-        print(' ', ', '.join(group), file = output)
+        print(space, ', '.join(group), file = output)
         
     # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для значений параметров по умолчанию
     try:
         defaults = clc.calculate_abs_values(specs, {})
-    except Exception as error:
-        print('An error with calculating default (t_c, t_e, m) : %s', error)
-        sys.exit()
-        
+    except gl.IntsysError as error:
+        verbose.error('An error with calculating default (t_c, t_e, m). %s' % error)
     
+    # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для начальной точки значений
+    try:
+        if par.is_default(par_start):
+            print('with start point: default values', file = output)
+            starts = defaults
+        else:
+            par_value_print('with start point:', par_start, file = output, space = space)
+            starts = clc.calculate_abs_values(specs, par_start)
+    except gl.IntsysError as error:
+        verbose.error('An error with calculating start (t_c, t_e, m). %s' % error)
+        
     # проверка корректности статистики
     stat.check()
     
     # Получаем распределения параметров
     print('Calculate parameters distribution ... ', end='', flush=True, file = verbose.trace)
-    dis_regpar = stat.get_dis_regpar(specs)
-    dis_icvpar = stat.get_dis_icvpar(specs)
+    try:
+        dis_regpar = stat.get_dis_regpar(specs)
+        dis_icvpar = stat.get_dis_icvpar(specs)
+    except gl.IntsysError as error:
+        verbose.error(str(error))
     print('ok', file = verbose.trace)
     
-    pv, fv, rv = par_start, calculate_F(defaults, defaults), defaults
+    pv, fv, rv = par_start, calculate_F(starts, defaults), starts
+    
     for group in strategy:
-        print('\n---------------------------------------------------------------------------')
-        print('Group of parametors: %s\n' % str(group), file = output)
+        print(file = verbose.screen)
+        print('---------------------------------------------------------------------------', file = verbose.groupname)
+        print('Group of parametors: %s\n' % str(group), file = verbose.screen)
         
         try:
             if any (p in par.dcs for p in group):
@@ -755,13 +770,12 @@ def run():
             if is_seq:
                 pv, fv, rv = next_pv, next_fv, next_rv
     
-        except Exception as error:
+        except gl.IntsysError as error:
             print(error)
-
-    print('\n---------------------------------------------------------------------------\n')
     
     if is_seq:
-        par_value_print('The final values :', pv, file=verbose.optval)
+        print('\n---------------------------------------------------------------------------\n', file = verbose.groupname)
+        par_value_print('The final values :', pv, file=verbose.silent)
         print('The final (t_c, t_e, m) is', fv, file=verbose.debug)
         print('The final value for F is', rv, file=verbose.debug)
 

@@ -73,6 +73,9 @@ types = {x : gl.PARAMS[x][0] for x in gl.PARAMS}
 defaults = gl.PAR_DEFAULTS
 ranges = gl.PAR_RANGES
 
+def is_default(par_value):
+    return all(par_value[p] == defaults[p] for p in par_value)
+
 # список параметров, связанных с дублированием узлов
 doub_kind = [
     'disable_regions_nesting',

@@ -18,7 +18,7 @@ PWD = os.getcwd()
 SCRIPT_CMP_RUN = os.path.abspath(gl.SCRIPT_CMP_RUN)
 SCRIPT_CMP_INIT = os.path.abspath(gl.SCRIPT_CMP_INIT)
 
-class ExternalScriptError(Exception):
+class ExternalScriptError(gl.IntsysError):
     def __init__(self, error, script = SCRIPT_CMP_RUN):
         self.script = script
         self.error = error.strip()
@@ -72,7 +72,7 @@ def ext_script_opts(task_name, par_value, procname_list = None):
                 else:
                     cmd += '--false=' + par_name + ' '
             else:
-                raise BaseException('Unknown type of par')
+                raise Exception('Unknown type of par')
         if procname_list != None:
             for procname in procname_list:
                 cmd += '--debug_proc=' + procname + ' '
@@ -85,10 +85,10 @@ def ext_script_opts(task_name, par_value, procname_list = None):
 def calculate_abs_values(specs, par_value):
 
     # Настраиваем печать сообщений
-    output = verbose.screen
+    output = verbose.trace
 
     print('\nCalculate compile time, execution time and maximal memory usage for ' + ('' if par_value else 'default ') + 'parameters', file=output)
-    for par, value in par_value:
+    for par, value in par_value.items():
         print(' ', par, '=', str(value), file=output)
     
     # Создаем временный каталог
@@ -179,7 +179,7 @@ def calculate_abs_values(specs, par_value):
     except ExternalScriptError as error:
 
         print('fail', file=output)
-        raise Exception(error)
+        raise gl.IntsysError(error)
 
     except KeyboardInterrupt as error:
 

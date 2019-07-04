@@ -10,6 +10,17 @@ from math import erf
 import options as gl
 import par, verbose
 
+
+class StaticticError(gl.IntsysError):
+    def __init__(self, error, path):
+        self.error = error
+        self.path = path
+    
+    def __str__(self):
+        return 'An error by reading statictic in %r : %s' % (self.path, self.error)
+
+
+
 #########################################################################################
 # Чтение статистики компилируемых процедур
 
@@ -86,93 +97,100 @@ def get_proc(taskname, procname, stat_dir = None):
     proc = Proc()
     if stat_dir is None:
         stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
-    with open(os.path.join(stat_dir, procname, 'regions.txt')) as file:
-        for line in file:
-            ## отрезаем от line последний символ, который является символом перехода на новую строку
-            line = line[:-1]
-            if line[0] == 'H':
-                #В этом случае в line содержится информация о регионе
-                words = line.split()
-                hnum = words[0].split(':')[1] # номер головы региона
-                if len(words) == 1:
-                    # В этом случае регион с номером hnum раньше не встречался
-                    proc.regions[hnum] = Region()
-                elif words[1][0] == 'N':
-                    # В этом случае в line записана характеристика добавляемого узла
-                    nodenum = words[1].split(':')[1]
-                    if hnum != nodenum:
-                        # голову региона не будем добавлять в узлы
-                        if nodenum not in proc.regions[hnum].nodes:
-                            proc.regions[hnum].nodes[nodenum] = Node()
-                        wparts = words[2].split(':')
-                        chname = wparts[0]
+    path = os.path.join(stat_dir, procname, 'regions.txt')
+    try:
+        with open(path) as file:
+            for line in file:
+                ## отрезаем от line последний символ, который является символом перехода на новую строку
+                line = line[:-1]
+                if line[0] == 'H':
+                    #В этом случае в line содержится информация о регионе
+                    words = line.split()
+                    hnum = words[0].split(':')[1] # номер головы региона
+                    if len(words) == 1:
+                        # В этом случае регион с номером hnum раньше не встречался
+                        proc.regions[hnum] = Region()
+                    elif words[1][0] == 'N':
+                        # В этом случае в line записана характеристика добавляемого узла
+                        nodenum = words[1].split(':')[1]
+                        if hnum != nodenum:
+                            # голову региона не будем добавлять в узлы
+                            if nodenum not in proc.regions[hnum].nodes:
+                                proc.regions[hnum].nodes[nodenum] = Node()
+                            wparts = words[2].split(':')
+                            chname = wparts[0]
+                            value = wparts[1]
+                            proc.regions[hnum].nodes[nodenum].chars[chname] = value
+                    else:
+                        # В этом случае в строке line записана характеристика региона
+                        wparts = words[1].split(':')
+                        name = wparts[0]
                         value = wparts[1]
-                        proc.regions[hnum].nodes[nodenum].chars[chname] = value
-                else:
-                    # В этом случае в строке line записана характеристика региона
+                        proc.regions[hnum].chars[name] = value
+                elif line[0] == 'N':
+                    #В этом случае в line содержится информация о характеристике узла
+                    words = line.split()
+                    num = words[0].split(':')[1]
                     wparts = words[1].split(':')
                     name = wparts[0]
                     value = wparts[1]
-                    proc.regions[hnum].chars[name] = value
-            elif line[0] == 'N':
-                #В этом случае в line содержится информация о характеристике узла
-                words = line.split()
-                num = words[0].split(':')[1]
-                wparts = words[1].split(':')
-                name = wparts[0]
-                value = wparts[1]
-                if name == "L":
-                    proc.loops[value] = {'ovl' : words[2].split(":")[1], 
-                                        'red' : words[3].split(":")[1]}
+                    if name == "L":
+                        proc.loops[value] = {'ovl' : words[2].split(":")[1], 
+                                            'red' : words[3].split(":")[1]}
+                    else:
+                        if name == 'type':
+                            #В этом случае узел с номером nodenum раньше не встречался
+                            proc.nodes[num] = Node()
+                        proc.nodes[num].chars[name] = value
                 else:
-                    if name == 'type':
-                        #В этом случае узел с номером nodenum раньше не встречался
-                        proc.nodes[num] = Node()
-                    proc.nodes[num].chars[name] = value
-            else:
-                #В этом случае в line содержится информация о характеристике процедуры
-                parts = line.split(':') 
-                name = parts[0]
-                value = parts[1]
-                proc.chars[name] = value
+                    #В этом случае в line содержится информация о характеристике процедуры
+                    parts = line.split(':') 
+                    name = parts[0]
+                    value = parts[1]
+                    proc.chars[name] = value
+    except Exception as error:
+        raise StaticticError(error, path)
     return proc
 
 # Считывает статистику компиляции процедуры procname задачи taskname на фазе if_conv
 def get_icv_proc(taskname, procname):
     proc = Icv_Proc()
-    procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
-    file = open(procpath + '/if_conv.txt')
-    for line in file:
-        # отрезаем от line последний символ, который является символом перехода на новую строку
-        line = line[:-1]
-        if line[0] == 'H':
-            #В этом случае в line содержится информация о регионе
-            words = line.split()
-            hnum = words[0].split(':')[1] # номер головы региона
-            parts = words[1].split(':')
-            reg_charname = parts[0]
-            if reg_charname == 'E':
-                # В этом случае в line записана характеристика участка
-                enum = parts[1]
-                if enum not in proc.regions[hnum].sects:
-                    proc.regions[hnum].sects[enum] = Node() # програмно участок ведет себя как класс Node
-                wparts = words[2].split(':')
-                chname = wparts[0]
-                value = wparts[1]
-                proc.regions[hnum].sects[enum].chars[chname] = value
-            elif reg_charname == 'cnt':
-                proc.regions[hnum] = Icv_Region()
-                proc.regions[hnum].chars['cnt'] = parts[1]
+    path = os.path.join(STAT_PATH_FOR_READ, taskname, procname, 'if_conv.txt')
+    try:
+        file = open(path)
+        for line in file:
+            # отрезаем от line последний символ, который является символом перехода на новую строку
+            line = line[:-1]
+            if line[0] == 'H':
+                #В этом случае в line содержится информация о регионе
+                words = line.split()
+                hnum = words[0].split(':')[1] # номер головы региона
+                parts = words[1].split(':')
+                reg_charname = parts[0]
+                if reg_charname == 'E':
+                    # В этом случае в line записана характеристика участка
+                    enum = parts[1]
+                    if enum not in proc.regions[hnum].sects:
+                        proc.regions[hnum].sects[enum] = Node() # програмно участок ведет себя как класс Node
+                    wparts = words[2].split(':')
+                    chname = wparts[0]
+                    value = wparts[1]
+                    proc.regions[hnum].sects[enum].chars[chname] = value
+                elif reg_charname == 'cnt':
+                    proc.regions[hnum] = Icv_Region()
+                    proc.regions[hnum].chars['cnt'] = parts[1]
+                else:
+                    #тогда в line содержится информация о характеристики региона
+                    proc.regions[hnum].chars[reg_charname] = parts[1]
             else:
-                #тогда в line содержится информация о характеристики региона
-                proc.regions[hnum].chars[reg_charname] = parts[1]
-        else:
-            #В этом случае в line содержится информация о характеристике процедуры
-            words = line.split(':')
-            name = words[0]
-            value = words[1]
-            proc.chars[name] = value
-    file.close()
+                #В этом случае в line содержится информация о характеристике процедуры
+                words = line.split(':')
+                name = words[0]
+                value = words[1]
+                proc.chars[name] = value
+        file.close()
+    except Exception as error:
+        raise StaticticError(error, path)
     return proc
 
 # Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для всех уровней dcs-оптимизации)
@@ -200,43 +218,46 @@ def get_dcs_proc(taskname, procname, difference_from_levels = True):
 
 # Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для уровня lv dcs-оптимизации)
 def dcs_level(procpath, lv):
-    lvpath = procpath + '/dcs_' + str(lv) + '.txt'
-    ffile = open(lvpath)
-    
-    line = ffile.readline()[:-1]
-    procname = line.split(':')[1]
-    
-    line = ffile.readline()[:-1]
-    n_num = int(line.split(':')[1])
-    
-    line = ffile.readline()[:-1]
-    e_num = int(line.split(':')[1])
-    
-    line = ffile.readline()[:-1]
-    l_num = int(line.split(':')[1])
-    
-    N = set()
-    E = set()
-    L = set()
-    
-    for line in ffile:
-        line = line[:-1]
-        spl_end = line.split()[1].split(':')
-        key = spl_end[0]
-        value = int(spl_end[1])
-        if key == 'E':
-            E.add(value)
-        elif key == 'N':
-            N.add(value)
-        elif key == 'L':
-            L.add(value)
-        elif key == 'n_num':
-            nd_num = value
-        elif key == 'e_num':
-            ed_num = value
-        elif key == 'l_num':
-            ld_num = value
-    ffile.close()
+    lvpath = os.path.join(procpath, 'dcs_' + str(lv) + '.txt')
+    try:
+        ffile = open(lvpath)
+        
+        line = ffile.readline()[:-1]
+        procname = line.split(':')[1]
+
+        line = ffile.readline()[:-1]
+        n_num = int(line.split(':')[1])
+        
+        line = ffile.readline()[:-1]
+        e_num = int(line.split(':')[1])
+        
+        line = ffile.readline()[:-1]
+        l_num = int(line.split(':')[1])
+        
+        N = set()
+        E = set()
+        L = set()
+        
+        for line in ffile:
+            line = line[:-1]
+            spl_end = line.split()[1].split(':')
+            key = spl_end[0]
+            value = int(spl_end[1])
+            if key == 'E':
+                E.add(value)
+            elif key == 'N':
+                N.add(value)
+            elif key == 'L':
+                L.add(value)
+            elif key == 'n_num':
+                nd_num = value
+            elif key == 'e_num':
+                ed_num = value
+            elif key == 'l_num':
+                ld_num = value
+        ffile.close()
+    except Exception as error:
+        raise StaticticError(error, lvpath)
     
     nd_num = len(N)
     ed_num = len(E)
@@ -440,10 +461,10 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                     key.append(None) # если мы определили несбалансированное схождение
                     key.append(None)
             except KeyError as error:
-                verbose.warning('In %s %s N:%s -> %s' % (taskname, procname, num, error), verbose.debug)
+                verbose.warning('In %s %s N:%s -> %s' % (taskname, procname, num, error), verbose.err)
                 continue
             except ValueError as error:
-                verbose.warning('In %s %s N:%s -> %s' % (taskname, procname, num, error), verbose.debug)
+                verbose.warning('In %s %s N:%s -> %s' % (taskname, procname, num, error), verbose.err)
                 continue
                     
             key = tuple(key)
