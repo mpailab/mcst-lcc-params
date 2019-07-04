@@ -724,7 +724,7 @@ def run():
     try:
         defaults = clc.calculate_abs_values(specs, {})
     except Exception as error:
-        print('An error with calculating default (t_c, t_e, m) : %s', error):
+        print('An error with calculating default (t_c, t_e, m) : %s', error)
         sys.exit()
         
     
@@ -740,7 +740,7 @@ def run():
     pv, fv, rv = par_start, calculate_F(defaults, defaults), defaults
     for group in strategy:
         print('\n---------------------------------------------------------------------------')
-        print('Group of parametors: %s\n' % str(group), file = verbose.output)
+        print('Group of parametors: %s\n' % str(group), file = output)
         
         try:
             if any (p in par.dcs for p in group):
