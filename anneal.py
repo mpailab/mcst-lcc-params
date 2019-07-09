@@ -259,6 +259,8 @@ def optimize(procs_dic, par_names,
     tmp_dict = dict(par_default_value)
     tmp_dict.update(par_start_value)
     par_start_value = tmp_dict
+    # делаем так, чтобы par_start_value и par_default_value были определены на одном и томже списке параметров
+    par_default_value = {parname : par.defaults[parname] for parname in par_start_value.keys()}
     
     # инициализация текущего значения функционала
     val_F_current = val_F_start
@@ -586,6 +588,8 @@ def dcs_optimize(procs_dic,
     tmp_dict = dict(par_default_value)
     tmp_dict.update(par_start_value)
     par_start_value = tmp_dict
+    # делаем так, чтобы par_start_value и par_default_value были определены на одном и томже списке параметров
+    par_default_value = {parname : par.defaults[parname] for parname in par_start_value.keys()}
     
     par_value = dict(par_start_value)
     print('F_start = ', val_F_start, file=verbose.F)
@@ -652,6 +656,8 @@ def optimize_bool_par(procs_dic, parname,
     tmp_dict = dict(par_default_value)
     tmp_dict.update(par_start_value)
     par_start_value = tmp_dict
+    # делаем так, чтобы par_start_value и par_default_value были определены на одном и томже списке параметров
+    par_default_value = {parname : par.defaults[parname] for parname in par_start_value.keys()}
             
     print('F_start = ', val_F_start, file=verbose.F)
     print(file=verbose.runs)
