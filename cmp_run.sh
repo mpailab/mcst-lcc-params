@@ -14,6 +14,7 @@ IS_PEAK=0
 OPTS=""
 DIR=""
 SERVER=""
+PROF_DIR=""
 MODE=""
 
 # Нештатный выход из скрипта
@@ -59,6 +60,11 @@ do
       shift
       SERVER="$1"
       ;;
+
+    "-prof")
+      shift
+      PROF_DIR="$1"
+      ;;
       
     *) die "invalid argument '$1'" ;;
   esac
@@ -71,8 +77,9 @@ done
 [ "$SUITE" != "" ] || die "no parameter for -suite option"
 [ "$SPEC" != "" ] || die "no parameter for -spec option"
 [ $IS_BASE == 1 ] || [ $IS_PEAK == 1 ] || die "no <-base|-peak> option"
-[ "$DIR" != "" ] || die "no parameter for -dir option"
+[ $IS_STAT == 0 ] || [ "$DIR" != "" ] || die "no parameter for -dir option in -stat mode"
 [ "$SERVER" != "" ] || die "no parameter for -server option"
+[ $IS_EXEC == 0 ] || [ "$PROF" != "" ] || die "no parameter for -prof option in -exec mode"
 
 # Формируем аргументы для срипта
 ARGS=""
@@ -136,6 +143,37 @@ if [ $IS_EXEC == 1 ]
 then
     RES=`cat ./work.$MODE.old/$SPEC.exec_time_ref | 
          awk -F "_" '{ i++; s += $4 } END { if (i>0) print s; else print "error" }'`
+
+    # Получаем профили исполняемых процедур
+    cd "work.$MODE.old"
+    ../make_prof.sh $SPEC
+
+    # Суммируем профили исполняемых процедур
+    declare -A TIME
+    declare -A NUM
+    for prof in `ls exec.$SPEC/prof*.txt`
+    do
+        for row in `cat $prof | grep "% " | grep -v "(*)"`
+        do
+            proc=`cat $row | awk '{print $6}'`
+            time=`cat $row | awk '{print $5}'`
+            num=1
+            if [ ${TIME[$proc]+abc} ]
+            then
+                time=`echo "${TIME[$proc]}+$time" | bc`
+                num=$((${NUM[$proc]} + 1))
+            fi
+            TIME[$proc]=$time
+            NUM[$proc]=$num
+        done
+    done
+
+    # Сохраняем профили исполняемых процедур
+    for proc in ${!TIME[@]}
+    do 
+        time=`echo "${TIME[$proc]}/${NUM[$proc]}" | bc`
+        echo "$proc $time" >> $PROF_DIR/$SPEC.txt
+    done
 fi
 
 if [ $IS_STAT == 1 ]

@@ -47,10 +47,10 @@ def dir (line):
      return os.path.abspath(line)
 
 def path (line):
-     from re import search
+     from re import search, escape
      line = line.strip('"')
      path = os.path.normpath(line)
-     if not search(r'[^A-Za-z0-9_\-' + os.sep + ']', path) is None:
+     if not search(r'[^A-Za-z0-9_\-' + escape(os.path.sep) + ']', path) is None:
           raise ValueError
      return os.path.abspath(line)
 
@@ -982,7 +982,7 @@ GL['interp'] = Global(
      ' linear    - интерполяция линейными сплайнами (доступен для любой группы параметров)\n'
      ' quadratic - интерполяция квадратичными сплайнами (доступен для групп из одного параметра)\n'
      ' cubic     - интерполяция кубическими сплайнами (доступен для групп из одного и двух параметров)\n',
-     'disc_str', ['linear', 'quadratic', 'cubic'], None, str,
+     'disc_str', ['linear', 'quadratic', 'cubic'], None, name,
      TRAIN_INTERP, 'train'
 )
 
@@ -1005,7 +1005,7 @@ SCRIPT_CMP_RUN = None
 GL['cmp_run'] = Global(
      'SCRIPT_CMP_RUN', 'cmp_run',
      'bash-скрипт для запуска задач на компиляцию и/или исполнение. Имеет формат:\n'
-     '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir <path> -server <machine_name>\n'
+     '  cmp_run <-comp|-exec|-stat> -suite <pack_name> -spec <test_name> <-base|-peak> -opt <opt_list> -dir <path> -server <machine_name> -prof <profile>\n'
      'где -comp   - режим запуска на компиляцию\n'
      '    -exec   - режим запуска на исполнение\n'
      '    -stat   - режим запуска на получение статистики\n'
@@ -1016,6 +1016,9 @@ GL['cmp_run'] = Global(
      '    -opt    - параметры компилятора lcc\n'
      '    -dir    - директория, в которой сохраняется статистика\n'
      '    -server - машина, на которой следует произвести запуск\n'
+     '    -prof   - директория, в которой сохраняются профили исполняемых процедур.'
+     ' Профиль задачи <test_name> сохраняется в файле <test_name>.txt и имеет формат [<proc_name> <number>\\n],'
+     ' где <number> - среднее арифметическое числа вызовов процедуры <proc_name> по врем запускам задачи <test_name> на исполнение\n'
      'Скрипт должен в конце своей работы выдать на экран:\n'
      '  время компиляции (в режиме -comp),\n'
      '  время исполнения (в режиме -exec),\n'
@@ -1051,7 +1054,7 @@ COMP_MODE = 'base'
 GL['comp_mode'] = Global(
      'COMP_MODE', 'comp_mode',
      'режим запуска задач на компиляцию',
-     'disc_str', ['base', 'peak'], None, str,
+     'disc_str', ['base', 'peak'], None, name,
      COMP_MODE, 'script'
 )
 

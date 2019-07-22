@@ -52,7 +52,8 @@ def run_ext_script(mode, spec, opts, processes):
             + ' -' + gl.COMP_MODE
             + (' -opt ' + opts if opts else '')
             + ' -dir ' + gl.DINUMIC_STAT_PATH
-            + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER))
+            + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER)
+            + ' -prof ' + gl.PROC_WEIGHT_PATH ) 
     # print(wait + cmd, file=output)
     return Popen(wait + cmd, shell=True, stdout=PIPE, stderr=PIPE)
 

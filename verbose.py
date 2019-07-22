@@ -47,3 +47,6 @@ def warning (str, output = None):
 def error (str, output = None):
     print('Error!', '\n       '.join(textwrap.wrap(str, width - 7)), file = output)
     sys.exit()
+
+def undef (option, output = None):
+    error('no parameter for --%s option' % option)

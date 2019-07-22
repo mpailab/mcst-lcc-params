@@ -726,6 +726,12 @@ def run():
     print('with respect to the ' + ('sequential' if is_seq else 'independent') + ' strategy', file = output)
     for group in strategy:
         print(space, ', '.join(group), file = output)
+    
+    # Перед вызовом внешних скриптов надо удостовериться, что заданы каталоги для сбора статистики и весов исполняемых процедур
+    if not gl.INHERIT_STAT and gl.DINUMIC_STAT_PATH is None:
+        verbose.undef(gl.DINUMIC_STAT_PATH.param)
+    if gl.PROC_WEIGHT_PATH == None:
+        verbose.undef(gl.PROC_WEIGHT_PATH.param)
         
     # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для значений параметров по умолчанию
     try:
