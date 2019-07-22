@@ -20,7 +20,7 @@ MODE=""
 # Нештатный выход из скрипта
 die()
 {
-    echo -e "error: $@"
+    echo -e "$@" >& 2
     exit 1
 }
 
@@ -79,7 +79,7 @@ done
 [ $IS_BASE == 1 ] || [ $IS_PEAK == 1 ] || die "no <-base|-peak> option"
 [ $IS_STAT == 0 ] || [ "$DIR" != "" ] || die "no parameter for -dir option in -stat mode"
 [ "$SERVER" != "" ] || die "no parameter for -server option"
-[ $IS_EXEC == 0 ] || [ "$PROF" != "" ] || die "no parameter for -prof option in -exec mode"
+[ $IS_EXEC == 0 ] || [ "$PROF_DIR" != "" ] || die "no parameter for -prof option in -exec mode"
 
 # Формируем аргументы для срипта
 ARGS=""
@@ -127,8 +127,23 @@ else
 fi
 
 # Запускаем срипт на специфической машине
-rsh $SERVER "cd $PWD; ./cmp.sh $ARGS &> /dev/null"
-wait
+DATA=`date +%Y%m%d%H%M%S`
+CMP_STDOUT="cmp_stdout_$DATA"
+CMP_RES=$(rsh $SERVER "cd $PWD; ./cmp.sh $ARGS &> $CMP_STDOUT; echo \$?")
+
+if [ $CMP_RES == 1 ]
+then
+    echo "in $PWD/cmp.sh:" >& 2
+    ERROR=`cat $CMP_STDOUT`
+    REGEX=".* error[ :]\s*(.*)"
+    if [[ $ERROR =~ $REGEX ]]
+    then
+        echo ${BASH_REMATCH[1]} >& 2
+    else
+        echo $ERROR >& 2
+    fi
+    exit 1
+fi
 
 # Обрабатываем результаты срипта
 RES=""
@@ -153,10 +168,13 @@ then
     declare -A NUM
     for prof in `ls exec.$SPEC/prof*.txt`
     do
-        for row in `cat $prof | grep "% " | grep -v "(*)"`
+        declare -a rows
+        readarray -t rows < <(cat $prof | grep "% " | grep -v "(*)")
+        for i in ${!rows[@]}
         do
-            proc=`cat $row | awk '{print $6}'`
-            time=`cat $row | awk '{print $5}'`
+            row="${rows[$i]}"
+            proc=`echo $row | awk '{print $6}'`
+            time=`echo $row | awk '{print $5}'`
             num=1
             if [ ${TIME[$proc]+abc} ]
             then
@@ -174,6 +192,8 @@ then
         time=`echo "${TIME[$proc]}/${NUM[$proc]}" | bc`
         echo "$proc $time" >> $PROF_DIR/$SPEC.txt
     done
+
+    cd $PWD
 fi
 
 if [ $IS_STAT == 1 ]

@@ -10,7 +10,7 @@ import sys, textwrap
 import options as gl
 
 devnull = open(devnull, 'w')
-width = 100
+width = 90
 
 # Режимы вывода сообщений на экран
 silent = None                                 # Минимальная печать сообщений
@@ -42,10 +42,10 @@ err = silent
 default = debug
 
 def warning (str, output = None):
-    print('Warning!', '\n         '.join(textwrap.wrap(str, width - 9)), file = output)
+    print('Warning:', '\n         '.join([x for y in str.split('\n') for x in textwrap.wrap(y, width - 9)]), file = output)
 
 def error (str, output = None):
-    print('Error!', '\n       '.join(textwrap.wrap(str, width - 7)), file = output)
+    print('Error:', '\n       '.join([x for y in str.split('\n') for x in textwrap.wrap(y, width - 7)]), file = output)
     sys.exit()
 
 def undef (option, output = None):

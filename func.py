@@ -24,12 +24,12 @@ class ExternalScriptError(gl.IntsysError):
         self.error = error.strip()
     
     def __str__(self):
-        return 'An error in external sript %r: %s' % (self.script, self.error)
+        return 'in external script %s:\n%s' % (self.script, self.error)
 
 class ExternalScriptOutput(ExternalScriptError):
     def __init__(self, error, script = SCRIPT_CMP_RUN):
         self.script = script
-        self.error = 'could not convert script output %r to float' % error.strip()
+        self.error = 'external script %s returns %r, could not convert it to float' % (script, error.strip())
 
 # Инициализация внешнего скрипта
 def init_ext_script():
@@ -37,9 +37,9 @@ def init_ext_script():
     # print(cmd, file=output)
     prog = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     prog.wait()
-    res = prog.communicate()
-    if prog.returncode:
-        raise ExternalScriptError(res[1].decode('utf-8'), SCRIPT_CMP_INIT)
+    _, error = prog.communicate()
+    if prog.returncode or error:
+        raise ExternalScriptError(error.decode('utf-8'), SCRIPT_CMP_INIT)
 
 # Запуск внешнего срипта
 def run_ext_script(mode, spec, opts, processes):
@@ -138,33 +138,33 @@ def calculate_abs_values(specs, par_value):
 
             # Получаем время компиляции
             # comp_proc.wait()
-            comp_res = comp_proc.communicate()
-            if comp_proc.returncode:
-                raise ExternalScriptError(comp_res[1].decode('utf-8'))
+            comp_output, comp_error = comp_proc.communicate()
+            if comp_proc.returncode or comp_error:
+                raise ExternalScriptError(comp_error.decode('utf-8'))
             try:
-                comp_time = float(comp_res[0])
+                comp_time = float(comp_output)
             except ValueError as error:
-                raise ExternalScriptOutput(comp_res[0].decode('utf-8'))
+                raise ExternalScriptOutput(comp_output.decode('utf-8'))
 
             # Получаем время исполнения
             # exec_proc.wait()
-            exec_res = exec_proc.communicate()
-            if exec_proc.returncode:
-                raise ExternalScriptError(exec_res[1].decode('utf-8'))
+            exec_output, exec_error = exec_proc.communicate()
+            if exec_proc.returncode or exec_error:
+                raise ExternalScriptError(exec_error.decode('utf-8'))
             try:
-                exec_time = float(exec_res[0])
+                exec_time = float(exec_output)
             except ValueError as error:
-                raise ExternalScriptOutput(exec_res[0].decode('utf-8'))
+                raise ExternalScriptOutput(exec_output.decode('utf-8'))
 
             # Получаем максимальный объем потребления памяти
             # stat_proc.wait()
-            stat_res = stat_proc.communicate()
-            if stat_proc.returncode:
-                raise ExternalScriptError(stat_res[1].decode('utf-8'))
+            stat_output, stat_error = stat_proc.communicate()
+            if stat_proc.returncode or stat_error:
+                raise ExternalScriptError(stat_error.decode('utf-8'))
             try:
-                max_mem = float(stat_res[0])
+                max_mem = float(stat_output)
             except ValueError as error:
-                raise ExternalScriptOutput(stat_res[0].decode('utf-8'))
+                raise ExternalScriptOutput(stat_output.decode('utf-8'))
 
             # Добавляем полученные результаты в базу данных
             train.DB.add(spec, specs[spec], par_value, comp_time, exec_time, max_mem)

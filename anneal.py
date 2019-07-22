@@ -737,7 +737,7 @@ def run():
     try:
         defaults = clc.calculate_abs_values(specs, {})
     except gl.IntsysError as error:
-        verbose.error('An error with calculating default (t_c, t_e, m). %s' % error)
+        verbose.error('in calculating default (t_c, t_e, m):\n%s' % error)
     
     # Вычисляем значение времени компиляции, времени исполнения и объема потребляемой памяти для начальной точки значений
     try:
@@ -748,7 +748,7 @@ def run():
             par_value_print('with start point:', par_start, file = output, space = space)
             starts = clc.calculate_abs_values(specs, par_start)
     except gl.IntsysError as error:
-        verbose.error('An error with calculating start (t_c, t_e, m). %s' % error)
+        verbose.error('in calculating start (t_c, t_e, m):\n%s' % error)
         
     # проверка корректности статистики
     stat.check()
