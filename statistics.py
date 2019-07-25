@@ -476,51 +476,51 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
     return dis_par
 
 def get_unnorm_dis_icvpar_for_proc(taskname, procname):
-            """
-                Формирует распределение параметров фазы if_conv по статистике компиляции процедуры procname задачи taskname
-                Полученное распределение не нормируется
-            """
-            dis_par = {}
-            icv_proc = get_icv_proc(taskname, procname)
-            sum_reg_cnt = 0
-            for regn in icv_proc.regions.values():
-                sum_reg_cnt += float(regn.chars['cnt'])
-            if sum_reg_cnt == 0:
-                return {}
-            for _, regn in icv_proc.regions.items():
-                reg_cnt = float(regn.chars['cnt'])
-                rel_reg_cnt = reg_cnt / sum_reg_cnt
-                w_regn = icv_regn_weight(reg_cnt, rel_reg_cnt)
-                for sect in regn.sects.values():
-                    sect_cnt = float(sect.chars['cnt'])
-                    w = icv_sect_weight(sect_cnt) * w_regn
-                    key = []
-                    o_num = int(sect.chars['o_num']) # ifconv_opers_num
-                    c_num = int(sect.chars['c_num']) # ifconv_calls_num
-                    key.append(o_num)
-                    key.append(c_num)
-                    if 't_a' in sect.chars:
-                        t_a = float(sect.chars['t_a'])
-                        t_b = float(sect.chars['t_b'])
-                        d_heur = float(sect.chars['d_heur'])
-                        if t_b != 0:
-                            p = t_a / t_b - d_heur # ifconv_merge_heur
-                        else:
-                            if t_a == 0:
-                                p = None # пользуемся тем, что None < pv для любого pv
-                            else:
-                                p = maxsize # считаем что maxsize > pv для любого возможного значения для pv
-                        key.append(p)
+    """
+        Формирует распределение параметров фазы if_conv по статистике компиляции процедуры procname задачи taskname
+        Полученное распределение не нормируется
+    """
+    dis_par = {}
+    icv_proc = get_icv_proc(taskname, procname)
+    sum_reg_cnt = 0
+    for regn in icv_proc.regions.values():
+        sum_reg_cnt += float(regn.chars['cnt'])
+    if sum_reg_cnt == 0:
+        return {}
+    for _, regn in icv_proc.regions.items():
+        reg_cnt = float(regn.chars['cnt'])
+        rel_reg_cnt = reg_cnt / sum_reg_cnt
+        w_regn = icv_regn_weight(reg_cnt, rel_reg_cnt)
+        for sect in regn.sects.values():
+            sect_cnt = float(sect.chars['cnt'])
+            w = icv_sect_weight(sect_cnt) * w_regn
+            key = []
+            o_num = int(sect.chars['o_num']) # ifconv_opers_num
+            c_num = int(sect.chars['c_num']) # ifconv_calls_num
+            key.append(o_num)
+            key.append(c_num)
+            if 't_a' in sect.chars:
+                t_a = float(sect.chars['t_a'])
+                t_b = float(sect.chars['t_b'])
+                d_heur = float(sect.chars['d_heur'])
+                if t_b != 0:
+                    p = t_a / t_b - d_heur # ifconv_merge_heur
+                else:
+                    if t_a == 0:
+                        p = None # пользуемся тем, что None < pv для любого pv
                     else:
-                        key.append(None)
-                        # не знаю, что делать в этом случае. Этот случай бывает, когда sect не сливается из-за o_num и с_num и т.п.?
-                    
-                    key = tuple(key)
-                    if key in dis_par:
-                        dis_par[key] += w
-                    else:
-                        dis_par[key] = w
-            return dis_par
+                        p = maxsize # считаем что maxsize > pv для любого возможного значения для pv
+                key.append(p)
+            else:
+                key.append(None)
+                # не знаю, что делать в этом случае. Этот случай бывает, когда sect не сливается из-за o_num и с_num и т.п.?
+            
+            key = tuple(key)
+            if key in dis_par:
+                dis_par[key] += w
+            else:
+                dis_par[key] = w
+    return dis_par
 
 
 def get_dis_regpar(procs_dic, normolize_mode = True):

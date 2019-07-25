@@ -237,12 +237,12 @@ def optimize(procs_dic, par_names,
     index_in_own_seq.update(par.index_in_icv_seq)
     
     # выделяем из списка заданных параметров в отдельные упорядоченные списки параметры фазы regions и if_conv
-    reg_parnames = get_reg_parnames(par_names)
-    icv_parnames = get_icv_parnames(par_names)
+    all_reg_parnames = get_reg_parnames(par_names)
+    all_icv_parnames = get_icv_parnames(par_names)
     
     # установка значения по умолчанию для параметров
     par_default_value = {}
-    for parname in reg_parnames + icv_parnames:
+    for parname in all_reg_parnames + all_icv_parnames:
         par_default_value[parname] = par.defaults[parname]
     
     j_for_exec_run = 0
@@ -281,12 +281,12 @@ def optimize(procs_dic, par_names,
         val_F_best = val_F_default
     
     # вычисление распределений параметров 
-    value_par = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
+    value_par = stat.get_value_par(procs_dic, all_reg_parnames, all_icv_parnames, dis_regpar, dis_icvpar)
     
-    # если value_par[parname] == [], то выкинуть parname из reg_parnames (icv_parnames)
+    # если value_par[parname] == [], то выкинуть parname из all_reg_parnames (all_icv_parnames)
     # т.е., если нет возможных значений для parname, то оптимизировать по нему не надо
-    reg_parnames = [par for par in reg_parnames if value_par[par]]
-    icv_parnames = [par for par in icv_parnames if value_par[par]]
+    reg_parnames = [par for par in all_reg_parnames if value_par[par]]
+    icv_parnames = [par for par in all_icv_parnames if value_par[par]]
     
     # если списки reg_parnames и icv_parnames оба пусты
     if not reg_parnames and not icv_parnames:
@@ -336,22 +336,43 @@ def optimize(procs_dic, par_names,
         print('Iteration ' + str(iterr) + ':', file=output)
         
         if new_stat_for_every_step and current_to_candidate:
-            # ind = F_run_result[0].index(par_candidate_value) # ind уже вычисляли ранее
-            if F_run_result[2][ind] == None: # если нет информации о распределении параметра в базе данных
-                if len(reg_parnames) != 0:
+
+            # Формируем распределения value_par и sm_dis возможных значений параметров 
+            if F_run_result[2][ind] == None:
+
+                # Нет информации о распределении параметров
+
+                # Пересчитываем распределения всех параметров на основе новой статистики
+                if len(all_reg_parnames) != 0:
                     dis_regpar = stat.get_dis_regpar(procs_dic)
-                if len(icv_parnames) != 0:
+                if len(all_icv_parnames) != 0:
                     dis_icvpar = stat.get_dis_icvpar(procs_dic)
-                # вычисляем новую шкалу возможных значений
-                value_par_tmp = stat.get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
-                for parname in reg_parnames + icv_parnames:
-                    if value_par_tmp[parname]:
-                        value_par[parname] = value_par_tmp[parname]
+                
+                # Формируем распределения возможных значений для заданной группы параметров
+                value_par = stat.get_value_par(procs_dic, all_reg_parnames, all_icv_parnames, dis_regpar, dis_icvpar)
+                
+                # Выкидываем те параметры, для которых не удалось найти возможные значения
+                reg_parnames = [par for par in all_reg_parnames if value_par[par]]
+                icv_parnames = [par for par in all_icv_parnames if value_par[par]]
+                
+                # Если пригодных значений нет, то завершаем оптимизацию
+                if not reg_parnames and not icv_parnames:
+                    print('Scale of posible values for parametors is empty', file=verbose.err)
+                    print('For solve this problem increase a number of optimizated procedures', file=verbose.err)
+                    print('Interrupt optimization', file=verbose.err)
+                    print(file=output)
+                    break
+                
+                # Вычисляем новую шкалу возможных значений для оставшихся параметров
                 sm_dis = stat.get_sm_dis(value_par, reg_parnames, icv_parnames, dis_regpar, dis_icvpar)
+
+                # Если нет ограничения по памяти, то сохраняем распределения в таблице
                 if not gl.MEM_RESTRICTION:
-                    F_run_result[2][ind] = deepcopy(value_par)
-                    F_run_result[3][ind] = deepcopy(sm_dis)
+                    F_run_result[2][ind] = value_par
+                    F_run_result[3][ind] = sm_dis
+
             else:
+                # Информация о распределении параметров уже найдена
                 value_par = F_run_result[2][ind]
                 sm_dis = F_run_result[3][ind]
             
