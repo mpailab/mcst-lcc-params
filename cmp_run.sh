@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Внутренние переменные
-PWD=`pwd`
+CURDIR=`pwd`
 
 # Переменные, соответствующие аргументам, подаваемым скрипту
 IS_COMP=0
@@ -129,11 +129,11 @@ fi
 # Запускаем срипт на специфической машине
 DATA=`date +%Y%m%d%H%M%S`
 CMP_STDOUT="cmp_stdout_$DATA"
-CMP_RES=$(rsh $SERVER "cd $PWD; ./cmp.sh $ARGS &> $CMP_STDOUT; echo \$?")
+CMP_RES=$(rsh $SERVER "cd $CURDIR; ./cmp.sh $ARGS &> $CMP_STDOUT; echo \$?")
 
 if [ $CMP_RES == 1 ]
 then
-    echo "in $PWD/cmp.sh:" >& 2
+    echo "in $CURDIR/cmp.sh:" >& 2
     ERROR=`cat $CMP_STDOUT`
     REGEX=".* error[ :]\s*(.*)"
     if [[ $ERROR =~ $REGEX ]]
@@ -161,7 +161,14 @@ then
 
     # Получаем профили исполняемых процедур
     cd "work.$MODE.old"
-    ../make_prof.sh $SPEC
+    $CURDIR/make_prof.sh $SPEC &> $CMP_STDOUT
+    if [ $? -ne 0 ]
+    then
+        echo "in $CURDIR/make_prof.sh:" >& 2
+        cat $CMP_STDOUT >& 2
+        pwd >& 2
+        exit 1
+    fi
 
     # Суммируем профили исполняемых процедур
     declare -A TIME
@@ -193,12 +200,12 @@ then
         echo "$proc $time" >> $PROF_DIR/$SPEC.txt
     done
 
-    cd $PWD
+    cd $CURDIR
 fi
 
 if [ $IS_STAT == 1 ]
 then
-    RES=`cat ./work.$MODE.new/$SPEC.mem | 
+    RES=`cat ./work.$MODE.new/$SPEC.mem | grep "max memory usage" |
          awk '{ if( s < $4 ) s = $4; } END { print s }'`
 fi
 
