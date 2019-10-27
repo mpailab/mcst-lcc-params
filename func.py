@@ -81,7 +81,7 @@ def ext_script_opts(task_name, par_value, procname_list = None):
         cmd += '\"'
     return cmd
 
-# Запускает внешние скипты на задачах из specs со значениями параметров из par_value
+# Запускает внешние скрипты на задачах из specs со значениями параметров из par_value
 # и получает абсолютные значения времени компиляции, времени исполнения и объема потребляемой памяти
 def calculate_abs_values(specs, par_value):
 
@@ -104,6 +104,9 @@ def calculate_abs_values(specs, par_value):
 
     # Таблица результатов: {spec_name -> (comp_time, exec_time, max_mem)}
     res = {}
+
+    # Список проблемных spec-ов
+    failed_specs = []
 
     try:
 
@@ -136,50 +139,63 @@ def calculate_abs_values(specs, par_value):
 
             print('  ' + spec + ' ... ', end='', file=output, flush=True)
 
-            # Получаем время компиляции
-            # comp_proc.wait()
-            comp_output, comp_error = comp_proc.communicate()
-            if comp_proc.returncode or comp_error:
-                raise ExternalScriptError(comp_error.decode('utf-8'))
             try:
-                comp_time = float(comp_output)
-            except ValueError as error:
-                raise ExternalScriptOutput(comp_output.decode('utf-8'))
 
-            # Получаем время исполнения
-            # exec_proc.wait()
-            exec_output, exec_error = exec_proc.communicate()
-            if exec_proc.returncode or exec_error:
-                raise ExternalScriptError(exec_error.decode('utf-8'))
-            try:
-                exec_time = float(exec_output)
-            except ValueError as error:
-                raise ExternalScriptOutput(exec_output.decode('utf-8'))
+                # Получаем время компиляции
+                # comp_proc.wait()
+                comp_output, comp_error = comp_proc.communicate()
+                if comp_proc.returncode or comp_error:
+                    raise ExternalScriptError(comp_error.decode('utf-8'))
+                try:
+                    comp_time = float(comp_output)
+                except ValueError as error:
+                    raise ExternalScriptOutput(comp_output.decode('utf-8'))
 
-            # Получаем максимальный объем потребления памяти
-            # stat_proc.wait()
-            stat_output, stat_error = stat_proc.communicate()
-            if stat_proc.returncode or stat_error:
-                raise ExternalScriptError(stat_error.decode('utf-8'))
-            try:
-                max_mem = float(stat_output)
-            except ValueError as error:
-                raise ExternalScriptOutput(stat_output.decode('utf-8'))
+                # Получаем время исполнения
+                # exec_proc.wait()
+                exec_output, exec_error = exec_proc.communicate()
+                if exec_proc.returncode or exec_error:
+                    raise ExternalScriptError(exec_error.decode('utf-8'))
+                try:
+                    exec_time = float(exec_output)
+                except ValueError as error:
+                    raise ExternalScriptOutput(exec_output.decode('utf-8'))
 
-            # Добавляем полученные результаты в базу данных
-            train.DB.add(spec, specs[spec], par_value, comp_time, exec_time, max_mem)
+                # Получаем максимальный объем потребления памяти
+                # stat_proc.wait()
+                stat_output, stat_error = stat_proc.communicate()
+                if stat_proc.returncode or stat_error:
+                    raise ExternalScriptError(stat_error.decode('utf-8'))
+                try:
+                    max_mem = float(stat_output)
+                except ValueError as error:
+                    raise ExternalScriptOutput(stat_output.decode('utf-8'))
 
-            # Заполняем таблицу результатов
-            res[spec] = (comp_time, exec_time, max_mem)
+                # Добавляем полученные результаты в базу данных
+                train.DB.add(spec, specs[spec], par_value, comp_time, exec_time, max_mem)
 
-            print('ok', file=output)
-            print('    comp_time = ' + str(comp_time), file=output)
-            print('    exec_time = ' + str(exec_time), file=output)
-            print('    max_mem = ' + str(max_mem), file=output)
+                # Заполняем таблицу результатов
+                res[spec] = (comp_time, exec_time, max_mem)
+
+                print('ok', file=output)
+                print('    comp_time = ' + str(comp_time), file=output)
+                print('    exec_time = ' + str(exec_time), file=output)
+                print('    max_mem = ' + str(max_mem), file=output)
+
+            except ExternalScriptError as error:
+
+                # Не удалось получить данные для данного spec-а. В этом случае исключаем проблемный spec из рассмотрения.
+                print('fail', file=output)
+                verbose.warning('in calculating (t_c, t_e, m) for spec %s:\n%s' % (spec, error), verbose.debug)
+                print('Failed spec %s will be excluded.' %spec, file=verbose.trace)
+                failed_specs.append(spec)
+
+            except KeyboardInterrupt as error:
+
+                raise KeyboardInterrupt(error)
 
     except ExternalScriptError as error:
 
-        print('fail', file=output)
         raise gl.IntsysError(error)
 
     except KeyboardInterrupt as error:
@@ -197,6 +213,10 @@ def calculate_abs_values(specs, par_value):
         # Возвращаемся в исходный каталог и удаляем временные файлы
         os.chdir(PWD)
         shutil.rmtree(tmpdir_path)
+
+    # Удаляем проблемные спеки
+    for spec in failed_specs:
+        del specs[spec]
     
     print(file=output)
         
