@@ -6,6 +6,7 @@ import os, random, shutil
 from subprocess import Popen, PIPE
 import sys
 from sys import maxsize
+import time
 
 # Internal imports
 import par
@@ -54,7 +55,6 @@ def run_ext_script(mode, spec, opts, processes):
             + ' -dir ' + gl.DINUMIC_STAT_PATH
             + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER)
             + ' -prof ' + gl.PROC_WEIGHT_PATH ) 
-    # print(wait + cmd, file=output)
     return Popen(wait + cmd, shell=True, stdout=PIPE, stderr=PIPE)
 
 # Опции для передачи внешнему скрипту
@@ -101,6 +101,7 @@ def calculate_abs_values(specs, par_value):
 
     # Стек запущенных процессов
     stack = []
+    heap = []
 
     # Таблица результатов: {spec_name -> (comp_time, exec_time, max_mem)}
     res = {}
@@ -117,6 +118,7 @@ def calculate_abs_values(specs, par_value):
         init_ext_script()
 
         # Запускаем внешний скрипт для каждого спека по отдельности
+        print("Run processes:", file=verbose.debug, flush=True)
         for spec, procs in specs.items():
 
             # Готовим входные аргументы для внешнего срипта
@@ -124,15 +126,29 @@ def calculate_abs_values(specs, par_value):
 
             # Запускаем внешний скрипт на компиляцию
             comp_proc = run_ext_script('comp', spec, opts, ([] if not stack else [stack[-1][3]]))
+            print('pid : ' + str(comp_proc.pid) + ', cmd : ' + comp_proc.args, file=verbose.debug, flush=True)
 
             # Запускаем внешний скрипт на исполнение
             exec_proc = run_ext_script('exec', spec, opts, ([comp_proc] if not stack else [comp_proc, stack[-1][2]]))
+            print('pid : ' + str(exec_proc.pid) + ', cmd : ' + exec_proc.args, file=verbose.debug, flush=True)
 
             # Запускаем внешний скрипт на компиляцию с получением статистики
             stat_proc = run_ext_script('stat', spec, opts, [comp_proc])
+            print('pid : ' + str(stat_proc.pid) + ', cmd : ' + stat_proc.args, file=verbose.debug, flush=True)
 
-            # Запоминаем запущенный процесс
+            # Запоминаем запущенные процессы
             stack.append((spec, comp_proc, exec_proc, stat_proc))
+            heap.append(comp_proc)
+            heap.append(exec_proc)
+            heap.append(stat_proc)
+
+        # Ожидаем завершение процессов
+        while heap: 
+            for p in heap:
+                if p.poll() is not None:
+                    print('process ' + str(p.pid) + ' is finished', file=verbose.debug, flush=True)
+                    heap.remove(p)
+            time.sleep(30)
 
         # Обрабатываем результаты
         for spec, comp_proc, exec_proc, stat_proc in stack:
@@ -142,7 +158,6 @@ def calculate_abs_values(specs, par_value):
             try:
 
                 # Получаем время компиляции
-                # comp_proc.wait()
                 comp_output, comp_error = comp_proc.communicate()
                 if comp_proc.returncode or comp_error:
                     raise ExternalScriptError(comp_error.decode('utf-8'))
@@ -152,7 +167,6 @@ def calculate_abs_values(specs, par_value):
                     raise ExternalScriptOutput(comp_output.decode('utf-8'))
 
                 # Получаем время исполнения
-                # exec_proc.wait()
                 exec_output, exec_error = exec_proc.communicate()
                 if exec_proc.returncode or exec_error:
                     raise ExternalScriptError(exec_error.decode('utf-8'))
@@ -162,7 +176,6 @@ def calculate_abs_values(specs, par_value):
                     raise ExternalScriptOutput(exec_output.decode('utf-8'))
 
                 # Получаем максимальный объем потребления памяти
-                # stat_proc.wait()
                 stat_output, stat_error = stat_proc.communicate()
                 if stat_proc.returncode or stat_error:
                     raise ExternalScriptError(stat_error.decode('utf-8'))
