@@ -45,7 +45,7 @@ def init_ext_script():
 # Запуск внешнего срипта
 def run_ext_script(mode, spec, opts, processes):
     assert(mode in gl.CMP_MODES)
-    wait = 'tail ' + ' '.join(map(lambda p: '--pid=' + str(p.pid), processes)) + ' -f /dev/null; ' if processes else ''
+    wait = ' '.join(map(lambda p: 'tail --pid=' + str(p.pid) + ' -f /dev/null;', processes)) if processes else ''
     cmd = ( SCRIPT_CMP_RUN 
             + ' -' + mode 
             + ' -suite ' + gl.CMP_SUITE 
@@ -55,7 +55,7 @@ def run_ext_script(mode, spec, opts, processes):
             + ' -dir ' + gl.DINUMIC_STAT_PATH
             + ' -server ' + (gl.EXEC_SERVER if mode == 'exec' else gl.COMP_SERVER)
             + ' -prof ' + gl.PROC_WEIGHT_PATH ) 
-    return Popen(wait + cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    return Popen(wait + ' ' + cmd, shell=True, stdout=PIPE, stderr=PIPE)
 
 # Опции для передачи внешнему скрипту
 def ext_script_opts(task_name, par_value, procname_list = None): 
@@ -118,23 +118,25 @@ def calculate_abs_values(specs, par_value):
         init_ext_script()
 
         # Запускаем внешний скрипт для каждого спека по отдельности
-        print("Run processes:", file=verbose.debug, flush=True)
+        print('Run jobs:', file=verbose.debug)
         for spec, procs in specs.items():
 
             # Готовим входные аргументы для внешнего срипта
             opts = ext_script_opts(spec, par_value, procs)
 
             # Запускаем внешний скрипт на компиляцию
-            comp_proc = run_ext_script('comp', spec, opts, ([] if not stack else [stack[-1][3]]))
-            print('pid : ' + str(comp_proc.pid) + ', cmd : ' + comp_proc.args, file=verbose.debug, flush=True)
+            comp_proc = run_ext_script( 'comp', spec, opts, 
+                                        ([stack[-1][3]] if stack else []))
+            verbose.print_job(comp_proc.pid, comp_proc.args)
 
             # Запускаем внешний скрипт на исполнение
-            exec_proc = run_ext_script('exec', spec, opts, ([comp_proc] if not stack else [comp_proc, stack[-1][2]]))
-            print('pid : ' + str(exec_proc.pid) + ', cmd : ' + exec_proc.args, file=verbose.debug, flush=True)
+            exec_proc = run_ext_script( 'exec', spec, opts, 
+                                        ([comp_proc, stack[-1][2]] if stack else [comp_proc]))
+            verbose.print_job(exec_proc.pid, exec_proc.args)
 
             # Запускаем внешний скрипт на компиляцию с получением статистики
             stat_proc = run_ext_script('stat', spec, opts, [comp_proc])
-            print('pid : ' + str(stat_proc.pid) + ', cmd : ' + stat_proc.args, file=verbose.debug, flush=True)
+            verbose.print_job(stat_proc.pid, stat_proc.args)
 
             # Запоминаем запущенные процессы
             stack.append((spec, comp_proc, exec_proc, stat_proc))
@@ -143,12 +145,15 @@ def calculate_abs_values(specs, par_value):
             heap.append(stat_proc)
 
         # Ожидаем завершение процессов
+        print('Waiting for terminating of jobs:', file=verbose.debug)
+        def is_run(p):
+            if p.poll() is None:
+                return True
+            verbose.print_job(p.pid, "done")
+            return False
         while heap: 
-            for p in heap:
-                if p.poll() is not None:
-                    print('process ' + str(p.pid) + ' is finished', file=verbose.debug, flush=True)
-                    heap.remove(p)
-            time.sleep(30)
+            heap = [ p for p in heap if is_run(p) ]
+            time.sleep(1)
 
         # Обрабатываем результаты
         for spec, comp_proc, exec_proc, stat_proc in stack:
@@ -218,14 +223,15 @@ def calculate_abs_values(specs, par_value):
     finally:
 
         # Удаляем запущенные процессы
-        for _, comp_proc, exec_proc, stat_proc in stack:
-            comp_proc.kill()
-            exec_proc.kill()
-            stat_proc.kill()
+        [ p.kill() for p in heap if p.poll() is None ]
 
         # Возвращаемся в исходный каталог и удаляем временные файлы
         os.chdir(PWD)
         shutil.rmtree(tmpdir_path)
+
+        # Востанавливаем стандартный ввод/вывод после удалённых запусков
+        os.system('stty sane')
+
 
     # Удаляем проблемные спеки
     for spec in failed_specs:

@@ -50,3 +50,8 @@ def error (str, output = None):
 
 def undef (option, output = None):
     error('no parameter for --%s option' % option)
+
+def print_job(i,str):
+    head = ' %5d : ' % i
+    body = ' \\\n         '.join([x for y in str.split('\n') for x in textwrap.wrap(y, width - 9)])
+    print(head + body, file = debug)
