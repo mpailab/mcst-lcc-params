@@ -23,7 +23,7 @@ PARAMS = {
     'ifconv_merge_heur' : (float, 1.0, (0.0,2.0)),
     'ifconv_opers_num' : (int, 200, (0,500)),
     'ifconv_calls_num' : (int, 6, (0,10)),
-    'disable_regions_nesting': (bool, True, (False,True)),
+    'disable_regions_nesting': (bool, False, (False,True)),
     'dcs_kill': (bool, False, (False,True)),
     'dcs_level': (int, 0, (0,4))
     }
@@ -918,6 +918,15 @@ GL['model_dir'] = Global(
      'каталог c предобученными искусственными нейронными сетями',
      'path_to_dir', None, None, path,
      TRAIN_MODEL_DIR, 'train'
+)
+
+# Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
+С_MODEL_DIR = None
+GL['c_model_dir'] = Global(
+     'C_MODEL_DIR', 'c_model_dir',
+     'в этот каталог сохраняются файлы ann_real.h и ann_real.c, содержащие предобученные искусственные нейронные сети',
+     'path_to_dir', None, None, path,
+     С_MODEL_DIR, 'train'
 )
 
 # Доля данных, выделяемая для обучения искусственной нейронной сети

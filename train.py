@@ -12,7 +12,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # Internal imports
 import options as gl
 import statistics as stat
-import par, verbose
+import par, verbose, export
 
 #########################################################################################
 # Local variables and data structures
@@ -53,17 +53,26 @@ class Node:
     def calls_density (self):
         return self.calls_num / self.opers_num
 
+    def w_calls_density (self):
+        return self.w_calls_num / self.opers_num
+
     def w_loads_num (self):
         return self.loads_num * self.counter
 
     def loads_density (self):
         return self.loads_num / self.opers_num
 
+    def w_loads_density (self):
+        return self.w_loads_num / self.opers_num
+
     def w_stores_num (self):
         return self.stores_num * self.counter
 
     def stores_density (self):
         return self.stores_num / self.opers_num
+
+    def w_stores_density (self):
+        return self.w_stores_num / self.opers_num
 
 class Loop:
     def __init__ (self, n, ovl, red):
@@ -125,7 +134,7 @@ class Proc:
 
     def w_calls_density (self):
         if self.max_cnt():
-            return reduce(lambda a, n: a + n.calls_density(), self.nodes, 0) / self.max_cnt()
+            return reduce(lambda a, n: a + n.w_calls_density(), self.nodes, 0) / self.max_cnt()
         else:
             return 0
 
@@ -161,7 +170,7 @@ class Proc:
 
     def w_loads_density (self):
         if self.max_cnt():
-            return reduce(lambda a, n: a + n.loads_density(), self.nodes, 0) / self.max_cnt()
+            return reduce(lambda a, n: a + n.w_loads_density(), self.nodes, 0) / self.max_cnt()
         else:
             return 0
 
@@ -197,7 +206,7 @@ class Proc:
 
     def w_stores_density (self):
         if self.max_cnt():
-            return reduce(lambda a, n: a + n.stores_density(), self.nodes, 0) / self.max_cnt()
+            return reduce(lambda a, n: a + n.w_stores_density(), self.nodes, 0) / self.max_cnt()
         else:
             return 0
 
@@ -587,6 +596,7 @@ def run ():
     from scipy.interpolate import interp1d, griddata
 
     # Train neural network for a given group of parameters
+    models = []
     for gr in PARS.keys():
 
         # Check that data is not empty for a given group of parameters
@@ -634,9 +644,9 @@ def run ():
         # Create a model of neural network
         from tensorflow import keras
         model = keras.Sequential([keras.layers.Flatten(input_shape=(48,)),
-                                  keras.layers.Dense(int(TRAIN_GRID / 2), activation='relu'),
-                                  keras.layers.Dense(int(TRAIN_GRID / 2), activation='relu'),
-                                  keras.layers.Dense(TRAIN_GRID + 1, activation='softmax')])
+                                  keras.layers.Dense(int(len(gridd) / 2), activation='relu'),
+                                  keras.layers.Dense(int(len(gridd) / 2), activation='relu'),
+                                  keras.layers.Dense(len(gridd), activation='softmax')])
         
         acc = []
         loss = []
@@ -681,6 +691,9 @@ def run ():
 
         # Save model
         model.save(os.path.join(MODEL_DIR, gr + '_model.h5'))
+        models.append((model, gridd, gr))
+
+    export.write(models)
 
 #########################################################################################
 # Use neural network to find parameters values
