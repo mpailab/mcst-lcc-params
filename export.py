@@ -245,8 +245,10 @@ ann_InitModel""" + str(i) + """( ann_Info_t *info) /* инфо */
 
 def write( models):
 
-    with open(gl.С_MODEL_DIR + '/ann_real.h', 'w') as file:
-        write_h( models, file)
+    if gl.С_MODEL_DIR:
 
-    with open(gl.С_MODEL_DIR + '/ann_real.с', 'w') as file:
-        write_с( models, file)
+        with open(gl.С_MODEL_DIR + '/ann_real.h', 'w') as file:
+            write_h( models, file)
+
+        with open(gl.С_MODEL_DIR + '/ann_real.с', 'w') as file:
+            write_с( models, file)

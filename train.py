@@ -693,6 +693,7 @@ def run ():
         model.save(os.path.join(MODEL_DIR, gr + '_model.h5'))
         models.append((model, gridd, gr))
 
+    # Write models in c code
     export.write(models)
 
 #########################################################################################

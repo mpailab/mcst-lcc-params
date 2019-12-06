@@ -130,7 +130,9 @@ fi
 currentHour=$(date +"%H")
 currentMin=$(date +"%M")
 currentSec=$(date +"%S")
-if [ "$SERVER" -eq "elemental"] && [ "$currentHour" -gt 10 ] && [ "$currentHour" -lt 22 ]
+if [[ "$SERVER" -eq "elemental " ]] && 
+   [[ "$currentHour" -gt 10 ]] && 
+   [[ "$currentHour" -lt 22 ]]
 then
     sleep $(( 3600 * (22 - currentHour - 1) + 60 * (60 - currentMin - 1) + (60 - currentSec) ))
 fi
@@ -138,7 +140,11 @@ fi
 # Запускаем срипт на специфической машине
 DATA=`date +%Y%m%d%H%M%S`
 CMP_STDOUT="cmp_stdout_$DATA"
-CMP_RES=$(rsh -ttq $SERVER "cd $CURDIR; ./cmp.sh $ARGS &> $CMP_STDOUT; echo \$?")
+CMP_RES=$(rsh -ttqx $SERVER "cd $CURDIR; ./cmp.sh $ARGS &> $CMP_STDOUT; echo \$?")
+
+# Востанавливаем стандартный ввод/вывод после удалённого запуска, 
+# т.к. опция -tt может портить его.
+stty sane
 
 if [ $CMP_RES == 1 ]
 then
