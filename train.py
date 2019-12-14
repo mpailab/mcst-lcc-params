@@ -54,7 +54,7 @@ class Node:
         return self.calls_num / self.opers_num
 
     def w_calls_density (self):
-        return self.w_calls_num / self.opers_num
+        return self.w_calls_num() / self.opers_num
 
     def w_loads_num (self):
         return self.loads_num * self.counter
@@ -63,7 +63,7 @@ class Node:
         return self.loads_num / self.opers_num
 
     def w_loads_density (self):
-        return self.w_loads_num / self.opers_num
+        return self.w_loads_num() / self.opers_num
 
     def w_stores_num (self):
         return self.stores_num * self.counter
@@ -72,7 +72,7 @@ class Node:
         return self.stores_num / self.opers_num
 
     def w_stores_density (self):
-        return self.w_stores_num / self.opers_num
+        return self.w_stores_num() / self.opers_num
 
 class Loop:
     def __init__ (self, n, ovl, red):
@@ -653,7 +653,7 @@ def run ():
         for optimizer in OPTIMIZERS:
 
             # Set optimizer
-            model.compile( optimizer=optimizer, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
+            model.compile( optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['categorical_accuracy'])
 
             opt_acc = []
             opt_loss = []
@@ -684,7 +684,7 @@ def run ():
         best_opt = [i for i in range(OPTIMIZERS) if acc[i] == max_acc and loss[i] == min_loss]
 
         # Set best optimizer
-        model.compile( optimizer=best_opt[0], loss='categorical_crossentropy', metrics=['categorical_accuracy'])
+        model.compile( optimizer=best_opt[0], loss='sparse_categorical_crossentropy', metrics=['categorical_accuracy'])
 
         # Train model
         model.fit([i for i, j in data], [j for i, j in data], epochs=EPOCHS, batch_size=BATCH, verbose=False)
