@@ -43,9 +43,25 @@ extern ann_Model_ref ann_InitModel""" + str(i) + """( ann_Info_t *info);""")
 
 #endif /* ! ANN_IFACE_H */""")
 
+# Convert numpy array to float
+def to_float(data):
+
+    from numpy import vectorize
+
+    def boolstr_to_floatstr(v):
+        if v == 'True':
+            return '1'
+        elif v == 'False':
+            return '0'
+        else:
+            return v
+
+    return vectorize(boolstr_to_floatstr)(data).astype(float)
+
 # Запись модели в интерфейсный файл
 def write_model_с( options, grid, model, file):
 
+    grid = to_float(grid)
     layers = [layer for layer in model.layers if type(layer).__name__ not in ['Dropout', 'Flatten']]
     assert (any (type(layer).__name__ not in ['Dense'] for layer in model.layers))
     
@@ -63,7 +79,7 @@ def write_model_с( options, grid, model, file):
     list_List_ref options     = arr_NewArray( ARR_PROF_UNITS, options_num, ARR_ZERO_INIT);
     arr_Array_ptr grid        = arr_NewMatrix( ARR_PROF_UNITS, options_num, grid_size);
     ann_Option_ref option;
-    list_Unit_ref unit;
+    unsigned int i, j;
     """)
 
     for l in range(layers_num):
@@ -85,36 +101,47 @@ def write_model_с( options, grid, model, file):
         file.write("""
     /* """ + str(l+1) + """-ый слой */
     {
-        unsigned int m = """ + str(m) + """; /* число нейронов на предыдущем слое */
-        unsigned int n = """ + str(n) + """; /* число нейронов на данном слое */
+        const unsigned int m = """ + str(m) + """; /* число нейронов на предыдущем слое */
+        const unsigned int n = """ + str(n) + """; /* число нейронов на данном слое */
+
+        /* матрица связей данного слоя */
+        const double A[""" + str(m) + """][""" + str(n) + """] = {""")
+        for i in range(m):
+            file.write("""
+            {""")
+            for j in range(n):
+                w = weights.item((i, j))
+                assert (isinstance(w, float))
+                file.write(" " + str(w) + ",")
+            file.write("},")
+        file.write("""
+        };
+
+        /* вектор смещений данного слоя */
+        const double b[""" + str(n) + """] = {""")
+        for j in range(n):
+            w = biases.item(j)
+            assert (isinstance(w, float))
+            file.write(" " + str(w) + ",")
+        file.write("""};
 
         /* Создаём атрибуты слоя */
-        arr_Array_ptr A = arr_NewMatrix( ARR_PROF_UNITS, m, n);
-        arr_Array_ptr b = arr_NewArray( ARR_PROF_UNITS, n, ARR_ZERO_INIT);
+        arr_Array_ptr AA = arr_NewMatrix( ARR_PROF_UNITS, m, n);
+        arr_Array_ptr bb = arr_NewArray( ARR_PROF_UNITS, n, ARR_ZERO_INIT);
 
-        /* Заполняем атрибуты слоя */""")
-
-        for i, j in product(range(m), range(n)):
-
-            w = weights.item((i, j))
-            assert (isinstance(w, float))
-
-            file.write("""
-        arr_SetMatrixProf( A, """ + str(i) + ", " + str(j) + ", fpa_ConvFloatVal( " + str(w) + "));")
-
-        for i in range(n):
-
-            w = biases.item(i)
-            assert (isinstance(w, float))
-
-            file.write("""
-        arr_SetProf( b, """ + str(i) + ", fpa_ConvFloatVal( " + str(w) + "));")
-
-        file.write("""
+        /* Заполняем атрибуты слоя */
+        for ( i = 0; i < n; i++ )
+        {
+            for ( j = 0; j < m; j++ )
+            {
+                arr_SetMatrixProf( AA, j, i, fpa_ConvFloatVal( A[j][i]));
+                arr_SetProf( bb, i, fpa_ConvFloatVal( b[i]));
+            }
+        }
 
         /* Запоминаем атрибуты слоя */
-        arr_SetProf( weights, """ + str(l) + """, A);
-        arr_SetProf( biases, """ + str(l) + """, b);
+        arr_SetProf( weights, """ + str(l) + """, AA);
+        arr_SetProf( biases, """ + str(l) + """, bb);
         arr_SetProf( acts, """ + str(l) + ", " + f +  ");")
 
         file.write("""
@@ -154,25 +181,31 @@ def write_model_с( options, grid, model, file):
 
     file.write("""
 
-    /* Запоминаем сетку значений опции, связанную с выходом нейронной сети */""")
-    for i, j in product(range(grid_size), range(options_num)):
+    /* Запоминаем сетку значений опции, связанную с выходом нейронной сети */
+    {
+        const unsigned int m = """ + str(options_num) + """; /* число опций компилятора */
+        const unsigned int n = """ + str(grid_size) + """; /* число шагов в сетке */
 
-        w = grid[i][j]
-
-        if isinstance(w, float):
-            file.write("""
-    arr_SetMatrixProf( grid, """ + str(j) + ", " + str(i) + ", fpa_ConvFloatVal( " + str(w) + "));")
-
-        elif isinstance(w, int):
-            file.write("""
-    arr_SetMatrixProf( grid, """ + str(j) + ", " + str(i) + ", fpa_ConvIntVal( " + str(w) + "));")
-
-        else:
-            assert(isinstance(w, bool))
-            file.write("""
-    arr_SetMatrixProf( grid, """ + str(j) + ", " + str(i) + ", " + ("ECOMP_ONE_PROFILE" if w else "ECOMP_ZERO_PROFILE") + ");")
-
+        /* стетка значений опций компилятора */
+        const double G[""" + str(options_num) + """][""" + str(grid_size) + """] = {""")
+    for i in range(options_num):
+        file.write("""
+            {""")
+        for j in range(grid_size):
+            file.write(" " + str(grid[j][i]) + ",")
+        file.write("},")
     file.write("""
+        };
+
+        /* Заполняем стетку значений опций компилятора */
+        for ( i = 0; i < m; i++ )
+        {
+            for ( j = 0; j < n; j++ )
+            {
+                arr_SetMatrixProf( grid, i, j, fpa_ConvFloatVal( G[i][j]));
+            }
+        }
+    }
 
     return (ann_NewModel(layers_num, weights, biases, acts, options, grid, info));""")
 
