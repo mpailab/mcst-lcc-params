@@ -390,9 +390,6 @@ DB = DataBase()
 def close ():
     DB.save()
 
-# Models directory
-MODEL_DIR = gl.TRAIN_MODEL_DIR
-
 # Percent of train data
 DELTA = gl.TRAIN_DELTA
 
@@ -637,23 +634,26 @@ def run ():
             # Store pairs of procedures characters and values normalized with respect to procedures counters
             for c in C[spec]:
                 if c[0] != 0:
-                    data.append((c[1:], val * np.exp(c[0] / cnt)))
+                    n_val = val * np.exp(c[0] / cnt)
+                    n_val = [np.asscalar(x) for x in n_val]
+                    data.append((c[1:], n_val))
 
         N = int(DELTA * len(data))
 
         # Create a model of neural network
-        from tensorflow import keras
+        from tensorflow import keras, get_logger
+        get_logger().setLevel('ERROR') # make tensorflow more silent
         model = keras.Sequential([keras.layers.Flatten(input_shape=(48,)),
                                   keras.layers.Dense(int(len(gridd) / 2), activation='relu'),
                                   keras.layers.Dense(int(len(gridd) / 2), activation='relu'),
                                   keras.layers.Dense(len(gridd), activation='softmax')])
         
-        acc = []
-        loss = []
+        acc_t = {}
+        loss_t = {}
         for optimizer in OPTIMIZERS:
 
             # Set optimizer
-            model.compile( optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['categorical_accuracy'])
+            model.compile( optimizer=optimizer, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 
             opt_acc = []
             opt_loss = []
@@ -676,24 +676,25 @@ def run ():
                 opt_acc.append(acc)
                 opt_loss.append(loss)
 
-            acc.append(average(opt_acc))
-            loss.append(average(opt_loss))
+            acc_t[optimizer] = average(opt_acc)
+            loss_t[optimizer] = average(opt_loss)
 
-        max_acc = max(acc)
-        min_loss = min([x for i in range(OPTIMIZERS) for x in loss if x == loss[i] and acc[i] == max_acc])
-        best_opt = [i for i in range(OPTIMIZERS) if acc[i] == max_acc and loss[i] == min_loss]
+        max_acc = max(acc_t.values())
+        min_loss = min([loss_t[op] for op in OPTIMIZERS if acc_t[op] == max_acc])
+        best_opt = [op for op in OPTIMIZERS if acc_t[op] == max_acc and loss_t[op] == min_loss]
 
         # Set best optimizer
-        model.compile( optimizer=best_opt[0], loss='sparse_categorical_crossentropy', metrics=['categorical_accuracy'])
+        model.compile( optimizer=best_opt[0], loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 
         # Train model
-        model.fit([i for i, j in data], [j for i, j in data], epochs=EPOCHS, batch_size=BATCH, verbose=False)
+        data_X = np.array([ i for i, j in data ])
+        data_Y = np.array([ j for i, j in data ])
+        model.fit(data_X, data_Y, epochs=EPOCHS, batch_size=BATCH, verbose=False)
 
         # Save model
-        model.save(os.path.join(MODEL_DIR, gr + '_model.h5'))
-        models.append((model, gridd, gr))
+        models.append((gr, gridd, model))
 
-    # Write models in c code
+    # Write models
     export.write(models)
 
 #########################################################################################
@@ -726,16 +727,14 @@ def find ():
 
         chars = read_proc_chars('tmp', procs, gl.TRAIN_PROC_CHARS_DIR, gl.TRAIN_PROC_WEIGHTS)
         
-
-    from tensorflow import keras
-
+    pars_to_models = export.read()
     print('Optimal values of parameters')
-    for p in PARS.keys():
+    for gr in PARS.keys():
 
-        model = keras.models.load_model(os.path.join(MODEL_DIR, p + '_model.h5'))
+        model = pars_to_models[gr]
         val_grids = [model.predict(p[1:]) for p in chars]
         val_grid = np.average(val_grids, weights=np.array([p[0] for p in chars]))
         val = np.unravel_index(np.argmax(val_grid), val_grid.shape)
 
-        for i in range(len(p)):
-            print(' ', p[i], '=', val[i])
+        for i in range(len(gr)):
+            print(' ', gr[i], '=', val[i])

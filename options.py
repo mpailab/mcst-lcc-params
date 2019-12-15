@@ -46,14 +46,6 @@ def dir (line):
           raise ValueError
      return os.path.abspath(line)
 
-def path (line):
-     from re import search, escape
-     line = line.strip('"')
-     path = os.path.normpath(line)
-     if not search(r'[^A-Za-z0-9_\-' + escape(os.path.sep) + ']', path) is None:
-          raise ValueError
-     return os.path.abspath(line)
-
 def file (line):
      line = line.strip('"')
      if not os.path.isfile(line):
@@ -907,7 +899,7 @@ TRAIN_DATA_DIR = None
 GL['tr_dir'] = Global(
      'TRAIN_DATA_DIR', 'tr_dir',
      'каталог с данными для обучения ИС',
-     'path_to_dir', None, None, path,
+     'path_to_dir', None, None, dir,
      TRAIN_DATA_DIR, 'train'
 )
 
@@ -916,16 +908,16 @@ TRAIN_MODEL_DIR = None
 GL['model_dir'] = Global(
      'TRAIN_MODEL_DIR', 'model_dir',
      'каталог c предобученными искусственными нейронными сетями',
-     'path_to_dir', None, None, path,
+     'path_to_dir', None, None, dir,
      TRAIN_MODEL_DIR, 'train'
 )
 
 # Каталог, в котором сохранаяются обученные искусственные нейронные сети для каждого параметра
 С_MODEL_DIR = None
 GL['c_model_dir'] = Global(
-     'C_MODEL_DIR', 'c_model_dir',
+     'С_MODEL_DIR', 'c_model_dir',
      'в этот каталог сохраняются файлы ann_real.h и ann_real.c, содержащие предобученные искусственные нейронные сети',
-     'path_to_dir', None, None, path,
+     'path_to_dir', None, None, dir,
      С_MODEL_DIR, 'train'
 )
 
@@ -1054,7 +1046,7 @@ DINUMIC_STAT_PATH = None
 GL['cmp_stat'] = Global(
      'DINUMIC_STAT_PATH', 'cmp_stat',
      'директория, в которую внешний скрипт сохраняет статистику',
-     'path_to_dir', None, None, path,
+     'path_to_dir', None, None, dir,
      DINUMIC_STAT_PATH, 'script'
 )
 
