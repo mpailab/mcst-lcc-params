@@ -318,6 +318,10 @@ ann_WriteOption( ann_Option_ref option) /* опция */
  */
 #define ANN_MIN_ADMISSIBLE_RATIO fpa_ConvFloatVal( 2.0)
 
+/* Установить значение характеристики процедуры */
+#define ann_SetProcChar( proc, proc_char, value) \
+    arr_SetProf( (proc), (arr_Index_t)(proc_char), (value))
+
 /**
  * Вычисление вектора характеристик процедуры
  */
@@ -591,54 +595,54 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
     aver_cnt = fpa_Div( aver_cnt, nodes_num);
     
     /* Запоминаем значения характеристик процедуры */
-    arr_SetProf( proc_chars, ANN_OPERS_NUM, opers_num);
-    arr_SetProf( proc_chars, ANN_W_OPERS_NUM, w_opers_num);
-    arr_SetProf( proc_chars, ANN_MAX_OPERS_NUM, fpa_ConvIntVal( max_opers_num));
-    arr_SetProf( proc_chars, ANN_AVER_OPERS_NUM, aver_opers_num);
-    arr_SetProf( proc_chars, ANN_W_AVER_OPERS_NUM, w_aver_opers_num);
-    arr_SetProf( proc_chars, ANN_CALLS_NUM, fpa_ConvIntVal( calls_num));
-    arr_SetProf( proc_chars, ANN_W_CALLS_NUM, w_calls_num);
-    arr_SetProf( proc_chars, ANN_MAX_CALLS_NUM, fpa_ConvIntVal( max_calls_num));
-    arr_SetProf( proc_chars, ANN_AVER_CALLS_NUM, aver_calls_num);
-    arr_SetProf( proc_chars, ANN_W_AVER_CALLS_NUM, w_aver_calls_num);
-    arr_SetProf( proc_chars, ANN_CALLS_DENSITY, calls_density);
-    arr_SetProf( proc_chars, ANN_W_CALLS_DENSITY, w_calls_density);
-    arr_SetProf( proc_chars, ANN_MAX_CALLS_DENSITY, max_calls_density);
-    arr_SetProf( proc_chars, ANN_AVER_CALLS_DENSITY, aver_calls_density);
-    arr_SetProf( proc_chars, ANN_W_AVER_CALLS_DENSITY, w_aver_calls_density);
-    arr_SetProf( proc_chars, ANN_LOADS_NUM, fpa_ConvIntVal( loads_num));
-    arr_SetProf( proc_chars, ANN_W_LOADS_NUM, w_loads_num);
-    arr_SetProf( proc_chars, ANN_MAX_LOADS_NUM, fpa_ConvIntVal( max_loads_num));
-    arr_SetProf( proc_chars, ANN_AVER_LOADS_NUM, aver_loads_num);
-    arr_SetProf( proc_chars, ANN_W_AVER_LOADS_NUM, w_aver_loads_num);
-    arr_SetProf( proc_chars, ANN_LOADS_DENSITY, loads_density);
-    arr_SetProf( proc_chars, ANN_W_LOADS_DENSITY, w_loads_density);
-    arr_SetProf( proc_chars, ANN_MAX_LOADS_DENSITY, max_loads_density);
-    arr_SetProf( proc_chars, ANN_AVER_LOADS_DENSITY, aver_loads_density);
-    arr_SetProf( proc_chars, ANN_W_AVER_LOADS_DENSITY, w_aver_loads_density);
-    arr_SetProf( proc_chars, ANN_STORES_NUM, fpa_ConvIntVal( stores_num));
-    arr_SetProf( proc_chars, ANN_W_STORES_NUM, w_stores_num);
-    arr_SetProf( proc_chars, ANN_MAX_STORES_NUM, fpa_ConvIntVal( max_stores_num));
-    arr_SetProf( proc_chars, ANN_AVER_STORES_NUM, aver_stores_num);
-    arr_SetProf( proc_chars, ANN_W_AVER_STORES_NUM, w_aver_stores_num);
-    arr_SetProf( proc_chars, ANN_STORES_DENSITY, stores_density);
-    arr_SetProf( proc_chars, ANN_W_STORES_DENSITY, w_stores_density);
-    arr_SetProf( proc_chars, ANN_MAX_STORES_DENSITY, max_stores_density);
-    arr_SetProf( proc_chars, ANN_AVER_STORES_DENSITY, aver_stores_density);
-    arr_SetProf( proc_chars, ANN_W_AVER_STORES_DENSITY, w_aver_stores_density);
-    arr_SetProf( proc_chars, ANN_NODES_NUM, nodes_num);
-    arr_SetProf( proc_chars, ANN_W_NODES_NUM, w_nodes_num);
-    arr_SetProf( proc_chars, ANN_LOOPS_NUM, fpa_ConvIntVal( loops_num));
-    arr_SetProf( proc_chars, ANN_OVL_LOOPS_NUM, fpa_ConvIntVal( ovl_loops_num));
-    arr_SetProf( proc_chars, ANN_IRR_LOOPS_NUM, fpa_ConvIntVal( irr_loops_num));
-    arr_SetProf( proc_chars, ANN_MAX_CNT, max_cnt);
-    arr_SetProf( proc_chars, ANN_AVER_CNT, aver_cnt);
-    arr_SetProf( proc_chars, ANN_DOM_HEIGHT, fpa_ConvIntVal( dom_height));
-    arr_SetProf( proc_chars, ANN_DOM_WEIGHT, fpa_ConvIntVal( dom_weight));
-    arr_SetProf( proc_chars, ANN_DOM_BRANCH, fpa_ConvIntVal( dom_branch));
-    arr_SetProf( proc_chars, ANN_PDOM_HEIGHT, fpa_ConvIntVal( pdom_height));
-    arr_SetProf( proc_chars, ANN_PDOM_WEIGHT, fpa_ConvIntVal( pdom_weight));
-    arr_SetProf( proc_chars, ANN_PDOM_BRANCH, fpa_ConvIntVal( pdom_branch));
+    ann_SetProcChar( proc_chars, ANN_OPERS_NUM, opers_num);
+    ann_SetProcChar( proc_chars, ANN_W_OPERS_NUM, w_opers_num);
+    ann_SetProcChar( proc_chars, ANN_MAX_OPERS_NUM, fpa_ConvIntVal( max_opers_num));
+    ann_SetProcChar( proc_chars, ANN_AVER_OPERS_NUM, aver_opers_num);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_OPERS_NUM, w_aver_opers_num);
+    ann_SetProcChar( proc_chars, ANN_CALLS_NUM, fpa_ConvIntVal( calls_num));
+    ann_SetProcChar( proc_chars, ANN_W_CALLS_NUM, w_calls_num);
+    ann_SetProcChar( proc_chars, ANN_MAX_CALLS_NUM, fpa_ConvIntVal( max_calls_num));
+    ann_SetProcChar( proc_chars, ANN_AVER_CALLS_NUM, aver_calls_num);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_CALLS_NUM, w_aver_calls_num);
+    ann_SetProcChar( proc_chars, ANN_CALLS_DENSITY, calls_density);
+    ann_SetProcChar( proc_chars, ANN_W_CALLS_DENSITY, w_calls_density);
+    ann_SetProcChar( proc_chars, ANN_MAX_CALLS_DENSITY, max_calls_density);
+    ann_SetProcChar( proc_chars, ANN_AVER_CALLS_DENSITY, aver_calls_density);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_CALLS_DENSITY, w_aver_calls_density);
+    ann_SetProcChar( proc_chars, ANN_LOADS_NUM, fpa_ConvIntVal( loads_num));
+    ann_SetProcChar( proc_chars, ANN_W_LOADS_NUM, w_loads_num);
+    ann_SetProcChar( proc_chars, ANN_MAX_LOADS_NUM, fpa_ConvIntVal( max_loads_num));
+    ann_SetProcChar( proc_chars, ANN_AVER_LOADS_NUM, aver_loads_num);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_LOADS_NUM, w_aver_loads_num);
+    ann_SetProcChar( proc_chars, ANN_LOADS_DENSITY, loads_density);
+    ann_SetProcChar( proc_chars, ANN_W_LOADS_DENSITY, w_loads_density);
+    ann_SetProcChar( proc_chars, ANN_MAX_LOADS_DENSITY, max_loads_density);
+    ann_SetProcChar( proc_chars, ANN_AVER_LOADS_DENSITY, aver_loads_density);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_LOADS_DENSITY, w_aver_loads_density);
+    ann_SetProcChar( proc_chars, ANN_STORES_NUM, fpa_ConvIntVal( stores_num));
+    ann_SetProcChar( proc_chars, ANN_W_STORES_NUM, w_stores_num);
+    ann_SetProcChar( proc_chars, ANN_MAX_STORES_NUM, fpa_ConvIntVal( max_stores_num));
+    ann_SetProcChar( proc_chars, ANN_AVER_STORES_NUM, aver_stores_num);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_STORES_NUM, w_aver_stores_num);
+    ann_SetProcChar( proc_chars, ANN_STORES_DENSITY, stores_density);
+    ann_SetProcChar( proc_chars, ANN_W_STORES_DENSITY, w_stores_density);
+    ann_SetProcChar( proc_chars, ANN_MAX_STORES_DENSITY, max_stores_density);
+    ann_SetProcChar( proc_chars, ANN_AVER_STORES_DENSITY, aver_stores_density);
+    ann_SetProcChar( proc_chars, ANN_W_AVER_STORES_DENSITY, w_aver_stores_density);
+    ann_SetProcChar( proc_chars, ANN_NODES_NUM, nodes_num);
+    ann_SetProcChar( proc_chars, ANN_W_NODES_NUM, w_nodes_num);
+    ann_SetProcChar( proc_chars, ANN_LOOPS_NUM, fpa_ConvIntVal( loops_num));
+    ann_SetProcChar( proc_chars, ANN_OVL_LOOPS_NUM, fpa_ConvIntVal( ovl_loops_num));
+    ann_SetProcChar( proc_chars, ANN_IRR_LOOPS_NUM, fpa_ConvIntVal( irr_loops_num));
+    ann_SetProcChar( proc_chars, ANN_MAX_CNT, max_cnt);
+    ann_SetProcChar( proc_chars, ANN_AVER_CNT, aver_cnt);
+    ann_SetProcChar( proc_chars, ANN_DOM_HEIGHT, fpa_ConvIntVal( dom_height));
+    ann_SetProcChar( proc_chars, ANN_DOM_WEIGHT, fpa_ConvIntVal( dom_weight));
+    ann_SetProcChar( proc_chars, ANN_DOM_BRANCH, fpa_ConvIntVal( dom_branch));
+    ann_SetProcChar( proc_chars, ANN_PDOM_HEIGHT, fpa_ConvIntVal( pdom_height));
+    ann_SetProcChar( proc_chars, ANN_PDOM_WEIGHT, fpa_ConvIntVal( pdom_weight));
+    ann_SetProcChar( proc_chars, ANN_PDOM_BRANCH, fpa_ConvIntVal( pdom_branch));
 
     return (proc_chars);
 } /* ann_CalcProcChars */
@@ -757,10 +761,8 @@ ann_Init( ann_Info_t *info_p) /* инфо */
 
     info_p->models_pool = mem_NewPool( ann_Model_t, MEM_AREA_ANN);
     info_p->options_pool = mem_NewPool( ann_Option_t, MEM_AREA_ANN);
-    info_p->lists_pool = list_NewPool( 0);
 
-    info_p->models = list_New( info_p->lists_pool);
-
+    info_p->models = list_New( mem_Pool_null);
     for ( n = 0; n < ANN_MODELS_NUM; n++ )
     {
         model = ann_InitModel[n]( info_p);
@@ -799,10 +801,10 @@ ann_Close( ann_Info_t *info_p) /* инфо */
         arr_DeleteArray( ann_GetOptions( model));
         arr_DeleteArray( ann_GetGrid( model));
     }
+    list_Delete( info_p->models);
     
     mem_DeletePool( info_p->models_pool);
     mem_DeletePool( info_p->options_pool);
-    list_DeletePool( info_p->lists_pool);
 
     return;
 } /* ann_Init */
@@ -897,3 +899,347 @@ ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
 
     return;
 } /* ann_CorrectProcOptions */
+
+/***************************************************************************************/
+/*                           Сбор статистики на фазе regions                           */
+/***************************************************************************************/
+
+#ifdef ANN_STAT_MODE
+
+/* Информационная структура сбора статистики на фазе regions */
+static ann_RegionsInfo_t *ann_RgnInfo_p = NULL;
+
+/* Вспомогательные глобальные переменные */
+static cfg_Node_ref ann_CurHead = mem_Entry_null;
+static unsigned int ann_UnbalMaxDep = 0;
+static unsigned int ann_UnbalMinDep = 0;
+static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
+
+/**
+ * Инициализация сбора статистики на фазе regions
+ */
+void
+ann_InitRegionsStat( ire2k_Proc_ref proc) /* процедура */
+{
+    /* Инициализируем информационную структуру */
+    mem_InitStructPtr( ann_RgnInfo_p);
+
+    ann_RgnInfo_p->proc = proc;
+    ann_RgnInfo_p->max_cnt = cfo_FindProcMaxCounter( proc);
+    ann_RgnInfo_p->opers_num = cfo_GetProcNumNodes( proc);
+    ann_RgnInfo_p->regions = list_New( mem_Pool_null);
+    
+    return;
+} /* ann_InitRegionsStat */
+
+/**
+ * Получить полное имя файла со статистикой
+ */
+static const char *
+ann_GetFullFileName( const char * file_name) /* имя файла */
+{
+    buff_Buffer_ptr buff_p;
+    const char * stat_dir_name = scr_GetStringOption( "ann_stat_dir_name");
+    const char * stat_test_name = scr_GetStringOption( "ann_stat_test_name");
+    
+    buff_Init( buff_p);
+    if ( stat_dir_name != NULL )
+    {
+        buff_PutString( buff_p, stat_dir_name);
+        if ( !ui_IsDirExists( buff_GetStr( buff_p), ECOMP_FALSE) )
+        {
+            ui_Mkdir( buff_GetStr( buff_p), S_IRWXU | S_IRWXG);
+        }
+        buff_PutSymbol( buff_p, '/');
+    }
+    if ( stat_test_name != NULL )
+    {
+        buff_PutString( buff_p, stat_test_name);
+        if ( !ui_IsDirExists( buff_GetStr( buff_p), ECOMP_FALSE) )
+        {
+            ui_Mkdir( buff_GetStr( buff_p), S_IRWXU | S_IRWXG);
+        }
+        buff_PutSymbol( buff_p, '/');
+    }
+    buff_PutString( buff_p, file_name);
+
+    return (buff_GetStr( buff_p));
+} /* ann_GetFullFileName */
+
+/* Получить счётчик узла в процедуре */
+#define ann_GetNodeNCnt( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_RGN_NODE_N_CNT)
+
+/* Установить счётчик узла в процедуре */
+#define ann_SetNodeNCnt( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_RGN_NODE_N_CNT, (value)); \
+}
+
+/* Получить счётчик узла в относительно головы региона */
+#define ann_GetNodeVCnt( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_RGN_NODE_V_CNT)
+
+/* Установить счётчик узла в относительно головы региона */
+#define ann_SetNodeVCnt( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_RGN_NODE_V_CNT, (value)); \
+}
+
+/* Получить признак наличия бокового входа у узла */
+#define ann_GetNodeSEnter( node) \
+    arr_GetBool( (node), (arr_Index_t) ANN_RGN_NODE_S_ENTER)
+
+/* Установить признак наличия бокового входа у узла */
+#define ann_SetNodeSEnter( node, value) \
+{ \
+    arr_SetBool( (node), (arr_Index_t) ANN_RGN_NODE_S_ENTER, (value)); \
+}
+
+/* Получить число операций в процедуре после обработки узла */
+#define ann_GetNodePOpersNum( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_P_OPERS_NUM)
+
+/* Установить число операций в процедуре после обработки узла */
+#define ann_SetNodePOpersNum( node, value) \
+{ \
+    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_P_OPERS_NUM, (value)); \
+}
+
+/* Получить число операций в регионе после обработки узла */
+#define ann_GetNodeROpersNum( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_R_OPERS_NUM)
+
+/* Установить число операций в регионе после обработки узла */
+#define ann_SetNodeROpersNum( node, value) \
+{ \
+    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_R_OPERS_NUM, (value)); \
+}
+
+/* Получить признак несбалансированного схождения */
+#define ann_GetNodeUnbal( node) \
+    arr_GetBool( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL)
+
+/* Установить признак несбалансированного схождения */
+#define ann_SetNodeUnbal( node, value) \
+{ \
+    arr_SetBool( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL, (value)); \
+}
+
+/* Получить максимальную глубину в несбалансированном схождении */
+#define ann_GetNodeUnbalMaxDep( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MAX_DEP)
+
+/* Установить максимальную глубину в несбалансированном схождении */
+#define ann_SetNodeUnbalMaxDep( node, value) \
+{ \
+    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MAX_DEP, (value)); \
+}
+
+/* Получить минимальную глубину в несбалансированном схождении */
+#define ann_GetNodeUnbalMinDep( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MIN_DEP)
+
+/* Установить минимальную глубину в несбалансированном схождении */
+#define ann_SetNodeUnbalMinDep( node, value) \
+{ \
+    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MIN_DEP, (value)); \
+}
+
+/* Получить вероятность короткой пльтернативы в несбал. схождении */
+#define ann_GetNodeUnbalShAlt( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_SH_ALT)
+
+/* Установить вероятность короткой пльтернативы в несбал. схождении */
+#define ann_SetNodeUnbalShAlt( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_SH_ALT, (value)); \
+}
+
+/* Напечатать процедуру в буфер */
+#define ann_PrintProc( buff, proc) \
+    buff_PutString( (buff), eir_GetProcNameString( (proc)))
+
+/* Напечатать булевое значение в буфер */
+#define ann_PrintBool( buff, sep, value) \
+    buff_Sprintf( (buff), sep "%d", ((value) ? 1 : 0))
+
+/* Напечатать целое значение в буфер */
+#define ann_PrintInt( buff, sep, value) \
+    buff_Sprintf( (buff), sep "%d", (value))
+
+/* Напечатать вещественное значение в буфер */
+#define ann_PrintProf( buff, sep, value) \
+    buff_Sprintf( (buff), sep "%Lf", fpa_ConvToFloatPrint( (value)))
+
+/**
+ * Напечатать статистику фазы regions
+ */
+static void
+ann_PrintRegionsStat( )
+{
+    arr_Array_ptr node_chars;
+    buff_Buffer_ptr buff_p;
+    cfg_Node_ref head;
+    list_List_ref nodes;
+    list_Unit_ref rgn_unit, node_unit;
+    const char * file_name = ann_GetFullFileName( "regions.txt");
+    FILE * file = ui_Fopen( file_name, "a+");
+
+    buff_Init( buff_p);
+    ann_PrintProc( buff_p, ann_RgnInfo_p->proc);
+    ann_PrintProf( buff_p, "#", ann_RgnInfo_p->max_cnt);
+    ann_PrintInt ( buff_p, "#", ann_RgnInfo_p->opers_num);
+    for LIST_UNITS( rgn_unit, ann_RgnInfo_p->regions)
+    {
+        head = list_GetRef( rgn_unit);
+        nodes = list_GetRef2( rgn_unit);
+        ann_PrintProf( buff_p, "#", cfg_GetNodeCounter( head));
+        ann_PrintInt ( buff_p, "|", list_GetInt( nodes));
+        for LIST_UNITS( node_unit, nodes)
+        {
+            node_chars = list_GetRef( node_unit);
+            ann_PrintProf( buff_p, "|", ann_GetNodeNCnt( node_chars));
+            ann_PrintProf( buff_p, ":", ann_GetNodeVCnt( node_chars));
+            ann_PrintBool( buff_p, ":", ann_GetNodeSEnter( node_chars));
+            ann_PrintInt ( buff_p, ":", ann_GetNodePOpersNum(node_chars));
+            ann_PrintInt ( buff_p, ":", ann_GetNodeROpersNum(node_chars));
+            ann_PrintBool( buff_p, ":", ann_GetNodeUnbal( node_chars));
+            if ( ann_GetNodeUnbal( node_chars) )
+            {
+                ann_PrintInt ( buff_p, ":", ann_GetNodeUnbalMaxDep( node_chars));
+                ann_PrintInt ( buff_p, ":", ann_GetNodeUnbalMinDep( node_chars));
+                ann_PrintProf( buff_p, ":", ann_GetNodeUnbalShAlt( node_chars));
+            }
+        }
+    }
+    fprintf( file, "%s\n", buff_GetStr( buff_p));
+    ui_Fclose( file);
+
+    return;
+} /* ann_PrintRegionsStat */
+
+/**
+ * Завершение сбора статистики на фазе regions
+ */
+void
+ann_CloseRegionsStat( )
+{
+    list_List_ref nodes;
+    list_Unit_ref rgn_unit, node_unit;
+    
+    /* При необходимости печатаем статистику фазы regions */
+    if ( scr_IsBoolOptionSet( "ann_stat_print") )
+    {
+        ann_PrintRegionsStat();
+    }
+    
+    for LIST_UNITS( rgn_unit, ann_RgnInfo_p->regions)
+    {
+        nodes = list_GetRef( rgn_unit);
+        for LIST_UNITS( node_unit, nodes)
+        {
+            arr_DeleteArray( list_GetRef( node_unit));
+        }
+        list_Delete( nodes);
+    }
+    hash_DeleteTable( ann_RgnInfo_p->regions);
+    
+    return;
+} /* ann_CloseRegionsStat */
+
+/**
+ * Добавить статистику региона
+ */
+void
+ann_AddRegionStat( cfg_Node_ref head) /* голова региона */
+{
+    list_Unit_ref rgn_unit;
+    
+    rgn_unit = list_InsRef( ann_RgnInfo_p->regions, head);
+    list_SetRef2( rgn_unit, list_New( mem_Pool_null));
+
+    return;
+} /* ann_AddRegionStat */
+
+/**
+ * Добавить число операций региона в статистику региона
+ */
+void
+ann_AddRegionOpersNum( cfg_Node_ref head,      /* голова региона */
+                       unsigned int opers_num) /* число операций в регионе */
+{
+    list_List_ref nodes;
+    list_Unit_ref rgn_unit = list_Last( ann_RgnInfo_p->regions);
+    
+    ECOMP_ASSERT( mem_IsRefsEQ( head, list_GetRef( rgn_unit)));
+
+    nodes = list_GetRef2( rgn_unit);
+    list_SetInt( nodes, opers_num);
+
+    return;
+} /* ann_AddRegionOpersNum */
+
+/**
+ * Добавить статистику узла в статистику региона
+ */
+void
+ann_AddRegionNodeStat( cfg_Node_ref head,         /* голова региона */
+                       ecomp_Profile_t n_cnt,     /* счётчик узла в процедуре */
+                       ecomp_Profile_t v_cnt,     /* счётчик узла в регионе */
+                       ecomp_Bool_t s_enter,      /* признак наличия бокового входа */
+                       unsigned int proc_opers,   /* число операций в процедуре */
+                       unsigned int region_opers) /* число операций в регионе */
+{
+    arr_Array_ptr node_chars;
+    list_List_ref nodes;
+    list_Unit_ref rgn_unit = list_Last( ann_RgnInfo_p->regions);
+    
+    ECOMP_ASSERT( mem_IsRefsEQ( head, list_GetRef( rgn_unit)));
+    
+    node_chars = arr_NewArray( ARR_PROF_UNITS, ANN_RGN_NODE_CHARS_NUM, ARR_ZERO_INIT);
+    ann_SetNodeNCnt( node_chars, n_cnt);
+    ann_SetNodeVCnt( node_chars, v_cnt);
+    ann_SetNodeSEnter( node_chars, s_enter);
+    ann_SetNodePOpersNum(node_chars, proc_opers);
+    ann_SetNodeROpersNum(node_chars, region_opers);
+    if ( mem_IsNotRefNull( ann_CurHead) )
+    {
+        ECOMP_ASSERT( mem_IsRefsEQ( ann_CurHead, head));
+        ann_SetNodeUnbal( node_chars, ECOMP_TRUE);
+        ann_SetNodeUnbalMaxDep( node_chars, ann_UnbalMaxDep);
+        ann_SetNodeUnbalMinDep( node_chars, ann_UnbalMinDep);
+        ann_SetNodeUnbalShAlt( node_chars, ann_UnbalShAlt);
+        ann_CurHead = mem_Entry_null;
+
+    } else
+    {
+        ann_SetNodeUnbal( node_chars, ECOMP_FALSE);
+    }
+    
+    nodes = list_GetRef2( rgn_unit);
+    list_InsPtr( nodes, node_chars);
+
+    return;
+} /* ann_AddRegionNodeStat */
+
+/**
+ * Добавить несбалансированную статистику узла в статистику региона
+ */
+void
+ann_AddRegionNodeUnbalStat( cfg_Node_ref head,      /* голова региона */
+                            unsigned int max_dep,   /* максимальная глубина в схождении */
+                            unsigned int min_dep,   /* минимальная глубина в схождении */
+                            ecomp_Profile_t sh_alt) /* вероятность короткой пльтернативы */
+{
+    ECOMP_ASSERT( mem_IsRefNull( ann_CurHead));
+
+    ann_CurHead = head;
+    ann_UnbalMaxDep = max_dep;
+    ann_UnbalMinDep = min_dep;
+    ann_UnbalShAlt = sh_alt;
+
+    return;
+} /* ann_AddRegionNodeUnbalStat */
+
+#endif /* ANN_STAT_MODE */

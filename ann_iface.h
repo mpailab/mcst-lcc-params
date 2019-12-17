@@ -12,6 +12,7 @@
 // #include "mem_iface.h"
 
 typedef void* arr_Array_ptr;
+typedef void* buff_Buffer_ptr;
 typedef void* ire2k_Proc_ref;
 typedef void* list_List_ref;
 typedef void* cfg_Edge_ref;
@@ -39,6 +40,7 @@ typedef void* mem_Pool_ref;
 #define CFG_PDOM_TREE 1
 #define ECOMP_ZERO_PROFILE 0x0
 #define CFG_ALL_OPERS(o,n) (;;)
+#define HASH_ALL_ENTRIES(o,n) (;;)
 #define MEM_DECLARE_REF(x) void*
 #define mem_GetEntry( entry_ref, entry_type) \
 ( \
@@ -52,6 +54,16 @@ typedef void* mem_Pool_ref;
 #define mem_NewPool(a,b) 0x0
 #define MEM_AREA_ANN 0
 #define ECOMP_ARGS 0
+typedef int arr_Index_t;
+#define NULL 0x0
+#define HASH_INT_KEYS 0
+#define HASH_VAL_REF 0
+#define S_IRWXU 0
+#define S_IRWXG 0
+typedef void FILE;
+
+/* Макрос, включающий интерфейсы сбора статистики */
+#define ANN_STAT_MODE
 
 /* Локальное переопределение макроса ECOMP_USE_MACROS */
 #ifdef ECOMP_USE_MACROS
@@ -71,6 +83,7 @@ typedef void* mem_Pool_ref;
 /***************************************************************************************/
 /*                                Типы данных интерфейса                               */
 /***************************************************************************************/
+
 /**
  * Тип характеристик процедуры
  */
@@ -136,7 +149,7 @@ typedef enum
     ANN_PDOM_BRANCH, /* Максимальное ветвление вершин в дереве постдоминаторов */
 #define ANN_LAST_PROC_CHAR ANN_PDOM_BRANCH
     ANN_NONE_CHAR
-#define ANN_PROC_CHARS_NUM ANN_NONE_CHAR
+#define ANN_PROC_CHARS_NUM (int)ANN_NONE_CHAR
 
 } ann_ProcChar_t;
 
@@ -220,11 +233,53 @@ typedef struct
 
     mem_Pool_ref models_pool;  /* пул нейронных сетей */
     mem_Pool_ref options_pool; /* пул опций компилятора */
-    mem_Pool_ref lists_pool;   /* пул списков */
+
 } ann_Info_t;
 
 /* Тип функции инициализации нейронной сети */
 typedef ann_Model_ref (* ann_InitModelFunc_t) (ann_Info_t *);
+
+#ifdef ANN_STAT_MODE
+
+/**
+ * Тип характеристик узлов на фазе regions
+ */
+typedef enum
+{
+#define ANN_FIRST_RGN_NODE_CHAR ANN_RGN_NODE_N_CNT
+
+    ANN_RGN_NODE_N_CNT = 0,     /* счётчик узла в процедуре */
+    ANN_RGN_NODE_V_CNT,         /* счётчик узла в относительно головы региона */
+    ANN_RGN_NODE_S_ENTER,       /* признак наличия бокового (не из региона) входа у узла */
+    ANN_RGN_NODE_P_OPERS_NUM,   /* число операций в процедуре после обработки узла */
+    ANN_RGN_NODE_R_OPERS_NUM,   /* число операций в регионе после обработки узла */
+    ANN_RGN_NODE_UNBAL,         /* признак несбалансированного схождения */
+    ANN_RGN_NODE_UNBAL_MAX_DEP, /* максимальная глубина в несбалансированном схождении */
+    ANN_RGN_NODE_UNBAL_MIN_DEP, /* минимальная глубина в несбалансированном схождении */
+    ANN_RGN_NODE_UNBAL_SH_ALT,  /* вероятность короткой пльтернативы в несбал. схождении */
+
+#define ANN_LAST_RGN_NODE_CHAR ANN_RGN_NODE_UNBAL_SH_ALT
+    ANN_RGN_NODE_NONE_CHAR
+#define ANN_RGN_NODE_CHARS_NUM (int)ANN_RGN_NODE_NONE_CHAR
+
+} ann_RgnNodeChar_t;
+
+/**
+ * Информационная структура для сбора статистики на фазе regions
+ */
+typedef struct
+{
+    ire2k_Proc_ref  proc;      /* процедура */
+    ecomp_Profile_t max_cnt;   /* максимальный счётчик процедуры до применения regions */
+    unsigned int    opers_num; /* число операций до применения regions */
+    list_List_ref   regions;   /* список регионов
+                                  Каждый регион - это список массивов характеристик узлов,
+                                  голове которого приписано две характеристики региона:
+                                  - ссылка на голову региона
+                                  - число операций в набранном регионе */
+} ann_RegionsInfo_t;
+
+#endif /* ANN_STAT_MODE */
 
 /***************************************************************************************/
 /*                        Прототипы функций доступа к данным                           */
@@ -290,5 +345,33 @@ extern void ann_SoftMax( arr_Array_ptr input);
 
 /* Скорректировать значения опций компилятора для процедуры proc */
 extern void ann_CorrectProcOptions( ire2k_Proc_ref proc);
+
+#ifdef ANN_STAT_MODE
+
+extern void ann_InitRegionsStat( ire2k_Proc_ref proc);
+extern void ann_CloseRegionsStat( );
+extern void ann_AddRegionStat( cfg_Node_ref head);
+extern void ann_AddRegionOpersNum( cfg_Node_ref head, unsigned int opers_num);
+extern void ann_AddRegionNodeStat( cfg_Node_ref head,
+                                   ecomp_Profile_t n_cnt,
+                                   ecomp_Profile_t v_cnt,
+                                   ecomp_Bool_t s_enter,
+                                   unsigned int proc_opers,
+                                   unsigned int region_opers);
+extern void ann_AddRegionNodeUnbalStat( cfg_Node_ref head,
+                                        unsigned int max_dep,
+                                        unsigned int min_dep,
+                                        ecomp_Profile_t sh_alt);
+
+#else /* !ANN_STAT_MODE */
+
+#define ann_InitRegionsStat( proc)
+#define ann_CloseRegionsStat( )
+#define ann_AddRegionStat( head)
+#define ann_AddRegionOpersNum( head, opers_num)
+#define ann_AddRegionNodeStat( head, n_cnt, v_cnt, s_enter, proc_opers, region_opers)
+#define ann_AddRegionNodeUnbalStat( head, max_dep, min_dep, sh_alt)
+
+#endif /* ANN_STAT_MODE */
 
 #endif /* ! ANN_IFACE_H */
