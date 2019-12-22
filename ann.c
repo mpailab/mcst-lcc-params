@@ -6,6 +6,9 @@
 
 #include "ann_iface.h"
 #include "ann_real.h"
+#ifdef ANN_STAT_MODE
+// #include "cfo_dcs.h"
+#endif /* ANN_STAT_MODE */
                                  
 /***************************************************************************************/
 /*                              Функции доступа к данным                               */
@@ -900,37 +903,7 @@ ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
     return;
 } /* ann_CorrectProcOptions */
 
-/***************************************************************************************/
-/*                           Сбор статистики на фазе regions                           */
-/***************************************************************************************/
-
 #ifdef ANN_STAT_MODE
-
-/* Информационная структура сбора статистики на фазе regions */
-static ann_RegionsInfo_t *ann_RgnInfo_p = NULL;
-
-/* Вспомогательные глобальные переменные */
-static cfg_Node_ref ann_CurHead = mem_Entry_null;
-static unsigned int ann_UnbalMaxDep = 0;
-static unsigned int ann_UnbalMinDep = 0;
-static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
-
-/**
- * Инициализация сбора статистики на фазе regions
- */
-void
-ann_InitRegionsStat( ire2k_Proc_ref proc) /* процедура */
-{
-    /* Инициализируем информационную структуру */
-    mem_InitStructPtr( ann_RgnInfo_p);
-
-    ann_RgnInfo_p->proc = proc;
-    ann_RgnInfo_p->max_cnt = cfo_FindProcMaxCounter( proc);
-    ann_RgnInfo_p->opers_num = cfo_GetProcNumNodes( proc);
-    ann_RgnInfo_p->regions = list_New( mem_Pool_null);
-    
-    return;
-} /* ann_InitRegionsStat */
 
 /**
  * Получить полное имя файла со статистикой
@@ -965,6 +938,52 @@ ann_GetFullFileName( const char * file_name) /* имя файла */
 
     return (buff_GetStr( buff_p));
 } /* ann_GetFullFileName */
+
+/* Напечатать процедуру в буфер */
+#define ann_PrintProc( buff, proc) \
+    buff_PutString( (buff), eir_GetProcNameString( (proc)))
+
+/* Напечатать булевое значение в буфер */
+#define ann_PrintBool( buff, sep, value) \
+    buff_Sprintf( (buff), sep "%d", ((value) ? 1 : 0))
+
+/* Напечатать целое значение в буфер */
+#define ann_PrintInt( buff, sep, value) \
+    buff_Sprintf( (buff), sep "%d", (value))
+
+/* Напечатать вещественное значение в буфер */
+#define ann_PrintProf( buff, sep, value) \
+    buff_Sprintf( (buff), sep "%Lf", fpa_ConvToFloatPrint( (value)))
+
+/***************************************************************************************/
+/*                           Сбор статистики на фазе regions                           */
+/***************************************************************************************/
+
+/* Информационная структура сбора статистики на фазе regions */
+static ann_RegionsInfo_t *ann_RgnInfo_p = NULL;
+
+/* Вспомогательные глобальные переменные */
+static cfg_Node_ref ann_CurHead = mem_Entry_null;
+static unsigned int ann_UnbalMaxDep = 0;
+static unsigned int ann_UnbalMinDep = 0;
+static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
+
+/**
+ * Инициализация сбора статистики на фазе regions
+ */
+void
+ann_InitRegionsStat( ire2k_Proc_ref proc) /* процедура */
+{
+    /* Инициализируем информационную структуру */
+    mem_InitStructPtr( ann_RgnInfo_p);
+
+    ann_RgnInfo_p->proc = proc;
+    ann_RgnInfo_p->max_cnt = cfo_FindProcMaxCounter( proc);
+    ann_RgnInfo_p->opers_num = cfo_GetProcNumNodes( proc);
+    ann_RgnInfo_p->regions = list_New( mem_Pool_null);
+    
+    return;
+} /* ann_InitRegionsStat */
 
 /* Получить счётчик узла в процедуре */
 #define ann_GetNodeNCnt( node) \
@@ -1056,22 +1075,6 @@ ann_GetFullFileName( const char * file_name) /* имя файла */
     arr_SetProf( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_SH_ALT, (value)); \
 }
 
-/* Напечатать процедуру в буфер */
-#define ann_PrintProc( buff, proc) \
-    buff_PutString( (buff), eir_GetProcNameString( (proc)))
-
-/* Напечатать булевое значение в буфер */
-#define ann_PrintBool( buff, sep, value) \
-    buff_Sprintf( (buff), sep "%d", ((value) ? 1 : 0))
-
-/* Напечатать целое значение в буфер */
-#define ann_PrintInt( buff, sep, value) \
-    buff_Sprintf( (buff), sep "%d", (value))
-
-/* Напечатать вещественное значение в буфер */
-#define ann_PrintProf( buff, sep, value) \
-    buff_Sprintf( (buff), sep "%Lf", fpa_ConvToFloatPrint( (value)))
-
 /**
  * Напечатать статистику фазы regions
  */
@@ -1104,7 +1107,6 @@ ann_PrintRegionsStat( )
             ann_PrintBool( buff_p, ":", ann_GetNodeSEnter( node_chars));
             ann_PrintInt ( buff_p, ":", ann_GetNodePOpersNum(node_chars));
             ann_PrintInt ( buff_p, ":", ann_GetNodeROpersNum(node_chars));
-            ann_PrintBool( buff_p, ":", ann_GetNodeUnbal( node_chars));
             if ( ann_GetNodeUnbal( node_chars) )
             {
                 ann_PrintInt ( buff_p, ":", ann_GetNodeUnbalMaxDep( node_chars));
@@ -1149,10 +1151,10 @@ ann_CloseRegionsStat( )
 } /* ann_CloseRegionsStat */
 
 /**
- * Добавить статистику региона
+ * Добавить статистику региона на фазе regions
  */
 void
-ann_AddRegionStat( cfg_Node_ref head) /* голова региона */
+ann_AddRegionsStat( cfg_Node_ref head) /* голова региона */
 {
     list_Unit_ref rgn_unit;
     
@@ -1160,13 +1162,13 @@ ann_AddRegionStat( cfg_Node_ref head) /* голова региона */
     list_SetRef2( rgn_unit, list_New( mem_Pool_null));
 
     return;
-} /* ann_AddRegionStat */
+} /* ann_AddRegionsStat */
 
 /**
  * Добавить число операций региона в статистику региона
  */
 void
-ann_AddRegionOpersNum( cfg_Node_ref head,      /* голова региона */
+ann_AddRegionsOpersNum( cfg_Node_ref head,      /* голова региона */
                        unsigned int opers_num) /* число операций в регионе */
 {
     list_List_ref nodes;
@@ -1178,13 +1180,13 @@ ann_AddRegionOpersNum( cfg_Node_ref head,      /* голова региона */
     list_SetInt( nodes, opers_num);
 
     return;
-} /* ann_AddRegionOpersNum */
+} /* ann_AddRegionsOpersNum */
 
 /**
  * Добавить статистику узла в статистику региона
  */
 void
-ann_AddRegionNodeStat( cfg_Node_ref head,         /* голова региона */
+ann_AddRegionsNodeStat( cfg_Node_ref head,         /* голова региона */
                        ecomp_Profile_t n_cnt,     /* счётчик узла в процедуре */
                        ecomp_Profile_t v_cnt,     /* счётчик узла в регионе */
                        ecomp_Bool_t s_enter,      /* признак наличия бокового входа */
@@ -1221,13 +1223,13 @@ ann_AddRegionNodeStat( cfg_Node_ref head,         /* голова региона
     list_InsPtr( nodes, node_chars);
 
     return;
-} /* ann_AddRegionNodeStat */
+} /* ann_AddRegionsNodeStat */
 
 /**
  * Добавить несбалансированную статистику узла в статистику региона
  */
 void
-ann_AddRegionNodeUnbalStat( cfg_Node_ref head,      /* голова региона */
+ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,      /* голова региона */
                             unsigned int max_dep,   /* максимальная глубина в схождении */
                             unsigned int min_dep,   /* минимальная глубина в схождении */
                             ecomp_Profile_t sh_alt) /* вероятность короткой пльтернативы */
@@ -1240,6 +1242,290 @@ ann_AddRegionNodeUnbalStat( cfg_Node_ref head,      /* голова регион
     ann_UnbalShAlt = sh_alt;
 
     return;
-} /* ann_AddRegionNodeUnbalStat */
+} /* ann_AddRegionsNodeUnbalStat */
+
+/***************************************************************************************/
+/*                           Сбор статистики на фазе if_conv                           */
+/***************************************************************************************/
+
+/* Информационная структура сбора статистики на фазе if_conv */
+static ann_IfConvInfo_t *ann_IfcInfo_p = NULL;
+
+/* Вспомогательные глобальные переменные */
+static cfg_Node_ref ann_CurHead = mem_Entry_null;
+static unsigned int ann_UnbalMaxDep = 0;
+static unsigned int ann_UnbalMinDep = 0;
+static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
+
+/**
+ * Инициализация сбора статистики на фазе if_conv
+ */
+void
+ann_InitIfConvStat( ire2k_Proc_ref proc) /* процедура */
+{
+    /* Инициализируем информационную структуру */
+    mem_InitStructPtr( ann_IfcInfo_p);
+
+    ann_IfcInfo_p->proc = proc;
+    ann_IfcInfo_p->regions = list_New( mem_Pool_null);
+    
+    return;
+} /* ann_InitIfConvStat */
+
+/* Получить счётчик головы скалярного участка */
+#define ann_GetESBCnt( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_IFC_ESB_CNT)
+
+/* Установить счётчик головы скалярного участка */
+#define ann_SetESBCnt( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_IFC_ESB_CNT, (value)); \
+}
+
+/* Получить число операций в скалярном участе */
+#define ann_GetESBOpersNum( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_IFC_ESB_OPERS_NUM)
+
+/* Установить число операций в скалярном участе */
+#define ann_SetESBOpersNum( node, value) \
+{ \
+    arr_SetInt( (node), (arr_Index_t) ANN_IFC_ESB_OPERS_NUM, (value)); \
+}
+
+/* Получить число операций вызова в скалярном участе */
+#define ann_GetESBCallsNum( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_IFC_ESB_CALLS_NUM)
+
+/* Установить число операций вызова в скалярном участе */
+#define ann_SetESBCallsNum( node, value) \
+{ \
+    arr_SetInt( (node), (arr_Index_t) ANN_IFC_ESB_CALLS_NUM, (value)); \
+}
+
+/* Получить признак слитого скалярного участк */
+#define ann_GetESBMerge( node) \
+    arr_GetBool( (node), (arr_Index_t) ANN_IFC_ESB_MERGE)
+
+/* Установить признак слитого скалярного участк */
+#define ann_SetESBMerge( node, value) \
+{ \
+    arr_SetBool( (node), (arr_Index_t) ANN_IFC_ESB_MERGE, (value)); \
+}
+
+/* Получить оценочное время планирования скалярного участка */
+#define ann_GetESBBTime( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_IFC_ESB_BEFORE_TIME)
+
+/* Установить оценочное время планирования скалярного участка */
+#define ann_SetESBBTime( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_IFC_ESB_BEFORE_TIME, (value)); \
+}
+
+/* Получить время планирования скалярного участка после слияния */
+#define ann_GetESBATime( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_IFC_ESB_AFTER_TIME)
+
+/* Установить время планирования скалярного участка после слияния */
+#define ann_SetESBATime( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_IFC_ESB_AFTER_TIME, (value)); \
+}
+
+/* Получить коэффициент полезности слияния */
+#define ann_GetESBMergeHeur( node) \
+    arr_GetProf( (node), (arr_Index_t) ANN_IFC_ESB_MERGE_HEUR)
+
+/* Установить коэффициент полезности слияния */
+#define ann_SetESBMergeHeur( node, value) \
+{ \
+    arr_SetProf( (node), (arr_Index_t) ANN_IFC_ESB_MERGE_HEUR, (value)); \
+}
+
+/**
+ * Напечатать статистику фазы if_conv
+ */
+static void
+ann_PrintIfConvStat( )
+{
+    arr_Array_ptr esb_chars;
+    buff_Buffer_ptr buff_p;
+    cfg_Node_ref head;
+    list_List_ref esbs;
+    list_Unit_ref rgn_unit, esb_unit;
+    const char * file_name = ann_GetFullFileName( "if_conv.txt");
+    FILE * file = ui_Fopen( file_name, "a+");
+
+    buff_Init( buff_p);
+    ann_PrintProc( buff_p, ann_IfcInfo_p->proc);
+    for LIST_UNITS( rgn_unit, ann_IfcInfo_p->regions)
+    {
+        head = list_GetRef( rgn_unit);
+        esbs = list_GetRef2( rgn_unit);
+        ann_PrintProf( buff_p, "#", cfg_GetESBCounter( head));
+        for LIST_UNITS( esb_unit, esbs)
+        {
+            esb_chars = list_GetPtr( esb_unit);
+            ann_PrintProf( buff_p, "|", ann_GetESBCnt( esb_chars));
+            ann_PrintInt ( buff_p, ":", ann_GetESBOpersNum( esb_chars));
+            ann_PrintInt ( buff_p, ":", ann_GetESBCallsNum( esb_chars));
+            if ( ann_GetESBMerge( esb_chars) )
+            {
+                ann_PrintProf( buff_p, ":", ann_GetESBBTime(esb_chars));
+                ann_PrintProf( buff_p, ":", ann_GetESBATime(esb_chars));
+                ann_PrintProf( buff_p, ":", ann_GetESBMergeHeur( esb_chars));
+            }
+        }
+    }
+    fprintf( file, "%s\n", buff_GetStr( buff_p));
+    ui_Fclose( file);
+
+    return;
+} /* ann_PrintIfConvStat */
+
+/**
+ * Завершение сбора статистики на фазе if_conv
+ */
+void
+ann_CloseIfConvStat( )
+{
+    list_List_ref esbs;
+    list_Unit_ref rgn_unit, esb_unit;
+    
+    /* При необходимости печатаем статистику фазы if_conv */
+    if ( scr_IsBoolOptionSet( "ann_stat_print") )
+    {
+        ann_PrintIfConvStat();
+    }
+    
+    for LIST_UNITS( rgn_unit, ann_IfcInfo_p->regions)
+    {
+        esbs = list_GetRef( rgn_unit);
+        for LIST_UNITS( node_unit, esbs)
+        {
+            arr_DeleteArray( list_GetRef( esb_unit));
+        }
+        list_Delete( esbs);
+    }
+    hash_DeleteTable( ann_IfcInfo_p->regions);
+    
+    return;
+} /* ann_CloseIfConvStat */
+
+/**
+ * Добавить статистику региона на фазе if_conv
+ */
+void
+ann_AddIfConvStat( cfg_Node_ref head) /* голова региона */
+{
+    list_Unit_ref rgn_unit;
+    
+    rgn_unit = list_InsRef( ann_IfcInfo_p->regions, head);
+    list_SetRef2( rgn_unit, list_New( mem_Pool_null));
+
+    return;
+} /* ann_AddIfConvStat */
+
+/**
+ * Добавить статистику скалярного участка до слияния
+ */
+void
+ann_AddIfConvESBStatBefore( pco_ESB_ref esb) /* скалярный участок */
+{
+    arr_Array_ptr esb_chars;
+    cfg_Node_ref node;
+    ire2k_Oper_ref oper;
+    list_List_ref esbs;
+    list_Unit_ref rgn_unit = list_Last( ann_IfcInfo_p->regions);
+    pco_ESBWalk_t walk;
+    unsigned int o_num = 0;
+    unsigned int c_num = 0;
+
+    for PCO_ESB_BODY_NODES( node, esb, walk)
+    {
+        for CFG_ALL_MAIN_OPERS( oper, node)
+        {
+            if ( ire2k_IsOperLdTest( oper) || ire2k_IsOperMultFmt( oper) )
+            {
+                continue;
+            }
+            if ( ire2k_IsOperCall( oper) ) c_num++;
+            o_num++;
+        }
+    }
+    
+    esb_chars = arr_NewArray( ARR_PROF_UNITS, ANN_IFC_ESB_CHARS_NUM, ARR_ZERO_INIT);
+    ann_SetESBCnt( esb_chars, cfg_GetNodeCounter( pco_GetESBHead( esb)));
+    ann_SetESBOpersNum( esb_chars, o_num);
+    ann_SetESBCallsNum( esb_chars, c_num);
+    ann_SetESBMerge(esb_chars, ECOMP_FALSE);
+    
+    esbs = list_GetRef2( rgn_unit);
+    list_InsPtr( esbs, esb_chars);
+
+    return;
+} /* ann_AddIfConvESBStatBefore */
+
+/**
+ * Добавить статистику скалярного участка после слияния
+ */
+void
+ann_AddIfConvESBStatAfter( pco_ESB_ref esb,             /* скалярный участок */
+                           ecomp_Profile_t time_before, /* время планирования до */
+                           ecomp_Profile_t time_after,  /* время планирования после */
+                           ecomp_Profile_t merge_heur)  /* коэффициент полезности слияния */
+{
+    list_Unit_ref rgn_unit = list_Last( ann_IfcInfo_p->regions);
+    list_Unit_ref esb_unit = list_Last( list_GetRef2( rgn_unit));
+    arr_Array_ptr esb_chars = list_GetPtr( esb_unit);
+    
+    esb_chars = arr_NewArray( ARR_PROF_UNITS, ANN_IFC_ESB_CHARS_NUM, ARR_ZERO_INIT);
+    ann_SetESBMerge(esb_chars, ECOMP_TRUE);
+    ann_SetESBBTime( esb_chars, time_before);
+    ann_SetESBATime( esb_chars, time_after);
+    ann_SetESBMergeHeur( esb_chars, merge_heur);
+
+    return;
+} /* ann_AddIfConvESBStatAfter */
+
+/***************************************************************************************/
+/*                             Сбор статистики на фазе dcs                             */
+/***************************************************************************************/
+
+/**
+ * Напечатать статистику фазы dcs
+ */
+void
+ann_PrintDCSStat( ire2k_Proc_ref proc ) /* процедура */
+{
+    buff_Buffer_ptr buff_p;
+    cfg_Graph_ref cfg = cfg_GetProcGraph( proc);
+    cfo_DCSInfo_t dcs_info_s, *dcs_info_p = &dcs_info_s;
+    const char * file_name = ann_GetFullFileName( "if_conv.txt");
+    FILE * file = ui_Fopen( file_name, "a+");
+    unsigned int level;
+
+    buff_Init( buff_p);
+    ann_PrintProc( buff_p, ann_IfcInfo_p->proc);
+    ann_PrintInt( buff_p, "#", graph_GetGraphNodeNumber( cfg));
+    ann_PrintInt( buff_p, "#", graph_GetGraphEdgeNumber( cfg));
+    ann_PrintInt( buff_p, "#", graph_GetGraphNodeNumber( cfg_GetProcLoopTree( proc)));
+                    
+    for ( level = CFO_DCS_LEVEL_1; level < CFO_DCS_LEVEL_NUM; level++)
+    {
+        cfo_InitDCSForProc( proc, level, dcs_info_p);
+        cfo_DeadCodeSolver( dcs_info_p);
+        ann_PrintInt( buff_p, "#", level);
+        ann_PrintInt( buff_p, ":", list_GetInt( dcs_info_p->dead_elems[CFO_DCS_DEAD_NODES]));
+        ann_PrintInt( buff_p, ":", list_GetInt( dcs_info_p->dead_elems[CFO_DCS_DEAD_EDGES]));
+        ann_PrintInt( buff_p, ":", list_GetInt( dcs_info_p->dead_elems[CFO_DCS_DEAD_LOOPS]));
+        cfo_CloseDCSForProc( dcs_info_p);
+    }
+
+    fprintf( file, "%s\n", buff_GetStr( buff_p));
+    ui_Fclose( file);
+
+    return;
+} /* ann_PrintDCSStat */
 
 #endif /* ANN_STAT_MODE */

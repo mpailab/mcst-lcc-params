@@ -23,7 +23,14 @@ typedef void* ire2k_Oper_ref;
 typedef int   ecomp_Bool_t;
 typedef float ecomp_Profile_t;
 typedef void* hash_Table_ref;
+typedef void* pco_ESB_ref;
+typedef void* pco_ESBWalk_t;
 typedef void* hash_Vector_t;
+#define CFO_DCS_DEAD_ELEMS_NUM 3
+typedef struct
+{
+    list_List_ref dead_elems[CFO_DCS_DEAD_ELEMS_NUM];
+} cfo_DCSInfo_t;
 typedef enum
 {
     LIST_LESS    = -1,
@@ -41,6 +48,8 @@ typedef void* mem_Pool_ref;
 #define ECOMP_ZERO_PROFILE 0x0
 #define CFG_ALL_OPERS(o,n) (;;)
 #define HASH_ALL_ENTRIES(o,n) (;;)
+#define PCO_ESB_BODY_NODES( n, e, w) (;;)
+#define CFG_ALL_MAIN_OPERS(o,n) (;;)
 #define MEM_DECLARE_REF(x) void*
 #define mem_GetEntry( entry_ref, entry_type) \
 ( \
@@ -61,6 +70,11 @@ typedef int arr_Index_t;
 #define S_IRWXU 0
 #define S_IRWXG 0
 typedef void FILE;
+#define CFO_DCS_LEVEL_1 0
+#define CFO_DCS_LEVEL_NUM 1
+#define CFO_DCS_DEAD_NODES 0
+#define CFO_DCS_DEAD_EDGES 1
+#define CFO_DCS_DEAD_LOOPS 2
 
 /* Макрос, включающий интерфейсы сбора статистики */
 #define ANN_STAT_MODE
@@ -279,6 +293,38 @@ typedef struct
                                   - число операций в набранном регионе */
 } ann_RegionsInfo_t;
 
+/**
+ * Тип характеристик скалярных участков на фазе if_conv
+ */
+typedef enum
+{
+#define ANN_FIRST_IFC_ESB_CHAR ANN_IFC_ESB_CNT
+
+    ANN_IFC_ESB_CNT = 0,     /* счётчик головы скалярного участка */
+    ANN_IFC_ESB_OPERS_NUM,   /* число операций в скалярном участе */
+    ANN_IFC_ESB_CALLS_NUM,   /* число операций вызова в скалярном участе */
+    ANN_IFC_ESB_MERGE,       /* признак слитого скалярного участка */
+    ANN_IFC_ESB_BEFORE_TIME, /* оценочное время планирования скалярного участка */
+    ANN_IFC_ESB_AFTER_TIME,  /* время планирования скалярного участка после слияния */
+    ANN_IFC_ESB_MERGE_HEUR,  /* коэффициент полезности слияния */
+
+#define ANN_LAST_IFC_ESB_CHAR ANN_IFC_ESB_MERGE_HEUR
+    ANN_IFC_ESB_NONE_CHAR
+#define ANN_IFC_ESB_CHARS_NUM (int)ANN_IFC_ESB_NONE_CHAR
+
+} ann_IfConvESBChar_t;
+
+/**
+ * Информационная структура для сбора статистики на фазе if_conv
+ */
+typedef struct
+{
+    ire2k_Proc_ref  proc;      /* процедура */
+    list_List_ref   regions;   /* список регионов
+                                  Каждый регион - это список массивов характеристик
+                                  сливаемых скалярных участков */
+} ann_IfConvInfo_t;
+
 #endif /* ANN_STAT_MODE */
 
 /***************************************************************************************/
@@ -350,27 +396,42 @@ extern void ann_CorrectProcOptions( ire2k_Proc_ref proc);
 
 extern void ann_InitRegionsStat( ire2k_Proc_ref proc);
 extern void ann_CloseRegionsStat( );
-extern void ann_AddRegionStat( cfg_Node_ref head);
-extern void ann_AddRegionOpersNum( cfg_Node_ref head, unsigned int opers_num);
-extern void ann_AddRegionNodeStat( cfg_Node_ref head,
-                                   ecomp_Profile_t n_cnt,
-                                   ecomp_Profile_t v_cnt,
-                                   ecomp_Bool_t s_enter,
-                                   unsigned int proc_opers,
-                                   unsigned int region_opers);
-extern void ann_AddRegionNodeUnbalStat( cfg_Node_ref head,
-                                        unsigned int max_dep,
-                                        unsigned int min_dep,
-                                        ecomp_Profile_t sh_alt);
+extern void ann_AddRegionsStat( cfg_Node_ref head);
+extern void ann_AddRegionsOpersNum( cfg_Node_ref head, unsigned int opers_num);
+extern void ann_AddRegionsNodeStat( cfg_Node_ref head,
+                                    ecomp_Profile_t n_cnt,
+                                    ecomp_Profile_t v_cnt,
+                                    ecomp_Bool_t s_enter,
+                                    unsigned int proc_opers,
+                                    unsigned int region_opers);
+extern void ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,
+                                         unsigned int max_dep,
+                                         unsigned int min_dep,
+                                         ecomp_Profile_t sh_alt);
+extern void ann_InitIfConvStat( ire2k_Proc_ref proc);
+extern void ann_CloseIfConvStat( );
+extern void ann_AddIfConvStat( cfg_Node_ref head);
+extern void ann_AddIfConvESBStatBefore( pco_ESB_ref esb);
+extern void ann_AddIfConvESBStatAfter( pco_ESB_ref esb,
+                                       ecomp_Profile_t time_before,
+                                       ecomp_Profile_t time_after,
+                                       ecomp_Profile_t merge_heur);
+extern void ann_PrintDCSStat( ire2k_Proc_ref proc);
 
 #else /* !ANN_STAT_MODE */
 
 #define ann_InitRegionsStat( proc)
 #define ann_CloseRegionsStat( )
-#define ann_AddRegionStat( head)
-#define ann_AddRegionOpersNum( head, opers_num)
-#define ann_AddRegionNodeStat( head, n_cnt, v_cnt, s_enter, proc_opers, region_opers)
-#define ann_AddRegionNodeUnbalStat( head, max_dep, min_dep, sh_alt)
+#define ann_AddRegionsStat( head)
+#define ann_AddRegionsOpersNum( head, opers_num)
+#define ann_AddRegionsNodeStat( head, n_cnt, v_cnt, s_enter, proc_opers, region_opers)
+#define ann_AddRegionsNodeUnbalStat( head, max_dep, min_dep, sh_alt)
+#define ann_InitIfConvStat( proc)
+#define ann_CloseIfConvStat( )
+#define ann_AddIfConvStat( head)
+#define ann_AddIfConvESBStatBefore( esb)
+#define ann_AddIfConvESBStatAfter( esb, time_before, time_after, merge_heur)
+#define ann_PrintDCSStat( proc)
 
 #endif /* ANN_STAT_MODE */
 

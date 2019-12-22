@@ -1,0 +1,37 @@
+   Фаза regions:
+   proc.chars['max_cnt']
+   proc.chars['opers_num']
+
+   regn.chars['cnt']
+   regn.chars['opers_num']
+
+   node.chars['n_cnt']
+   node.chars['v_cnt']
+   node.chars['r_cnt']
+   node.chars['o_cnt']
+   node.chars['p_cnt']
+   node.chars['s_enter']
+   node.chars['proc_opers_num']
+   node.chars['regn_opers_num']
+   node.chars['unb']
+   node.chars['unb_max_dep']
+   node.chars['unb_min_dep']
+   node.chars['unb_sh_alt_prob']
+
+   Фаза if_conv:
+   regn.chars['cnt']
+   sect.chars['cnt']
+   sect.chars['o_num']
+   sect.chars['c_num']
+   sect.chars['t_a']
+   sect.chars['t_b']
+   sect.chars['d_heur']
+
+   Фаза dcs:
+   O
+   edges_num
+   loops_num
+   nodes_num
+   e_num
+   l_num
+   n_num
