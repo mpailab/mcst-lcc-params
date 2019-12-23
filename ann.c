@@ -968,8 +968,7 @@ static ann_RegionsInfo_t *ann_RgnInfo_p = NULL;
 
 /* Вспомогательные глобальные переменные */
 static cfg_Node_ref ann_CurHead = mem_Entry_null;
-static unsigned int ann_UnbalMaxDep = 0;
-static unsigned int ann_UnbalMinDep = 0;
+static unsigned int ann_UnbalValue = 0;
 static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
 
 /**
@@ -1048,8 +1047,7 @@ ann_AddRegionsNodeStat( cfg_Node_ref head,         /* голова регион�
     {
         ECOMP_ASSERT( mem_IsRefsEQ( ann_CurHead, head));
         ann_SetNodeUnbal( node_chars, ECOMP_TRUE);
-        ann_SetNodeUnbalMaxDep( node_chars, ann_UnbalMaxDep);
-        ann_SetNodeUnbalMinDep( node_chars, ann_UnbalMinDep);
+        ann_SetNodeUnbalValue( node_chars, ann_UnbalValue);
         ann_SetNodeUnbalShAlt( node_chars, ann_UnbalShAlt);
         ann_CurHead = mem_Entry_null;
 
@@ -1069,15 +1067,14 @@ ann_AddRegionsNodeStat( cfg_Node_ref head,         /* голова регион�
  */
 void
 ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,      /* голова региона */
-                            unsigned int max_dep,   /* максимальная глубина в схождении */
-                            unsigned int min_dep,   /* минимальная глубина в схождении */
-                            ecomp_Profile_t sh_alt) /* вероятность короткой пльтернативы */
+                             unsigned int max_dep,   /* максимальная глубина в схождении */
+                             unsigned int min_dep,   /* минимальная глубина в схождении */
+                             ecomp_Profile_t sh_alt) /* вероятность короткой пльтернативы */
 {
     ECOMP_ASSERT( mem_IsRefNull( ann_CurHead));
 
     ann_CurHead = head;
-    ann_UnbalMaxDep = max_dep;
-    ann_UnbalMinDep = min_dep;
+    ann_UnbalValue = max_dep - min_dep;
     ann_UnbalShAlt = sh_alt;
 
     return;
@@ -1143,24 +1140,14 @@ ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,      /* голова регио�
     arr_SetBool( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL, (value)); \
 }
 
-/* Получить максимальную глубину в несбалансированном схождении */
-#define ann_GetNodeUnbalMaxDep( node) \
-    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MAX_DEP)
+/* Получить величину несбалансированного схождения */
+#define ann_GetNodeUnbalValue( node) \
+    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_VALUE)
 
-/* Установить максимальную глубину в несбалансированном схождении */
-#define ann_SetNodeUnbalMaxDep( node, value) \
+/* Установить величину несбалансированного схождения */
+#define ann_SetNodeUnbalValue( node, value) \
 { \
-    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MAX_DEP, (value)); \
-}
-
-/* Получить минимальную глубину в несбалансированном схождении */
-#define ann_GetNodeUnbalMinDep( node) \
-    arr_GetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MIN_DEP)
-
-/* Установить минимальную глубину в несбалансированном схождении */
-#define ann_SetNodeUnbalMinDep( node, value) \
-{ \
-    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_MIN_DEP, (value)); \
+    arr_SetInt( (node), (arr_Index_t) ANN_RGN_NODE_UNBAL_VALUE, (value)); \
 }
 
 /* Получить вероятность короткой пльтернативы в несбал. схождении */
@@ -1234,8 +1221,7 @@ ann_PrintRegionsStat( )
                 ann_PrintInt ( buff_p, "-", ann_GetNodeROpersNum(node_chars));
                 if ( ann_GetNodeUnbal( node_chars) )
                 {
-                    ann_PrintInt ( buff_p, ":", ann_GetNodeUnbalMaxDep( node_chars));
-                    ann_PrintInt ( buff_p, ":", ann_GetNodeUnbalMinDep( node_chars));
+                    ann_PrintInt ( buff_p, ":", ann_GetNodeUnbalValue( node_chars));
                     ann_PrintProf( buff_p, ":", ann_GetNodeUnbalShAlt( node_chars));
                 }
             }
@@ -1265,12 +1251,6 @@ ann_PrintRegionsStat( )
 
 /* Информационная структура сбора статистики на фазе if_conv */
 static ann_IfConvInfo_t *ann_IfcInfo_p = NULL;
-
-/* Вспомогательные глобальные переменные */
-static cfg_Node_ref ann_CurHead = mem_Entry_null;
-static unsigned int ann_UnbalMaxDep = 0;
-static unsigned int ann_UnbalMinDep = 0;
-static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
 
 /**
  * Инициализация сбора статистики на фазе if_conv

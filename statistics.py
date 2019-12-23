@@ -12,13 +12,12 @@ import par, verbose
 
 
 class StaticticError(gl.IntsysError):
-    def __init__(self, error, path):
+    def __init__(self, error, proc):
         self.error = error
-        self.path = path
+        self.proc = proc
     
     def __str__(self):
-        return 'An error by reading statictic in %r : %s' % (self.path, self.error)
-
+        return 'An error by reading statictic for proc %r : %s' % (self.proc, self.error)
 
 
 #########################################################################################
@@ -30,246 +29,113 @@ if gl.INHERIT_STAT:
 else:
     STAT_PATH_FOR_READ = gl.DINUMIC_STAT_PATH
 
-class Node:
-    """характеристики узла"""
-    def __init__(self):
-        # отображение: имя характеристики узла -> значение этой характеристики
-        self.chars = {}
+class Regions (object):
+            
+    class Node (object):
+            
+        def __init__(self, init):
+            self.pcnt = float(init[0])
+            self.rcnt = float(init[1])
+            self.senter = int(init[2])
+            self.popers_num = int(init[3])
+            self.ropers_num = int(init[4])
+            self.unbal = int(init[5]) if len(init) > 5 else 0
+            if self.unbal:
+                self.unbal_sh_alt = float(init[5])
 
-class Proc:
-    """характеристики процедуры на этапе regions"""
-    def __init__(self):
-        # отображение: имя характеристики процедуры -> значение этой характеристики
-        self.chars = {}
+    class Region (object):
+            
+        def __init__(self, init):
+            self.cnt = float(init[0])
+            self.opers_num = int(init[1])
+            self.nodes = [ Regions.Node(x.split('-')) for x in init[2:] ]
 
-        # неассоциативный массив узлов (типа Node) процедуры; ключами выступают номера узлов в процедуре
-        self.nodes = {}
+    class Proc (object):
+            
+        def __init__(self, name, init):
+            self.name = name
+            self.max_cnt = float(init[0])
+            self.opers_num = int(init[1])
+            self.regions = [ Regions.Region(x.split(':')) for x in init[2:] ]
 
-        # неассоциативный массив циклов процедуры; ключами выступают номера циклов в процедуре
-        self.loops = {}
+class IfConv (object):
 
-        # отображение: номер головы региона -> регион (типа Region)
-        self.regions = {}
+    class ESB (object):
+            
+        def __init__(self, init):
+            self.cnt = float(init[0])
+            self.opers_num = int(init[1])
+            self.calls_num = int(init[2])
+            self.merge = int(len(init) > 3)
+            if self.merge:
+                self.btime = float(init[3])
+                self.atime = float(init[4])
+                self.heur = float(init[5])
 
-class Region:
-    """характеристики региона на этапе regions"""
-    def __init__(self):
+    class Region (object):
+            
+        def __init__(self, init):
+            self.cnt = float(init[0])
+            self.esbs = [ IfConv.ESB(x.split('-')) for x in init[1:] ]
 
-        # отображение: имя характеристики региона -> значение этой характеристики
-        self.chars = {}
+    class Proc (object):
+            
+        def __init__(self, name, init):
+            self.name = name
+            self.regions = [ IfConv.Region(x.split(':')) for x in init ]
 
-        # неассоциативный массив узлов, которые пытались добавить в регион; ключами выступают номера узлов в процедуре
-        self.nodes = {}
+class DCS (object):
+            
+    def __new__(self, name, init):
+        return self.Proc(name, init)
 
-class Icv_Proc:
-    """характеристики процедуры на этапе if_conv"""
-    def __init__(self):
-        # отображение: имя характеристики процедуры -> значение этой характеристики
-        self.chars = {}
+    class Level (object):
+            
+        def __init__(self, init):
+            self.nodes_num = int(init[1])
+            self.edges_num = int(init[2])
+            self.loops_num = int(init[3])
 
-        self.regions = {}
+    class Proc (object):
+            
+        def __init__(self, name, init):
+            self.name = name
+            self.nodes_num = int(init[0])
+            self.edges_num = int(init[1])
+            self.loops_num = int(init[2])
+            self.level = { int(y[0]) : DCS.Level(y[1:]) for x in init for y in [x.split(':')] }
 
-class Icv_Region:
-    """характеристики региона на этапе if_conv"""
-    def __init__(self):
-        # отображение: имя характеристики региона -> значение этой характеристики
-        self.chars = {}
-        # отображение: номер головы участка региона -> участок региона
-        self.sects = {}
-        
-class Dcs_level:
-    """характеристики процедуры на этапе dcs"""
-    def __init__(self, procname, opt_level, n_num, e_num, l_num, nd_num, ed_num, ld_num, N, E, L):
-        self.procname = procname # имя процедуры, к которой применяется оптимизация
-        self.opt_level = opt_level # применяемый уровень оптизации фазы dcs
-        self.n_num = n_num # общее количество узлов в процедуре
-        self.e_num = e_num # общее количество ребер в процедуре
-        self.l_num = l_num # общее количество циклов в процедуре
-        self.nd_num = nd_num # количество найденных мертвых узлов в процедуре
-        self.ed_num = ed_num # количество найденных мертвых ребер в процедуре
-        self.ld_num = ld_num # количество найденных мертвых циклов в процедуре
-        self.N = N # множество номеров всех найденных мертвых узлов
-        self.E = E # множество номеров всех найденных мертвых ребер
-        self.L = L # множество номеров всех найденных мертвых циклов
+def read_stat (taskname, procs, phase):
+    stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
+    with open(os.path.join(stat_dir, phase + '.txt')) as file:
+        procs_stat = { x[0] : x[1:] for l in file.read().splitlines()
+                                    for x in [l.split('#')] }
+        return { k : procs_stat.get(k) for k in procs }
 
-def read_regions_stat (taskname, stat_dir = None):
-    if stat_dir is None:
-        stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
-    with open(os.path.join(stat_dir, 'regions.txt')) as file:
-        
+def read_regions_stat (taskname, procs,):
+    return read_stat(taskname, procs, 'regions')
 
-# Считывает статистику компиляции процедуры procname задачи taskname на фазе regions
-def get_proc(taskname, procname, stat_dir = None):
-    proc = Proc()
-    if stat_dir is None:
-        stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
-    path = os.path.join(stat_dir, procname, 'regions.txt')
-    try:
-        with open(path) as file:
-            for line in file:
-                ## отрезаем от line последний символ, который является символом перехода на новую строку
-                line = line[:-1]
-                if line[0] == 'H':
-                    #В этом случае в line содержится информация о регионе
-                    words = line.split()
-                    hnum = words[0].split(':')[1] # номер головы региона
-                    if len(words) == 1:
-                        # В этом случае регион с номером hnum раньше не встречался
-                        proc.regions[hnum] = Region()
-                    elif words[1][0] == 'N':
-                        # В этом случае в line записана характеристика добавляемого узла
-                        nodenum = words[1].split(':')[1]
-                        if hnum != nodenum:
-                            # голову региона не будем добавлять в узлы
-                            if nodenum not in proc.regions[hnum].nodes:
-                                proc.regions[hnum].nodes[nodenum] = Node()
-                            wparts = words[2].split(':')
-                            chname = wparts[0]
-                            value = wparts[1]
-                            proc.regions[hnum].nodes[nodenum].chars[chname] = value
-                    else:
-                        # В этом случае в строке line записана характеристика региона
-                        wparts = words[1].split(':')
-                        name = wparts[0]
-                        value = wparts[1]
-                        proc.regions[hnum].chars[name] = value
-                elif line[0] == 'N':
-                    #В этом случае в line содержится информация о характеристике узла
-                    words = line.split()
-                    num = words[0].split(':')[1]
-                    wparts = words[1].split(':')
-                    name = wparts[0]
-                    value = wparts[1]
-                    if name == "L":
-                        proc.loops[value] = {'ovl' : words[2].split(":")[1], 
-                                            'red' : words[3].split(":")[1]}
-                    else:
-                        if name == 'type':
-                            #В этом случае узел с номером nodenum раньше не встречался
-                            proc.nodes[num] = Node()
-                        proc.nodes[num].chars[name] = value
-                else:
-                    #В этом случае в line содержится информация о характеристике процедуры
-                    parts = line.split(':') 
-                    name = parts[0]
-                    value = parts[1]
-                    proc.chars[name] = value
-    except Exception as error:
-        raise StaticticError(error, path)
-    return proc
+def read_ifconv_stat (taskname, procs):
+    return read_stat(taskname, procs, 'if_conv')
 
-# Считывает статистику компиляции процедуры procname задачи taskname на фазе if_conv
-def get_icv_proc(taskname, procname):
-    proc = Icv_Proc()
-    path = os.path.join(STAT_PATH_FOR_READ, taskname, procname, 'if_conv.txt')
-    try:
-        file = open(path)
-        for line in file:
-            # отрезаем от line последний символ, который является символом перехода на новую строку
-            line = line[:-1]
-            if line[0] == 'H':
-                #В этом случае в line содержится информация о регионе
-                words = line.split()
-                hnum = words[0].split(':')[1] # номер головы региона
-                parts = words[1].split(':')
-                reg_charname = parts[0]
-                if reg_charname == 'E':
-                    # В этом случае в line записана характеристика участка
-                    enum = parts[1]
-                    if enum not in proc.regions[hnum].sects:
-                        proc.regions[hnum].sects[enum] = Node() # програмно участок ведет себя как класс Node
-                    wparts = words[2].split(':')
-                    chname = wparts[0]
-                    value = wparts[1]
-                    proc.regions[hnum].sects[enum].chars[chname] = value
-                elif reg_charname == 'cnt':
-                    proc.regions[hnum] = Icv_Region()
-                    proc.regions[hnum].chars['cnt'] = parts[1]
-                else:
-                    #тогда в line содержится информация о характеристики региона
-                    proc.regions[hnum].chars[reg_charname] = parts[1]
-            else:
-                #В этом случае в line содержится информация о характеристике процедуры
-                words = line.split(':')
-                name = words[0]
-                value = words[1]
-                proc.chars[name] = value
-        file.close()
-    except Exception as error:
-        raise StaticticError(error, path)
-    return proc
+def read_dcs_stat (taskname, procs):
+    return read_stat(taskname, procs, 'dcs')
 
 # Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для всех уровней dcs-оптимизации)
-def get_dcs_proc(taskname, procname, difference_from_levels = True):
-    procpath = os.path.join(STAT_PATH_FOR_READ, taskname, procname)
-    proc = [None] # proc[0] = None -> нет нулевого уровня оптимизации
-    dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
-    for lv in dcs_levels:
-        proc.append(dcs_level(procpath, lv)) # proc[lv] -- результат оптимизации на уровне lv
+def get_dcs_proc(taskname, procname, stat, difference_from_levels = True):
+    proc = DCS.Proc(procname, stat)
     if difference_from_levels == True:
-        for lv in dcs_levels[1:].__reversed__(): # перебираем все пары (уровень, предыдущий уровень), начиная с последнего уровня
+        for lv in range(2, gl.MAX_DCS_LEVEL + 1): # перебираем все пары (уровень, предыдущий уровень), начиная с последнего уровня
             lv_pr = lv - 1
-            proc[lv].nd_num -= proc[lv_pr].nd_num
-            proc[lv].ed_num -= proc[lv_pr].ed_num
-            proc[lv].ld_num -= proc[lv_pr].ld_num
-            proc[lv].N -= proc[lv_pr].N
-            proc[lv].E -= proc[lv_pr].E
-            proc[lv].L -= proc[lv_pr].L
+            proc.level[lv].nodes_num -= proc.level[lv_pr].nodes_num
+            proc.level[lv].edges_num -= proc.level[lv_pr].edges_num
+            proc.level[lv].loops_num -= proc.level[lv_pr].loops_num
             
             # Вычислим процент метвых узлов, дуг, циклов находимых на каждом уровне
-            proc[lv].nd = proc[lv].nd_num / proc[lv].n_num if proc[lv].n_num else 0
-            proc[lv].ed = proc[lv].ed_num / proc[lv].e_num if proc[lv].e_num else 0
-            proc[lv].ld = proc[lv].ld_num / proc[lv].l_num if proc[lv].l_num else 0
+            proc.level[lv].nd = proc.level[lv].nd_num / proc.nodes_num if proc.nodes_num else 0
+            proc.level[lv].ed = proc.level[lv].ed_num / proc.edges_num if proc.edges_num else 0
+            proc.level[lv].ld = proc.level[lv].ld_num / proc.loops_num if proc.loops_num else 0
     return proc
-
-# Считывает статистику компиляции фазы dcs процедуры procname задачи taskname (для уровня lv dcs-оптимизации)
-def dcs_level(procpath, lv):
-    lvpath = os.path.join(procpath, 'dcs_' + str(lv) + '.txt')
-    try:
-        ffile = open(lvpath)
-        
-        line = ffile.readline()[:-1]
-        procname = line.split(':')[1]
-
-        line = ffile.readline()[:-1]
-        n_num = int(line.split(':')[1])
-        
-        line = ffile.readline()[:-1]
-        e_num = int(line.split(':')[1])
-        
-        line = ffile.readline()[:-1]
-        l_num = int(line.split(':')[1])
-        
-        N = set()
-        E = set()
-        L = set()
-        
-        for line in ffile:
-            line = line[:-1]
-            spl_end = line.split()[1].split(':')
-            key = spl_end[0]
-            value = int(spl_end[1])
-            if key == 'E':
-                E.add(value)
-            elif key == 'N':
-                N.add(value)
-            elif key == 'L':
-                L.add(value)
-            elif key == 'n_num':
-                nd_num = value
-            elif key == 'e_num':
-                ed_num = value
-            elif key == 'l_num':
-                ld_num = value
-        ffile.close()
-    except Exception as error:
-        raise StaticticError(error, lvpath)
-    
-    nd_num = len(N)
-    ed_num = len(E)
-    ld_num = len(L)
-    
-    return Dcs_level(procname, lv, n_num, e_num, l_num, nd_num, ed_num, ld_num, N, E, L)
 
 #########################################################################################
 # Поучение распределений характеристик компилируемых процедур
@@ -384,13 +250,14 @@ def get_procs_and_weights(taskname, proc_list):
 # на основе распределения параметров для каждой процедуры.
 # Распределение параметров для каждой процедуры получается при помощи функции get_dis_par_for_proc.
 # Если normolize_mode == True, то полученное распределение нормируется.
-def get_dis_par(procs_dic, get_dis_par_for_proc, normolize_mode = True):
+def get_dis_par(procs_dic, read_stat, get_dis_par_for_proc, normolize_mode = True):
     dis_par = {}
     for taskname, proc_list in procs_dic.items():
         procs, proc_cnt, w_task = get_procs_and_weights(taskname, proc_list)
+        stat = read_stat(taskname, procs)
         for procname in procs:
             w_proc = proc_weight(proc_cnt, procname)
-            dis_par_proc = get_dis_par_for_proc(taskname, procname)
+            dis_par_proc = get_dis_par_for_proc(taskname, procname, stat[procname])
             sum_tmp = sum(dis_par_proc.values())
             if sum_tmp == 0:
                 continue
@@ -408,58 +275,61 @@ def get_dis_par(procs_dic, get_dis_par_for_proc, normolize_mode = True):
         normolize_dict(dis_par)
     return dis_par
     
-def get_unnorm_dis_regpar_for_proc(taskname, procname):
+def get_unnorm_dis_regpar_for_proc(taskname, procname, stat):
     """
         Формирует распределение параметров фазы regions по статистике компиляции процедуры procname задачи taskname
         Полученное распределение не нормируется
     """
     dis_par = {}
-    proc = get_proc(taskname, procname)
-    proc_max_cnt = float(proc.chars['max_cnt'])
+    try:
+        proc = Regions.Proc(procname, stat)
+    except Exception as error:
+        raise StaticticError(error, procname)
+    proc_max_cnt = proc.max_cnt
     if not gl.DINUMIC_PROC_OPERS_NUM:
-        proc_opers_num = int(proc.chars['opers_num']) # regn_max_proc_op_sem_size
+        proc_opers_num = proc.opers_num # regn_max_proc_op_sem_size
     if proc_max_cnt == 0:
         return {}
-    sum_reg_cnt = sum([float(regn.chars['cnt']) for regn in proc.regions.values()], 0)
-    for regn in proc.regions.values():
-        reg_cnt = float(regn.chars['cnt'])
+    sum_reg_cnt = sum([regn.cnt for regn in proc.regions], 0)
+    for regn in proc.regions:
+        reg_cnt = regn.cnt
         if not gl.DINUMIC_REGN_OPERS_NUM:
-            reg_opers_num = int(regn.chars['opers_num']) # regn_opers_limit
+            reg_opers_num = regn.opers_num # regn_opers_limit
         rel_reg_cnt = reg_cnt / sum_reg_cnt
         w_regn = regn_weight(reg_cnt, rel_reg_cnt)
-        for num, node in regn.nodes.items():
+        for node in regn.nodes:
             try:
-                n_cnt = float(node.chars['n_cnt'])
-                s_enter = int(node.chars['s_enter'])
-                v_cnt = float(node.chars['v_cnt'])
+                n_cnt = node.pcnt
+                s_enter = node.senter
+                v_cnt = node.rcnt
                 w = node_weight(n_cnt, v_cnt, proc_max_cnt) * w_regn
                 key = []
                 if gl.DINUMIC_PROC_OPERS_NUM:
-                    proc_opers_num = int(node.chars['proc_opers_num']) # regn_max_proc_op_sem_size
+                    proc_opers_num = node.popers_num # regn_max_proc_op_sem_size
                 key.append(proc_opers_num)
                 if gl.DINUMIC_REGN_OPERS_NUM:
-                    reg_opers_num = int(node.chars['regn_opers_num']) # regn_opers_limit
+                    reg_opers_num = node.ropers_num # regn_opers_limit
                 key.append(reg_opers_num)
-                r_cnt = float(node.chars['r_cnt'])      # regn_heur1
+                r_cnt = node.rcnt / regn.cnt  # regn_heur1
                 key.append(r_cnt)
                 if s_enter:
-                    key.append(r_cnt)                       # regn_heur2
-                    o_cnt = float(node.chars['o_cnt'])      # regn_heur3
+                    key.append(r_cnt)                # regn_heur2
+                    o_cnt = node.rcnt / node.pcnt    # regn_heur3
                     key.append(o_cnt)
-                    p_cnt = float(node.chars['p_cnt'])      # regn_heur4
+                    p_cnt = node.rcnt / proc.max_cnt # regn_heur4
                     key.append(p_cnt)
                 else:
                     key.append(maxsize) # на узел без бокового входа параметры regn_heur2, regn_heur3, regn_heur4
                     key.append(maxsize) # не оказывают влияния
                     key.append(maxsize)
-                if 'unb' in node.chars and node.chars['unb'] == 1:
-                    p = int(node.chars['unb_max_dep']) - int(node.chars['unb_min_dep']) # regn_disb_heur
+                if node.unbal:
+                    p = node.unbal                # regn_disb_heur
                     key.append(p)
-                    p = reg_cnt / proc_max_cnt                                          # regn_heur_bal1
+                    p = reg_cnt / proc_max_cnt    # regn_heur_bal1
                     key.append(p)
-                    p = n_cnt / proc_max_cnt                                            # regn_heur_bal2
+                    p = n_cnt / proc_max_cnt      # regn_heur_bal2
                     key.append(p)
-                    p = float(node.chars['unb_sh_alt_prob'])                            # regn_prob_heur
+                    p = node.chars.unbal_sh_alt   # regn_prob_heur
                     key.append(p)
                 else:
                     key.append(None)
@@ -467,10 +337,10 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                     key.append(None) # если мы определили несбалансированное схождение
                     key.append(None)
             except KeyError as error:
-                verbose.warning('In %s %s N:%s -> %s' % (taskname, procname, num, error), verbose.err)
+                verbose.warning('In %s %s -> %s' % (taskname, procname, error), verbose.err)
                 continue
             except ValueError as error:
-                verbose.warning('In %s %s N:%s -> %s' % (taskname, procname, num, error), verbose.err)
+                verbose.warning('In %s %s -> %s' % (taskname, procname, error), verbose.err)
                 continue
                     
             key = tuple(key)
@@ -481,34 +351,37 @@ def get_unnorm_dis_regpar_for_proc(taskname, procname):
                 
     return dis_par
 
-def get_unnorm_dis_icvpar_for_proc(taskname, procname):
+def get_unnorm_dis_icvpar_for_proc(taskname, procname, stat):
     """
         Формирует распределение параметров фазы if_conv по статистике компиляции процедуры procname задачи taskname
         Полученное распределение не нормируется
     """
     dis_par = {}
-    icv_proc = get_icv_proc(taskname, procname)
+    try:
+        icv_proc = Regions.Proc(procname, stat)
+    except Exception as error:
+        raise StaticticError(error, procname)
     sum_reg_cnt = 0
-    for regn in icv_proc.regions.values():
-        sum_reg_cnt += float(regn.chars['cnt'])
+    for regn in icv_proc.regions:
+        sum_reg_cnt += regn.cnt'
     if sum_reg_cnt == 0:
         return {}
-    for _, regn in icv_proc.regions.items():
-        reg_cnt = float(regn.chars['cnt'])
+    for regn in icv_proc.regions:
+        reg_cnt = regn.cnt
         rel_reg_cnt = reg_cnt / sum_reg_cnt
         w_regn = icv_regn_weight(reg_cnt, rel_reg_cnt)
-        for sect in regn.sects.values():
-            sect_cnt = float(sect.chars['cnt'])
+        for sect in regn.esbs:
+            sect_cnt = sect.cnt
             w = icv_sect_weight(sect_cnt) * w_regn
             key = []
-            o_num = int(sect.chars['o_num']) # ifconv_opers_num
-            c_num = int(sect.chars['c_num']) # ifconv_calls_num
+            o_num = sect.opers_num # ifconv_opers_num
+            c_num = sect.calls_num # ifconv_calls_num
             key.append(o_num)
             key.append(c_num)
-            if 't_a' in sect.chars:
-                t_a = float(sect.chars['t_a'])
-                t_b = float(sect.chars['t_b'])
-                d_heur = float(sect.chars['d_heur'])
+            if sect.merge:
+                t_a = sect.atime
+                t_b = sect.btime
+                d_heur = sect.heur
                 if t_b != 0:
                     p = t_a / t_b - d_heur # ifconv_merge_heur
                 else:
@@ -534,14 +407,14 @@ def get_dis_regpar(procs_dic, normolize_mode = True):
         Формирует суммарное распределение параметров фазы regions по статистики компиляции процедур procs_dic.
         Если normolize_mode == True, то полученное распределение нормируется.
     """
-    return get_dis_par(procs_dic, get_unnorm_dis_regpar_for_proc, normolize_mode)
+    return get_dis_par(procs_dic, read_regions_stat, get_unnorm_dis_regpar_for_proc, normolize_mode)
 
 def get_dis_icvpar(procs_dic, normolize_mode = True):
     """
         Формирует суммарное распределение параметров фазы if_conv по статистики компиляции процедур procs_dic.
         Если normolize_mode == True, то полученное распределение нормируется.
     """
-    return get_dis_par(procs_dic, get_unnorm_dis_icvpar_for_proc, normolize_mode)
+    return get_dis_par(procs_dic, read_ifconv_stat, get_unnorm_dis_icvpar_for_proc, normolize_mode)
 
 def get_value_par(procs_dic, reg_parnames, icv_parnames, dis_regpar, dis_icvpar):
     """
@@ -606,11 +479,11 @@ def get_dcs_proc_dis(dcs_proc,
     dcs_levels = range(1, gl.MAX_DCS_LEVEL + 1)
     for lv in dcs_levels:
         # процент мертвых узлов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
-        nd = dcs_proc[lv].nd_num / dcs_proc[lv].n_num
+        nd = dcs_proc.level[lv].nodes_num / dcs_proc.nodes_num
         # процент мертвых ребер, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
-        ed = dcs_proc[lv].ed_num / dcs_proc[lv].e_num
+        ed = dcs_proc.level[lv].edges_num / dcs_proc.edges_num
         # процент мертвых циклов, выявленных на уровне lv оптимизации и не выявленных на предыдущих уровнях оптимизации
-        ld = dcs_proc[lv].ld_num / dcs_proc[lv].l_num
+        ld = dcs_proc.level[lv].loops_num / dcs_proc.loops_num
         # значимость уровня lv dcs-оптимизации для данной процедуры
         impotance = koef_node_impotance * nd + koef_edge_impotance * ed + koef_loop_impotance * ld
         pdis.append(impotance)
@@ -629,12 +502,19 @@ def get_dcs_dis(procs_dic,
     for taskname, proc_list in procs_dic.items():
 
         procs, proc_cnt, w_task = get_procs_and_weights(taskname, proc_list)
+        stat = read_dcs_stat(taskname, procs)
         sum_w_task += w_task
         
         tdis = [0] * (gl.MAX_DCS_LEVEL + 1)
         for procname in procs:
-            dcs_proc = get_dcs_proc(taskname, procname)
-            pdis = get_dcs_proc_dis(dcs_proc,
+            proc = DCS.Proc(procname, stat[procname])
+            for lv in range(2, gl.MAX_DCS_LEVEL + 1): # перебираем все пары (уровень, предыдущий уровень), начиная с последнего уровня
+                lv_pr = lv - 1
+                proc.level[lv].nodes_num -= proc.level[lv_pr].nodes_num
+                proc.level[lv].edges_num -= proc.level[lv_pr].edges_num
+                proc.level[lv].loops_num -= proc.level[lv_pr].loops_num
+
+            pdis = get_dcs_proc_dis(proc,
                                     koef_node_impotance = koef_node_impotance,
                                     koef_edge_impotance = koef_edge_impotance,
                                     koef_loop_impotance = koef_loop_impotance)

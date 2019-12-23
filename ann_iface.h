@@ -268,8 +268,7 @@ typedef enum
     ANN_RGN_NODE_P_OPERS_NUM,   /* число операций в процедуре после обработки узла */
     ANN_RGN_NODE_R_OPERS_NUM,   /* число операций в регионе после обработки узла */
     ANN_RGN_NODE_UNBAL,         /* признак несбалансированного схождения */
-    ANN_RGN_NODE_UNBAL_MAX_DEP, /* максимальная глубина в несбалансированном схождении */
-    ANN_RGN_NODE_UNBAL_MIN_DEP, /* минимальная глубина в несбалансированном схождении */
+    ANN_RGN_NODE_UNBAL_VALUE,   /* величина несбалансированного схождения */
     ANN_RGN_NODE_UNBAL_SH_ALT,  /* вероятность короткой пльтернативы в несбал. схождении */
 
 #define ANN_LAST_RGN_NODE_CHAR ANN_RGN_NODE_UNBAL_SH_ALT
