@@ -395,7 +395,6 @@ extern void ann_CorrectProcOptions( ire2k_Proc_ref proc);
 #ifdef ANN_STAT_MODE
 
 extern void ann_InitRegionsStat( ire2k_Proc_ref proc);
-extern void ann_CloseRegionsStat( );
 extern void ann_AddRegionsStat( cfg_Node_ref head);
 extern void ann_AddRegionsOpersNum( cfg_Node_ref head, unsigned int opers_num);
 extern void ann_AddRegionsNodeStat( cfg_Node_ref head,
@@ -408,29 +407,30 @@ extern void ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,
                                          unsigned int max_dep,
                                          unsigned int min_dep,
                                          ecomp_Profile_t sh_alt);
+extern void ann_PrintRegionsStat( );
 extern void ann_InitIfConvStat( ire2k_Proc_ref proc);
-extern void ann_CloseIfConvStat( );
 extern void ann_AddIfConvStat( cfg_Node_ref head);
 extern void ann_AddIfConvESBStatBefore( pco_ESB_ref esb);
 extern void ann_AddIfConvESBStatAfter( pco_ESB_ref esb,
                                        ecomp_Profile_t time_before,
                                        ecomp_Profile_t time_after,
                                        ecomp_Profile_t merge_heur);
+extern void ann_PrintIfConvStat( );
 extern void ann_PrintDCSStat( ire2k_Proc_ref proc);
 
 #else /* !ANN_STAT_MODE */
 
 #define ann_InitRegionsStat( proc)
-#define ann_CloseRegionsStat( )
 #define ann_AddRegionsStat( head)
 #define ann_AddRegionsOpersNum( head, opers_num)
 #define ann_AddRegionsNodeStat( head, n_cnt, v_cnt, s_enter, proc_opers, region_opers)
 #define ann_AddRegionsNodeUnbalStat( head, max_dep, min_dep, sh_alt)
+#define ann_PrintRegionsStat( )
 #define ann_InitIfConvStat( proc)
-#define ann_CloseIfConvStat( )
 #define ann_AddIfConvStat( head)
 #define ann_AddIfConvESBStatBefore( esb)
 #define ann_AddIfConvESBStatAfter( esb, time_before, time_after, merge_heur)
+#define ann_PrintIfConvStat( )
 #define ann_PrintDCSStat( proc)
 
 #endif /* ANN_STAT_MODE */
