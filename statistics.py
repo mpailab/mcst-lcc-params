@@ -92,6 +92,12 @@ class Dcs_level:
         self.E = E # множество номеров всех найденных мертвых ребер
         self.L = L # множество номеров всех найденных мертвых циклов
 
+def read_regions_stat (taskname, stat_dir = None):
+    if stat_dir is None:
+        stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
+    with open(os.path.join(stat_dir, 'regions.txt')) as file:
+        
+
 # Считывает статистику компиляции процедуры procname задачи taskname на фазе regions
 def get_proc(taskname, procname, stat_dir = None):
     proc = Proc()
