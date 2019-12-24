@@ -205,9 +205,6 @@ def average (l):
 def run ():
     
     DB.load()
-    
-    # Check statistics correctness
-    stat.check(SPECS)
 
     print('Train neural network')
 
