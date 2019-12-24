@@ -167,6 +167,14 @@ typedef enum
 
 } ann_ProcChar_t;
 
+/* Цикл по всех характеристикам процедуры */
+#define ANN_ALL_PROC_CHARS( proc_char) \
+( \
+    proc_char = (unsigned int) ANN_FIRST_PROC_CHAR; \
+    proc_char <= (unsigned int) ANN_LAST_PROC_CHAR; \
+    proc_char++ \
+)
+
 /* Тип функции активации */
 typedef void (* ann_ActivationFunc_t) (arr_Array_ptr);
 
@@ -393,6 +401,7 @@ extern void ann_CorrectProcOptions( ire2k_Proc_ref proc);
 
 #ifdef ANN_STAT_MODE
 
+extern void ann_PrintProcChars( ire2k_Proc_ref proc);
 extern void ann_InitRegionsStat( ire2k_Proc_ref proc);
 extern void ann_AddRegionsStat( cfg_Node_ref head);
 extern void ann_AddRegionsOpersNum( cfg_Node_ref head, unsigned int opers_num);
@@ -419,6 +428,7 @@ extern void ann_PrintDCSStat( ire2k_Proc_ref proc);
 
 #else /* !ANN_STAT_MODE */
 
+#define ann_PrintProcChars( proc)
 #define ann_InitRegionsStat( proc)
 #define ann_AddRegionsStat( head)
 #define ann_AddRegionsOpersNum( head, opers_num)
