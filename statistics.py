@@ -29,6 +29,45 @@ if gl.INHERIT_STAT:
 else:
     STAT_PATH_FOR_READ = gl.DINUMIC_STAT_PATH
 
+def read_procs_chars (taskname = None):
+    if taskname is None:
+        if gl.TRAIN_PROC_CHARS is None:
+            verbose.error('Characteristics for procs was not defined. There is not file %r.' % gl.TRAIN_PROC_CHARS)
+        filename = gl.TRAIN_PROC_CHARS
+    else:
+        filename = os.path.join(STAT_PATH_FOR_READ, taskname, 'procs_chars.txt')
+    with open(filename) as file:
+        procs_chars = {}
+        for line in file:
+            sp_line = line.split('#')
+            proc = sp_line[0]
+            chars = []
+            for char in sp_line[1:]:
+                try:
+                    chars.append(float(char))
+                except ValueError:
+                    print('Warning! Incorrect characteristic for proc', proc, ':', char)
+            procs_chars[proc] = chars
+        return procs_chars
+
+def read_procs_weights(taskname = None):
+    if taskname is None:
+        if gl.TRAIN_PROC_WEIGHTS is None:
+            verbose.error('Weights for procs was not defined. There is not file %r.' % gl.TRAIN_PROC_WEIGHTS)
+        filename = gl.TRAIN_PROC_WEIGHTS
+    else:
+        filename = os.path.join(gl.PROC_WEIGHT_PATH, taskname + '.txt')
+    with open(filename) as file:
+        procs_weights = {}
+        for line in file:
+            sp_line = line.split()
+            proc = sp_line[0]
+            try:
+                procs_weights[proc] = float(sp_line[1])
+            except ValueError:
+                print('Warning! Incorrect weight for proc', proc, ':', sp_line[1])
+        return procs_weights
+
 class Regions (object):
             
     class Node (object):
@@ -85,9 +124,6 @@ class IfConv (object):
             self.regions = [ IfConv.Region(x.split(':')) for x in init ]
 
 class DCS (object):
-            
-    def __new__(self, name, init):
-        return self.Proc(name, init)
 
     class Level (object):
             
@@ -105,14 +141,13 @@ class DCS (object):
             self.loops_num = int(init[2])
             self.level = { int(y[0]) : DCS.Level(y[1:]) for x in init for y in [x.split(':')] }
 
-def read_stat (taskname, procs, phase):
-    stat_dir = os.path.join(STAT_PATH_FOR_READ, taskname)
-    with open(os.path.join(stat_dir, phase + '.txt')) as file:
+def read_stat (taskname, procs, filename):
+    with open(os.path.join(STAT_PATH_FOR_READ, taskname, filename)) as file:
         procs_stat = { x[0] : x[1:] for l in file.read().splitlines()
                                     for x in [l.split('#')] }
-        return { k : procs_stat.get(k) for k in procs }
+        return { proc : procs_stat[proc] for proc in procs }
 
-def read_regions_stat (taskname, procs,):
+def read_regions_stat (taskname, procs):
     return read_stat(taskname, procs, 'regions')
 
 def read_ifconv_stat (taskname, procs):
@@ -363,7 +398,7 @@ def get_unnorm_dis_icvpar_for_proc(taskname, procname, stat):
         raise StaticticError(error, procname)
     sum_reg_cnt = 0
     for regn in icv_proc.regions:
-        sum_reg_cnt += regn.cnt'
+        sum_reg_cnt += regn.cnt
     if sum_reg_cnt == 0:
         return {}
     for regn in icv_proc.regions:
