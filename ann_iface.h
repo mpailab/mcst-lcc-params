@@ -6,78 +6,17 @@
  * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
  */
 
-// #include "ecomp_iface.h"
-// #include "hash_iface.h"
-// #include "list_iface.h"
-// #include "mem_iface.h"
-
-typedef void* arr_Array_ptr;
-typedef void* buff_Buffer_ptr;
-typedef void* ire2k_Proc_ref;
-typedef void* list_List_ref;
-typedef void* cfg_Edge_ref;
-typedef void* cfg_Graph_ref;
-typedef void* cfg_LoopTree_ref;
-typedef void* cfg_Node_ref;
-typedef void* ire2k_Oper_ref;
-typedef int   ecomp_Bool_t;
-typedef float ecomp_Profile_t;
-typedef void* hash_Table_ref;
-typedef void* pco_ESB_ref;
-typedef void* pco_ESBWalk_t;
-typedef void* hash_Vector_t;
-#define CFO_DCS_DEAD_ELEMS_NUM 3
-typedef struct
-{
-    list_List_ref dead_elems[CFO_DCS_DEAD_ELEMS_NUM];
-} cfo_DCSInfo_t;
-typedef enum
-{
-    LIST_LESS    = -1,
-    LIST_EQUAL   = 0,
-    LIST_GREATER = 1
-} list_CmpRes_t;
-typedef void* list_Unit_ref;
-typedef void* scr_Var_ref;
-typedef void* hash_Entry_ref;
-typedef void* mem_Pool_ref;
-#define ARR_PROF_UNITS 1
-#define ARR_ZERO_INIT 0
-#define CFG_DOM_TREE 0
-#define CFG_PDOM_TREE 1
-#define ECOMP_ZERO_PROFILE 0x0
-#define CFG_ALL_OPERS(o,n) (;;)
-#define HASH_ALL_ENTRIES(o,n) (;;)
-#define PCO_ESB_BODY_NODES( n, e, w) (;;)
-#define CFG_ALL_MAIN_OPERS(o,n) (;;)
-#define MEM_DECLARE_REF(x) void*
-#define mem_GetEntry( entry_ref, entry_type) \
-( \
-  (entry_type *)mem_GetEntrySafe( entry_ref, sizeof(entry_type)) \
-)
-#define mem_Entry_null 0x0
-#define ECOMP_TRUE 1
-#define ECOMP_FALSE 0
-#define LIST_UNITS( unit, list) (;;)
-#define mem_Pool_null 0x0
-#define mem_NewPool(a,b) 0x0
-#define MEM_AREA_ANN 0
-#define ECOMP_ARGS 0
-typedef int arr_Index_t;
-#define NULL 0x0
-#define HASH_INT_KEYS 0
-#define HASH_VAL_REF 0
-#define S_IRWXU 0
-#define S_IRWXG 0
-typedef void FILE;
-#define CFO_DCS_LEVEL_1 0
-#define CFO_DCS_LEVEL_NUM 1
-#define CFO_DCS_DEAD_NODES 0
-#define CFO_DCS_DEAD_EDGES 1
-#define CFO_DCS_DEAD_LOOPS 2
+#include "ecomp_iface.h"
+#include "hash_iface.h"
+#include "list_iface.h"
+#include "mem_iface.h"
+#include "array_iface.h"
+#include "ire2k_iface.h"
 
 /* Макрос, включающий интерфейсы сбора статистики */
+#if 0
 #define ANN_STAT_MODE
+#endif /* 0 */
 
 /* Локальное переопределение макроса ECOMP_USE_MACROS */
 #ifdef ECOMP_USE_MACROS
@@ -170,8 +109,8 @@ typedef enum
 /* Цикл по всех характеристикам процедуры */
 #define ANN_ALL_PROC_CHARS( proc_char) \
 ( \
-    proc_char = (unsigned int) ANN_FIRST_PROC_CHAR; \
-    proc_char <= (unsigned int) ANN_LAST_PROC_CHAR; \
+    proc_char = (int) ANN_FIRST_PROC_CHAR; \
+    proc_char <= (int) ANN_LAST_PROC_CHAR; \
     proc_char++ \
 )
 
@@ -189,7 +128,7 @@ typedef enum
 
 } ann_OptionType_t;
 
-typedef struct
+typedef struct ann_Option_r
 {
     char           * name;
     ann_OptionType_t type;
@@ -198,20 +137,20 @@ typedef struct
 } ann_Option_t;
 
 /* Тип ссылки на опцию компилятора */
-typedef MEM_DECLARE_REF( ann_Option_t) ann_Option_ref;
+typedef MEM_DECLARE_REF( ann_Option_r) ann_Option_ref;
 
 /* Получение указателя на опцию компилятора */
 #define ANN_GET_OPTION_PTR(ref) mem_GetEntry( ref, ann_Option_t)
 
 /**
  * Тип модели нейронной сети
- * 
+ *
  * Нейронная сеть состоит из слоёв, каждый из которых представляет собой набор нейронов.
  * Связи нейронов i-ого слоя с нейронами (i-1)-слоя определяются матрицей weights[i].
  * При этом 0-ым слоем считается вход нейронной сети. Смещение нейронов i-ого слоя
  * определяется вектором biases[i], а их функция активации - это acts[i].
- * 
- * Если 
+ *
+ * Если
  *   x_i - вектор значений нейронов (i-1)-ого слоя,
  *   y_i - вектор значений нейронов i-ого слоя,
  *   A_i = weights[i] - матрица связей нейронов i-ого слоя,
@@ -219,29 +158,29 @@ typedef MEM_DECLARE_REF( ann_Option_t) ann_Option_ref;
  *   f_i = acts[i]    - функция активации нейронов i-ого слоя,
  * то
  *   y_i = f_i (A_i * x_i + b_i),
- * 
+ *
  * причём функция f_i применяется к вектору A_i * x_i + b_i покомпонентно.
- * 
+ *
  * Входом нейронной сети является вектор значений характеристик процедуры. Длина входного
  * вектора равна ANN_PROC_CHARS_NUM, его элементы определены в ann_ProcChar_t.
- * 
+ *
  * Если в нейронной сети n слоёв, то y_n - это значение выхода нейронной сети, которое
  * задает вектор вероятностей значений опций компилятора согласно заданной сетке.
  */
-typedef struct
+typedef struct ann_Model_r
 {
-    unsigned int layers_num;   /* число слоёв нейронной сети */
-    unsigned int outputs_num;  /* число выходов нейронной сети */
+    int layers_num;            /* число слоёв нейронной сети */
+    int outputs_num;           /* число выходов нейронной сети */
     arr_Array_ptr weights;     /* веса связей между нейронами соседних слоёв */
     arr_Array_ptr biases;      /* смещения нейронов на каждой слое */
-    ann_ActivationFunc_t acts; /* функции активации нейронов на каждом слое */
+    arr_Array_ptr acts;        /* функции активации нейронов на каждом слое */
     arr_Array_ptr options;     /* опции компилятора, для которых обучена нейронная сеть */
     arr_Array_ptr grid;        /* сетка значений опции компилятора, ассоциированная с
                                   выходом нейронной сети */
 } ann_Model_t;
 
 /* Тип ссылки на модель нейронной сети */
-typedef MEM_DECLARE_REF( ann_Model_t) ann_Model_ref;
+typedef MEM_DECLARE_REF( ann_Model_r) ann_Model_ref;
 
 /* Получение указателя на модель нейронной сети */
 #define ANN_GET_MODEL_PTR(ref) mem_GetEntry( ref, ann_Model_t)
@@ -292,7 +231,7 @@ typedef struct
 {
     ire2k_Proc_ref  proc;      /* процедура */
     ecomp_Profile_t max_cnt;   /* максимальный счётчик процедуры до применения regions */
-    unsigned int    opers_num; /* число операций до применения regions */
+    int             opers_num; /* число операций до применения regions */
     list_List_ref   regions;   /* список регионов
                                   Каждый регион - это список массивов характеристик узлов,
                                   голове которого приписано две характеристики региона:
@@ -362,21 +301,21 @@ typedef struct
 #define ann_GetGrid( model) (ANN_GET_MODEL_PTR( model)->grid)
 
 /* Получить имя опции */
-#define ann_GetOptionName( option) (ANN_GET_OPTION_PTR( model)->name)
+#define ann_GetOptionName( option) (ANN_GET_OPTION_PTR( option)->name)
 
 /* Получить тип опции */
-#define ann_GetOptionType( option) (ANN_GET_OPTION_PTR( model)->type)
+#define ann_GetOptionType( option) (ANN_GET_OPTION_PTR( option)->type)
 
 /* Получить значение опции */
-#define ann_GetOptionValue( option) (ANN_GET_OPTION_PTR( model)->value)
+#define ann_GetOptionValue( option) (ANN_GET_OPTION_PTR( option)->value)
 
 #else /* !ANN_USE_MACROS */
 
-extern unsigned int ann_GetLayersNum( ann_Model_ref model);
-extern unsigned int ann_GetOutputsNum( ann_Model_ref model);
+extern int ann_GetLayersNum( ann_Model_ref model);
+extern int ann_GetOutputsNum( ann_Model_ref model);
 extern arr_Array_ptr ann_GetWeights( ann_Model_ref model);
 extern arr_Array_ptr ann_GetBiases( ann_Model_ref model);
-extern ann_ActivationFunc_t ann_GetActs( ann_Model_ref model);
+extern arr_Array_ptr ann_GetActs( ann_Model_ref model);
 extern arr_Array_ptr ann_GetOptions( ann_Model_ref model);
 extern arr_Array_ptr ann_GetGrid( ann_Model_ref model);
 extern char * ann_GetOptionName( ann_Option_ref option);
@@ -391,6 +330,12 @@ extern ecomp_Profile_t ann_GetOptionValue( ann_Option_ref option);
 
 extern void ann_Relu( arr_Array_ptr input);
 extern void ann_SoftMax( arr_Array_ptr input);
+extern ann_Option_ref ann_NewOption( char *name, ann_OptionType_t type,
+                                     ecomp_Profile_t value, ann_Info_t *info);
+extern ann_Model_ref ann_NewModel( int layers_num, arr_Array_ptr weights,
+                                   arr_Array_ptr biases, arr_Array_ptr acts,
+                                   arr_Array_ptr options, arr_Array_ptr grid,
+                                   ann_Info_t  * info);
 
 /***************************************************************************************/
 /*                       Прототипы внешних функций интерфейса                          */
@@ -404,16 +349,16 @@ extern void ann_CorrectProcOptions( ire2k_Proc_ref proc);
 extern void ann_PrintProcChars( ire2k_Proc_ref proc);
 extern void ann_InitRegionsStat( ire2k_Proc_ref proc);
 extern void ann_AddRegionsStat( cfg_Node_ref head);
-extern void ann_AddRegionsOpersNum( cfg_Node_ref head, unsigned int opers_num);
+extern void ann_AddRegionsOpersNum( cfg_Node_ref head, int opers_num);
 extern void ann_AddRegionsNodeStat( cfg_Node_ref head,
                                     ecomp_Profile_t n_cnt,
                                     ecomp_Profile_t v_cnt,
                                     ecomp_Bool_t s_enter,
-                                    unsigned int proc_opers,
-                                    unsigned int region_opers);
+                                    int proc_opers,
+                                    int region_opers);
 extern void ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,
-                                         unsigned int max_dep,
-                                         unsigned int min_dep,
+                                         int max_dep,
+                                         int min_dep,
                                          ecomp_Profile_t sh_alt);
 extern void ann_PrintRegionsStat( );
 extern void ann_InitIfConvStat( ire2k_Proc_ref proc);

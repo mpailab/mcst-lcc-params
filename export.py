@@ -5,6 +5,7 @@
 import os, sys
 from ast import literal_eval
 from itertools import count, product
+from textwrap import wrap
 
 # Internal imports
 import options as gl
@@ -28,19 +29,6 @@ def write_h( models_num, file):
 /* Функции инициализации нейронных сетей */
 extern const ann_InitModelFunc_t ann_InitModel[ANN_MODELS_NUM];
 
-/***************************************************************************************/
-/*                  Прототипы функций инициализации нейронных сетей                    */
-/***************************************************************************************/
-    """)
-
-    for i in range(1, models_num + 1):
-
-        file.write("""
-extern ann_Model_ref ann_InitModel""" + str(i) + """( ann_Info_t *info);""")
-
-
-    file.write("""
-
 #endif /* ! ANN_IFACE_H */""")
 
 # Convert numpy array to float
@@ -58,8 +46,12 @@ def to_float(data):
 
     return vectorize(boolstr_to_floatstr)(data).astype(float)
 
+def float_str (x):
+    assert (isinstance(x, float))
+    return str(x)
+
 # Запись модели в интерфейсный файл
-def write_model_с( options, grid, model, file):
+def write_model_с( model_num, options, grid, model, file):
 
     grid = to_float(grid)
     layers = [layer for layer in model.layers if type(layer).__name__ not in ['Dropout', 'Flatten']]
@@ -68,19 +60,6 @@ def write_model_с( options, grid, model, file):
     layers_num = len(layers)
     grid_size = len(grid)
     options_num = len(options)
-
-    file.write("""
-    unsigned int layers_num = """ + str(layers_num) + """;
-    unsigned int grid_size = """ + str(grid_size) + """;
-    unsigned int options_num = """ + str(options_num) + """;
-    arr_Array_ptr weights     = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr biases      = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
-    ann_ActivationFunc_t acts = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
-    list_List_ref options     = arr_NewArray( ARR_PROF_UNITS, options_num, ARR_ZERO_INIT);
-    arr_Array_ptr grid        = arr_NewMatrix( ARR_PROF_UNITS, options_num, grid_size);
-    ann_Option_ref option;
-    unsigned int i, j;
-    """)
 
     for l in range(layers_num):
         
@@ -96,7 +75,61 @@ def write_model_с( options, grid, model, file):
 
         assert (n == k and activation in ['relu', 'softmax'])
 
-        f = 'ann_Relu' if activation == 'relu' else 'ann_SoftMax'
+        file.write("""
+/* Матрица весов слоя """ + str(l+1) + """ в модели """ + str(model_num) + """ */
+static const double ann_Matrix_""" + str(model_num) + """_""" + str(l+1) + """[""" + str(m) + """][""" + str(n) + """] = 
+{""")
+        for i in range(m):
+            file.write("""
+    {
+        """ + '\n        '.join(wrap(', '.join(float_str(weights.item((i, j))) for j in range(n)), 81)) + """
+    },""")
+        file.write("""
+};
+
+/* Вектор смещений слоя """ + str(l+1) + """ в модели """ + str(model_num) + """ */
+static const double ann_Bias_""" + str(model_num) + """_""" + str(l+1) + """[""" + str(n) + """] = 
+{
+    """ + '\n    '.join(wrap(', '.join(float_str(biases.item(j)) for j in range(n)), 81)) + """
+};""")
+
+    file.write("""
+/* Сетка значений опций компилятора в модели """ + str(model_num) + """ */
+static const double ann_Grid_""" + str(model_num) + """[""" + str(options_num) + """][""" + str(grid_size) + """] = 
+{""")
+    for i in range(options_num):
+        file.write("""
+    {
+        """ + '\n        '.join(wrap(', '.join(float_str(grid[j][i]) for j in range(grid_size)), 81)) + """
+    },""")
+    file.write("""
+};
+
+/**
+ * Инициализация """ + str(model_num) + """-ой нейронной сети
+ */
+static ann_Model_ref
+ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
+{
+    unsigned int layers_num = """ + str(layers_num) + """;
+    unsigned int grid_size = """ + str(grid_size) + """;
+    unsigned int options_num = """ + str(options_num) + """;
+    arr_Array_ptr weights = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr biases  = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr acts    = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr options = arr_NewArray( ARR_PROF_UNITS, options_num, ARR_ZERO_INIT);
+    arr_Array_ptr grid    = arr_NewMatrix( ARR_PROF_UNITS, options_num, grid_size);
+    ann_Option_ref option;
+    unsigned int i, j;
+    """)
+
+    for l in range(layers_num):
+        
+        layer = layers[l]
+        weights = layer.get_weights()[0]
+        biases = layer.get_weights()[1]
+        f = 'ann_Relu' if layer.get_config()['activation'] == 'relu' else 'ann_SoftMax'
+        (m,n) = weights.shape
 
         file.write("""
     /* """ + str(l+1) + """-ый слой */
@@ -104,49 +137,30 @@ def write_model_с( options, grid, model, file):
         const unsigned int m = """ + str(m) + """; /* число нейронов на предыдущем слое */
         const unsigned int n = """ + str(n) + """; /* число нейронов на данном слое */
 
-        /* матрица связей данного слоя */
-        const double A[""" + str(m) + """][""" + str(n) + """] = {""")
-        for i in range(m):
-            file.write("""
-            {""")
-            for j in range(n):
-                w = weights.item((i, j))
-                assert (isinstance(w, float))
-                file.write(" " + str(w) + ",")
-            file.write("},")
-        file.write("""
-        };
-
-        /* вектор смещений данного слоя */
-        const double b[""" + str(n) + """] = {""")
-        for j in range(n):
-            w = biases.item(j)
-            assert (isinstance(w, float))
-            file.write(" " + str(w) + ",")
-        file.write("""};
-
         /* Создаём атрибуты слоя */
-        arr_Array_ptr AA = arr_NewMatrix( ARR_PROF_UNITS, m, n);
-        arr_Array_ptr bb = arr_NewArray( ARR_PROF_UNITS, n, ARR_ZERO_INIT);
+        arr_Array_ptr matrix = arr_NewMatrix( ARR_PROF_UNITS, m, n);
+        arr_Array_ptr bias   = arr_NewArray( ARR_PROF_UNITS, n, ARR_ZERO_INIT);
 
         /* Заполняем атрибуты слоя */
         for ( i = 0; i < n; i++ )
         {
             for ( j = 0; j < m; j++ )
             {
-                arr_SetMatrixProf( AA, j, i, fpa_ConvFloatVal( A[j][i]));
-                arr_SetProf( bb, i, fpa_ConvFloatVal( b[i]));
+                arr_SetMatrixProf( matrix, j, i, 
+                                   fpa_ConvFloatVal( ann_Matrix_""" + str(model_num) + """_""" + str(l+1) + """[j][i]));
+                arr_SetProf( bias, i, 
+                             fpa_ConvFloatVal( ann_Bias_""" + str(model_num) + """_""" + str(l+1) + """[i]));
             }
         }
 
         /* Запоминаем атрибуты слоя */
-        arr_SetProf( weights, """ + str(l) + """, AA);
-        arr_SetProf( biases, """ + str(l) + """, bb);
-        arr_SetProf( acts, """ + str(l) + ", " + f +  ");")
+        arr_SetPtr( weights, """ + str(l) + """, (arr_Ptr_t)matrix);
+        arr_SetPtr( biases, """ + str(l) + """, (arr_Ptr_t)bias);
+        arr_SetPtr( acts, """ + str(l) + ", (arr_Ptr_t)" + f +  ");")
 
         file.write("""
     }
-        """)
+""")
 
     file.write("""
     /* Запоминаем опции, для которых обучена нейронная сеть, в заданном порядке */""")
@@ -186,28 +200,21 @@ def write_model_с( options, grid, model, file):
         const unsigned int m = """ + str(options_num) + """; /* число опций компилятора */
         const unsigned int n = """ + str(grid_size) + """; /* число шагов в сетке */
 
-        /* стетка значений опций компилятора */
-        const double G[""" + str(options_num) + """][""" + str(grid_size) + """] = {""")
-    for i in range(options_num):
-        file.write("""
-            {""")
-        for j in range(grid_size):
-            file.write(" " + str(grid[j][i]) + ",")
-        file.write("},")
-    file.write("""
-        };
-
         /* Заполняем стетку значений опций компилятора */
         for ( i = 0; i < m; i++ )
         {
             for ( j = 0; j < n; j++ )
             {
-                arr_SetMatrixProf( grid, i, j, fpa_ConvFloatVal( G[i][j]));
+                arr_SetMatrixProf( grid, i, j, 
+                                   fpa_ConvFloatVal( ann_Grid_""" + str(model_num) + """[i][j]));
             }
         }
     }
 
-    return (ann_NewModel(layers_num, weights, biases, acts, options, grid, info));""")
+    return (ann_NewModel(layers_num, weights, biases, acts, options, grid, info));
+
+} /* ann_InitModel""" + str(i) + """ */
+""")
 
 # Запись интерфейсного файла
 def write_с( models, file):
@@ -218,8 +225,16 @@ def write_с( models, file):
  * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
  */
 
+#include "fpa_iface.h"
 #include "ann_real.h"
+""")
 
+    for i in range(1, len(models) + 1):
+
+        model = models[i-1]
+        write_model_с( i, model[0], model[1], model[2], file)
+
+    file.write("""
 /* Функции инициализации нейронных сетей */
 const ann_InitModelFunc_t
 ann_InitModel[ANN_MODELS_NUM] =
@@ -232,25 +247,7 @@ ann_InitModel[ANN_MODELS_NUM] =
 
     file.write("""
 };
-    """)
-
-    for i in range(1, len(models) + 1):
-
-        model = models[i-1]
-
-        file.write("""
-/**
- * Инициализация """ + str(i) + """-ой нейронной сети
- */
-static ann_Model_ref
-ann_InitModel""" + str(i) + """( ann_Info_t *info) /* инфо */
-{""")
-
-        write_model_с( model[0], model[1], model[2], file)
-
-        file.write("""
-} /* ann_InitModel""" + str(i) + """ */
-        """)
+""")
 
 # Options numbering file name
 def options_nums_file_name ():

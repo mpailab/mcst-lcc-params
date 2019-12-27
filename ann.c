@@ -6,10 +6,11 @@
 
 #include "ann_iface.h"
 #include "ann_real.h"
-#ifdef ANN_STAT_MODE
-// #include "cfo_dcs.h"
-#endif /* ANN_STAT_MODE */
-                                 
+#include "cfa_iface.h"
+#include "cfg_iface.h"
+#include "cfo_iface.h"
+#include "fpa_iface.h"
+
 /***************************************************************************************/
 /*                              Функции доступа к данным                               */
 /***************************************************************************************/
@@ -17,9 +18,9 @@
 #ifndef ANN_USE_MACROS
 
 /**
- * Получить число слоёв нейронной сети 
+ * Получить число слоёв нейронной сети
  */
-unsigned int 
+int
 ann_GetLayersNum( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -28,9 +29,9 @@ ann_GetLayersNum( ann_Model_ref model) /* нейронная сеть */
 } /* ann_GetLayersNum */
 
 /**
- * Получить число выходов нейронной сети 
+ * Получить число выходов нейронной сети
  */
-unsigned int 
+int
 ann_GetOutputsNum( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -41,7 +42,7 @@ ann_GetOutputsNum( ann_Model_ref model) /* нейронная сеть */
 /**
  * Получить веса связей слоёв нейронной сети
  */
-arr_Array_ptr 
+arr_Array_ptr
 ann_GetWeights( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -52,7 +53,7 @@ ann_GetWeights( ann_Model_ref model) /* нейронная сеть */
 /**
  * Получить смещения слоёв нейронной сети
  */
-arr_Array_ptr 
+arr_Array_ptr
 ann_GetBiases( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -63,7 +64,7 @@ ann_GetBiases( ann_Model_ref model) /* нейронная сеть */
 /**
  * Получить функции активации слоёв нейронной сети
  */
-ann_ActivationFunc_t 
+arr_Array_ptr
 ann_GetActs( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -74,7 +75,7 @@ ann_GetActs( ann_Model_ref model) /* нейронная сеть */
 /**
  * Получить опции компилятора, для которых обучена нейронная сеть
  */
-arr_Array_ptr 
+arr_Array_ptr
 ann_GetOptions( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -85,7 +86,7 @@ ann_GetOptions( ann_Model_ref model) /* нейронная сеть */
 /**
  * Получить сетку значений опции компилятора, связанную с выходом нейронной сети
  */
-arr_Array_ptr 
+arr_Array_ptr
 ann_GetGrid( ann_Model_ref model) /* нейронная сеть */
 {
     ann_Model_t * model_p;
@@ -96,7 +97,7 @@ ann_GetGrid( ann_Model_ref model) /* нейронная сеть */
 /**
  * Получить имя опции
  */
-char * 
+char *
 ann_GetOptionName( ann_Option_ref option) /* нейронная сеть */
 {
     ann_Option_t * option_p;
@@ -107,7 +108,7 @@ ann_GetOptionName( ann_Option_ref option) /* нейронная сеть */
 /**
  * Получить тип опции
  */
-ann_OptionType_t 
+ann_OptionType_t
 ann_GetOptionType( ann_Option_ref option) /* нейронная сеть */
 {
     ann_Option_t * option_p;
@@ -118,7 +119,7 @@ ann_GetOptionType( ann_Option_ref option) /* нейронная сеть */
 /**
  * Получить значение опции
  */
-ecomp_Profile_t 
+ecomp_Profile_t
 ann_GetOptionValue( ann_Option_ref option) /* нейронная сеть */
 {
     ann_Option_t * option_p;
@@ -127,20 +128,20 @@ ann_GetOptionValue( ann_Option_ref option) /* нейронная сеть */
 } /* ann_GetOptionValue */
 
 #endif /* !ANN_USE_MACROS */
-                                 
+
 /***************************************************************************************/
 /*                              Вспомогательные функции                                */
 /***************************************************************************************/
 
 /**
  * Вычисление функции Relu на массиве вещественных чисел
- * 
+ *
  * Warnings: Результат зависывается в тот же массив
  */
-static void
+void
 ann_Relu( arr_Array_ptr input) /* массив вещественных чисел */
 {
-    unsigned int i, n = arr_GetLength( input);
+    int i, n = arr_GetLength( input);
 
     /* Имеет смысл применяться только к непустому массиву */
     if ( n == 0 )
@@ -162,14 +163,14 @@ ann_Relu( arr_Array_ptr input) /* массив вещественных чисе
 
 /**
  * Вычисление функции SoftMax на массиве вещественных чисел
- * 
+ *
  * Warnings: Результат зависывается в тот же массив
  */
-static void
+void
 ann_SoftMax( arr_Array_ptr input) /* массив вещественных чисел */
 {
     ecomp_Profile_t elem, max, sum, offset;
-    unsigned int i, n = arr_GetLength( input);
+    int i, n = arr_GetLength( input);
 
     /* Имеет смысл применяться только к непустому массиву */
     if ( n == 0 )
@@ -213,7 +214,7 @@ ann_SoftMax( arr_Array_ptr input) /* массив вещественных чи�
 static ecomp_Profile_t
 ann_Distance( arr_Array_ptr x, arr_Array_ptr y)
 {
-    unsigned int i, n = arr_GetLength( x);
+    int i, n = arr_GetLength( x);
     ecomp_Profile_t res = ECOMP_ZERO_PROFILE;
 
     ECOMP_ASSERT( n == arr_GetLength( y) );
@@ -223,21 +224,21 @@ ann_Distance( arr_Array_ptr x, arr_Array_ptr y)
         ecomp_Profile_t z = fpa_Sub( arr_GetProf( x, i), arr_GetProf( y, i));
         res = fpa_Add( res, fpa_Mul( z, z));
     }
-    
+
     return (fpa_Sqrt( res));
 } /* ann_Distance */
 
 /**
  * Создание нейронной сети
  */
-static ann_Model_ref
-ann_NewModel( unsigned int layers_num,   /* число слоёв */
-              arr_Array_ptr weights,     /* веса связей */
-              arr_Array_ptr biases,      /* смещения */
-              ann_ActivationFunc_t acts, /* функции активации */
-              list_List_ref options,     /* опции компилятора */
-              arr_Array_ptr grid,        /* сетка значений опции компилятора */
-              ann_Info_t  * info)        /* инфо */
+ann_Model_ref
+ann_NewModel( int layers_num,          /* число слоёв */
+              arr_Array_ptr weights,   /* веса связей */
+              arr_Array_ptr biases,    /* смещения */
+              arr_Array_ptr acts,      /* функции активации */
+              arr_Array_ptr options,   /* опции компилятора */
+              arr_Array_ptr grid,      /* сетка значений опции компилятора */
+              ann_Info_t  * info)      /* инфо */
 {
     ann_Model_ref model;
     ann_Model_t * model_p;
@@ -257,7 +258,7 @@ ann_NewModel( unsigned int layers_num,   /* число слоёв */
 /**
  * Создание опции компилятора
  */
-static ann_Option_ref
+ann_Option_ref
 ann_NewOption( char           * name, /* число слоёв */
                ann_OptionType_t type, /* веса связей */
                ecomp_Profile_t value, /* смещения */
@@ -283,13 +284,13 @@ ann_WriteOption( ann_Option_ref option) /* опция */
 {
     char *name = ann_GetOptionName( option);
     ecomp_Profile_t value = ann_GetOptionValue( option);
-    
+
     switch ( ann_GetOptionType( option) )
     {
       case ANN_OPTION_FLOAT:
         scr_SetFloatOption( name, fpa_ConvToFloatVal( value));
         break;
-        
+
       case ANN_OPTION_INT:
         scr_SetIntOption( name, fpa_ConvToIntVal( value));
         break;
@@ -297,13 +298,62 @@ ann_WriteOption( ann_Option_ref option) /* опция */
       case ANN_OPTION_BOOL:
         scr_SetBoolOption( name, fpa_ConvToIntVal( value) != 0);
         break;
-    
+
       default:
         ecomp_InternalError( ECOMP_ARGS, "ann internal error");
     }
 
     return;
 } /* ann_WriteOption */
+
+/**
+ * Получить высоту узла в дереве
+ */
+static int
+ann_GetTreeNodeHeightRec( cfg_Node_ref   node,      /* узел */
+                          cfg_TreeType_t tree_type) /* тип дерева */
+{
+    cfg_Edge_ref edge;
+    int res = 0;
+
+    for ( edge = cfg_GetFirstTreeSucc( node, tree_type);
+          mem_IsNotRefNull( edge);
+          edge = cfg_GetNextTreeSucc( edge) )
+    {
+        int height = ann_GetTreeNodeHeightRec( cfg_GetEdgeSucc( edge), tree_type);
+        if ( height > res )
+        {
+            res = height;
+        }
+    }
+
+    return (res + 1);
+} /* ann_GetTreeNodeHeightRec */
+
+/**
+ * Получить ширину узла в дереве
+ */
+static int
+ann_GetTreeNodeWidthRec( cfg_Node_ref   node,      /* узел */
+                          cfg_TreeType_t tree_type) /* тип дерева */
+{
+    cfg_Edge_ref edge;
+    int res = 0;
+
+    for ( edge = cfg_GetFirstTreeSucc( node, tree_type);
+          mem_IsNotRefNull( edge);
+          edge = cfg_GetNextTreeSucc( edge) )
+    {
+        res += ann_GetTreeNodeWidthRec( cfg_GetEdgeSucc( edge), tree_type);
+    }
+
+    if ( res == 0 )
+    {
+        res += 1;
+    }
+
+    return (res);
+} /* ann_GetTreeNodeWidthRec */
 
 /***************************************************************************************/
 /*                             Основной блок интерфейса                                */
@@ -345,22 +395,22 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
     ecomp_Profile_t node_cnt;
     ecomp_Profile_t node_opers_num, node_calls_num, node_loads_num, node_stores_num;
     ecomp_Profile_t node_calls_density, node_loads_density, node_stores_density;
-    unsigned int n, o_num, c_num, l_num, s_num;
+    int n, o_num, c_num, l_num, s_num;
     ecomp_Bool_t is_dom = cfg_IsTreeBuilt( cfg, CFG_DOM_TREE);
     ecomp_Bool_t is_pdom = cfg_IsTreeBuilt( cfg, CFG_PDOM_TREE);
-    arr_Array_ptr proc_chars = arr_NewArray( ARR_PROF_UNITS, 
-                                             ANN_PROC_CHARS_NUM, 
+    arr_Array_ptr proc_chars = arr_NewArray( ARR_PROF_UNITS,
+                                             ANN_PROC_CHARS_NUM,
                                              ARR_ZERO_INIT);
-    
+
     /* Группа переменных, соответствующих характеристикам процедуры */
     ecomp_Profile_t opers_num = fpa_ConvIntVal( cfo_GetProcNumNodes( proc));
     ecomp_Profile_t w_opers_num = ECOMP_ZERO_PROFILE;
-    unsigned int max_opers_num = 0;
+    int max_opers_num = 0;
     ecomp_Profile_t aver_opers_num;
     ecomp_Profile_t w_aver_opers_num;
-    unsigned int calls_num = 0;
+    int calls_num = 0;
     ecomp_Profile_t w_calls_num = ECOMP_ZERO_PROFILE;
-    unsigned int max_calls_num = 0;
+    int max_calls_num = 0;
     ecomp_Profile_t aver_calls_num;
     ecomp_Profile_t w_aver_calls_num;
     ecomp_Profile_t calls_density = ECOMP_ZERO_PROFILE;
@@ -368,9 +418,9 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
     ecomp_Profile_t max_calls_density = ECOMP_ZERO_PROFILE;
     ecomp_Profile_t aver_calls_density;
     ecomp_Profile_t w_aver_calls_density;
-    unsigned int loads_num = 0;
+    int loads_num = 0;
     ecomp_Profile_t w_loads_num = ECOMP_ZERO_PROFILE;
-    unsigned int max_loads_num = 0;
+    int max_loads_num = 0;
     ecomp_Profile_t aver_loads_num;
     ecomp_Profile_t w_aver_loads_num;
     ecomp_Profile_t loads_density = ECOMP_ZERO_PROFILE;
@@ -378,9 +428,9 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
     ecomp_Profile_t max_loads_density = ECOMP_ZERO_PROFILE;
     ecomp_Profile_t aver_loads_density;
     ecomp_Profile_t w_aver_loads_density;
-    unsigned int stores_num = 0;
+    int stores_num = 0;
     ecomp_Profile_t w_stores_num = ECOMP_ZERO_PROFILE;
-    unsigned int max_stores_num = 0;
+    int max_stores_num = 0;
     ecomp_Profile_t aver_stores_num;
     ecomp_Profile_t w_aver_stores_num;
     ecomp_Profile_t stores_density = ECOMP_ZERO_PROFILE;
@@ -390,19 +440,19 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
     ecomp_Profile_t w_aver_stores_density;
     ecomp_Profile_t nodes_num = fpa_ConvIntVal( graph_GetGraphNodeNumber( cfg));
     ecomp_Profile_t w_nodes_num;
-    unsigned int loops_num = graph_GetGraphNodeNumber( loop_tree);
-    unsigned int ovl_loops_num = 0;
-    unsigned int irr_loops_num = 0;
-    ecomp_Profile_t max_cnt = cfo_FindProcMaxCounter( proc);
+    int loops_num = graph_GetGraphNodeNumber( loop_tree);
+    int ovl_loops_num = 0;
+    int irr_loops_num = 0;
+    ecomp_Profile_t max_cnt;
     ecomp_Profile_t aver_cnt = ECOMP_ZERO_PROFILE;
-    unsigned int dom_height;
-    unsigned int dom_weight;
-    unsigned int dom_branch;
-    unsigned int pdom_height;
-    unsigned int pdom_weight;
-    unsigned int pdom_branch;
+    int dom_height;
+    int dom_weight;
+    int dom_branch;
+    int pdom_height;
+    int pdom_weight;
+    int pdom_branch;
 
-    /* При необходимости сторим дерево доминаторов и постдоминаторов */    
+    /* При необходимости сторим дерево доминаторов и постдоминаторов */
     if ( !is_dom )
     {
         cfa_DominFast( cfg);
@@ -414,14 +464,14 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
 
     /* Извлекаем свойства дерева доминаторов */
     node = cfg_GetTreeRootNode( cfg, CFG_DOM_TREE);
-    dom_height = cfo_GetTreeNodeHeightRec( node, CFG_DOM_TREE);
-    dom_weight = cfo_GetTreeNodeWeightRec( node, CFG_DOM_TREE);
+    dom_height = ann_GetTreeNodeHeightRec( node, CFG_DOM_TREE);
+    dom_weight = ann_GetTreeNodeWidthRec( node, CFG_DOM_TREE);
     dom_branch = 0;
 
     /* Извлекаем свойства дерева постдоминаторов */
     node = cfg_GetTreeRootNode( cfg, CFG_PDOM_TREE);
-    pdom_height = cfo_GetTreeNodeHeightRec( node, CFG_PDOM_TREE);
-    pdom_weight = cfo_GetTreeNodeWeightRec( node, CFG_PDOM_TREE);
+    pdom_height = ann_GetTreeNodeHeightRec( node, CFG_PDOM_TREE);
+    pdom_weight = ann_GetTreeNodeWidthRec( node, CFG_PDOM_TREE);
     pdom_branch = 0;
 
     /* Обработка узлов упр. графа */
@@ -437,9 +487,18 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
         for CFG_ALL_OPERS( oper, node)
         {
             o_num++;
-            if ( ire2k_IsOperCall( oper) ) c_num++;
-            if ( ire2k_IsOperLoad( oper) ) l_num++;
-            if ( ire2k_IsOperStore( oper) ) s_num++;
+            if ( ire2k_IsOperCall( oper) )
+            {
+                c_num++;
+            }
+            if ( ire2k_IsOperLoad( oper) )
+            {
+                l_num++;
+            }
+            if ( ire2k_IsOperStore( oper) )
+            {
+                s_num++;
+            }
         }
 
         /**
@@ -449,7 +508,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
         node_cnt = cfg_GetNodeCounter( node);
         aver_cnt = fpa_Add( aver_cnt, node_cnt);
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         node_opers_num = fpa_ConvIntVal( o_num);
         w_opers_num = fpa_Add( w_opers_num, fpa_Mul( node_opers_num, node_cnt));
@@ -458,7 +517,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
             max_opers_num = o_num;
         }
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         calls_num += c_num;
         node_calls_num = fpa_ConvIntVal( c_num);
@@ -475,7 +534,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
             max_calls_density = node_calls_density;
         }
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         loads_num += l_num;
         node_loads_num = fpa_ConvIntVal( l_num);
@@ -492,7 +551,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
             max_loads_density = node_loads_density;
         }
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         stores_num += s_num;
         node_stores_num = fpa_ConvIntVal( s_num);
@@ -509,21 +568,21 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
             max_stores_density = node_stores_density;
         }
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         if ( cfg_IsNodeLoopHead( node) )
-        { 
-            if ( cfg_IsLoopMarkedForOverlap( cfg_GetNodeLoop( node)) ) 
+        {
+            if ( cfg_IsLoopMarkedForOverlap( cfg_GetNodeLoop( node)) )
             {
                 ovl_loops_num += 1;
             }
-            if ( !cfg_IsLoopReducible( cfg_GetNodeLoop( node)) ) 
+            if ( !cfg_IsLoopReducible( cfg_GetNodeLoop( node)) )
             {
                 irr_loops_num += 1;
             }
         }
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         n = 0;
         for ( edge = cfg_GetFirstTreeSucc( node, CFG_DOM_TREE);
@@ -537,7 +596,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
             dom_branch = n;
         }
 
-        /*-------------------------------------------------------------------------------*/
+        /*-----------------------------------------------------------------------------*/
 
         n = 0;
         for ( edge = cfg_GetFirstTreeSucc( node, CFG_PDOM_TREE);
@@ -549,6 +608,13 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
         if ( n > pdom_branch )
         {
             pdom_branch = n;
+        }
+
+        /*-----------------------------------------------------------------------------*/
+
+        if ( fpa_IsGrt( node_cnt, max_cnt) )
+        {
+            max_cnt = node_cnt;
         }
     }
 
@@ -566,7 +632,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
     w_opers_num = ( fpa_IsZero( max_cnt)
                     ? ECOMP_ZERO_PROFILE
                     : fpa_Div( w_opers_num, max_cnt));
-    aver_opers_num = fpa_Div( fpa_ConvIntVal( opers_num), nodes_num);
+    aver_opers_num = fpa_Div( opers_num, nodes_num);
     w_aver_opers_num = fpa_Div( w_opers_num, nodes_num);
     w_calls_num = ( fpa_IsZero( max_cnt)
                     ? ECOMP_ZERO_PROFILE
@@ -602,7 +668,7 @@ ann_CalcProcChars( ire2k_Proc_ref proc) /* процедура */
                     ? ECOMP_ZERO_PROFILE
                     : fpa_Div( aver_cnt, max_cnt));
     aver_cnt = fpa_Div( aver_cnt, nodes_num);
-    
+
     /* Запоминаем значения характеристик процедуры */
     ann_SetProcChar( proc_chars, ANN_OPERS_NUM, opers_num);
     ann_SetProcChar( proc_chars, ANN_W_OPERS_NUM, w_opers_num);
@@ -663,37 +729,39 @@ static arr_Array_ptr
 ann_CalcOutput( ann_Model_ref model, /* нейронная сеть */
                 arr_Array_ptr input) /* входной вектор */
 {
-    arr_Array_ptr output;
+    arr_Array_ptr output = arr_Array_null;
     arr_Array_ptr weights = ann_GetWeights(model);
     arr_Array_ptr biases = ann_GetBiases(model);
     arr_Array_ptr acts = ann_GetActs(model);
-    unsigned int layers_num = ann_GetLayersNum(model);
-    unsigned int i, j, l, m, n;
+    int layers_num = ann_GetLayersNum(model);
+    int i, j, l, m, n;
 
     /* Обходим слои и вычисляем значения их нейронов */
-    input = arr_CopyArray( input);
+    input = arr_CopyRefTypeArray( input);
     for ( l = 0; l < layers_num; l++, input = output, arr_DeleteArray( input) )
     {
-        arr_Array_ptr A = (arr_Array_ptr)arr_GetPtr( weights, l);
-        arr_Array_ptr b = (arr_Array_ptr)arr_GetPtr( biases, l);
+        arr_Array_ptr matrix = (arr_Array_ptr)arr_GetPtr( weights, l);
+        arr_Array_ptr input_vector = (arr_Array_ptr)arr_GetPtr( biases, l);
         ann_ActivationFunc_t f = (ann_ActivationFunc_t)arr_GetPtr( acts, l);
 
         /* Проверяем соответствие размера матрицы весов и входного вектора */
-        n = arr_GetMatrixDimension( A);
+        n = arr_GetMatrixDimension( matrix);
         m = arr_GetLength( input);
-        ECOMP_ASSERT( arr_GetLength( A) == n * m );
+        ECOMP_ASSERT( arr_GetLength( matrix) == n * m );
 
         /* Вычисляем значение входного вектора */
         output = arr_NewArray( ARR_PROF_UNITS, n, ARR_ZERO_INIT);
         for ( i = 0; i < n; i++ )
         {
-            /* Производим умножение матрицы A на вектор input */
-            ecomp_Profile_t x = arr_GetProf( b, i);
+            /* Производим умножение матрицы matrix на вектор input */
+            ecomp_Profile_t output_vector = arr_GetProf( input_vector, i);
             for ( j = 0; j < m; j++ )
             {
-                x = fpa_Add( x, fpa_Mul( arr_GetMatrixProf( A, j, i), arr_GetProf( input, j)));
+                output_vector = fpa_Add( output_vector, 
+                                         fpa_Mul( arr_GetMatrixProf( matrix, j, i),
+                                                  arr_GetProf( input, j)));
             }
-            arr_SetProf( output, i, x);
+            arr_SetProf( output, i, output_vector);
         }
         f(output); /* Применяем функцию активации */
     }
@@ -702,56 +770,56 @@ ann_CalcOutput( ann_Model_ref model, /* нейронная сеть */
 } /* ann_CalcOutput */
 
 /**
- * Поиск точки на сетке, наименее удалённой от точки, соответствующей 
+ * Поиск точки на сетке, наименее удалённой от точки, соответствующей
  * текущим значениям опций компилятора
  */
-static unsigned int
+static int
 ann_FindOptionsIndexInGrid( arr_Array_ptr options, /* опции компилятора */
                             arr_Array_ptr grid)    /* сетка значений опции компилятора */
 {
-    arr_Array_ptr x, y;
+    arr_Array_ptr vector_x, vector_y;
     ecomp_Profile_t z, u;
-    unsigned int i, j;
-    unsigned int m = arr_GetLength( options);
-    unsigned int n = arr_GetMatrixDimension( grid);
-    unsigned int res;
+    int i, j;
+    int m = arr_GetLength( options);
+    int n = arr_GetMatrixDimension( grid);
+    int res;
 
     ECOMP_ASSERT( arr_GetLength( grid) == n * m && n > 1 );
 
-    x = arr_NewArray( ARR_PROF_UNITS, m, ARR_ZERO_INIT);
+    vector_x = arr_NewArray( ARR_PROF_UNITS, m, ARR_ZERO_INIT);
     for ( j = 0; j < m; j++ )
     {
-        arr_SetProf( x, j, ann_GetOptionValue( arr_GetProf( options, j)));
+        arr_SetProf( vector_x, j, ann_GetOptionValue( arr_GetRef( options, j)));
     }
 
-    y = arr_NewArray( ARR_PROF_UNITS, m, ARR_ZERO_INIT);
+    vector_y = arr_NewArray( ARR_PROF_UNITS, m, ARR_ZERO_INIT);
     for ( j = 0; j < m; j++ )
     {
-        arr_SetProf( y, j, arr_GetMatrixProf( grid, j, 0));
+        arr_SetProf( vector_y, j, arr_GetMatrixProf( grid, j, 0));
     }
-    u = ann_Distance( x, y);
-    arr_DeleteArray( y);
+    u = ann_Distance( vector_x, vector_y);
+    arr_DeleteArray( vector_y);
     res = 0;
 
     for ( i = 1; i < n; i++ )
     {
-        y = arr_NewArray( ARR_PROF_UNITS, m, ARR_ZERO_INIT);
+        vector_y = arr_NewArray( ARR_PROF_UNITS, m, ARR_ZERO_INIT);
         for ( j = 0; j < m; j++ )
         {
-            arr_SetProf( y, j, arr_GetMatrixProf( grid, j, i));
+            arr_SetProf( vector_y, j, arr_GetMatrixProf( grid, j, i));
         }
 
-        z = ann_Distance( x, y);
+        z = ann_Distance( vector_x, vector_y);
         if ( fpa_IsLes( z, u) )
         {
             u = z;
             res = i;
         }
 
-        arr_DeleteArray( y);
+        arr_DeleteArray( vector_y);
     }
-    
-    arr_DeleteArray( x);
+
+    arr_DeleteArray( vector_x);
 
     return (res);
 } /* ann_FindOptionsIndexInGrid */
@@ -759,11 +827,11 @@ ann_FindOptionsIndexInGrid( arr_Array_ptr options, /* опции компиля�
 /**
  * Инициализация пакета работы с нейронными сетями
  */
-void
+static void
 ann_Init( ann_Info_t *info_p) /* инфо */
 {
     ann_Model_ref model;
-    unsigned int n, models_num;
+    int n;
 
     /* Инициализируем информационную структуру */
     mem_InitStructPtr( info_p);
@@ -784,12 +852,12 @@ ann_Init( ann_Info_t *info_p) /* инфо */
 /**
  * Закрытие пакета работы с нейронными сетями
  */
-void
+static void
 ann_Close( ann_Info_t *info_p) /* инфо */
 {
     ann_Model_ref model;
     arr_Array_ptr weights, biases;
-    unsigned int i;
+    int i;
     list_Unit_ref unit;
 
     for LIST_UNITS( unit, info_p->models)
@@ -800,8 +868,8 @@ ann_Close( ann_Info_t *info_p) /* инфо */
 
         for ( i = 0; i < ann_GetLayersNum( model); i++ )
         {
-            arr_DeleteArray( arr_GetProf( weights, i));
-            arr_DeleteArray( arr_GetProf( biases, i));
+            arr_DeleteArray( (arr_Array_ptr)arr_GetPtr( weights, i));
+            arr_DeleteArray( (arr_Array_ptr)arr_GetPtr( biases, i));
         }
 
         arr_DeleteArray( weights);
@@ -811,7 +879,7 @@ ann_Close( ann_Info_t *info_p) /* инфо */
         arr_DeleteArray( ann_GetGrid( model));
     }
     list_Delete( info_p->models);
-    
+
     mem_DeletePool( info_p->models_pool);
     mem_DeletePool( info_p->options_pool);
 
@@ -819,10 +887,10 @@ ann_Close( ann_Info_t *info_p) /* инфо */
 } /* ann_Init */
 
 /**
- * Скорректировать значения опций компилятора для процедуры proc 
+ * Скорректировать значения опций компилятора для процедуры proc
  * в соответствии с предобученной нейронной сетью
  */
-void 
+void
 ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
 {
     ann_Model_ref model;
@@ -831,7 +899,13 @@ ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
     arr_Array_ptr proc_chars = ann_CalcProcChars( proc);
     ecomp_Profile_t accur, prob, max_prob;
     list_Unit_ref unit;
-    unsigned int i, n, new_point, old_point;
+    int i, n, new_point, old_point;
+
+    /* Пока работаем по опции */
+    if ( !scr_IsBoolOptionSet( "use_ann") )
+    {
+        return;
+    }
 
     /* Инициализируем пакет */
     ann_Init( info_p);
@@ -842,7 +916,7 @@ ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
      * комбинацию значений опций среди всех нейронных сетей.
      */
     accur = ECOMP_ZERO_PROFILE;
-    best_options = mem_Entry_null;
+    best_options = arr_Array_null;
     for LIST_UNITS( unit, info_p->models)
     {
         model = list_GetRef( unit);
@@ -855,7 +929,7 @@ ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
         ECOMP_ASSERT( arr_GetLength( output) == n );
 
         /**
-         * Находим точку на сетке, которая по мнению нейронной сети 
+         * Находим точку на сетке, которая по мнению нейронной сети
          * соответствует более оптимальным значениям опций компилятора
          */
         new_point = 0;
@@ -876,26 +950,24 @@ ann_CorrectProcOptions( ire2k_Proc_ref proc) /* процедура */
             old_point = ann_FindOptionsIndexInGrid( options, grid);
             prob = arr_GetProf( output, old_point);
 
-            if ( fpa_IsGeq( max_prob, fpa_Mul( ANN_MIN_ADMISSIBLE_RATIO, prob)) )
+            if ( fpa_IsGeq( max_prob, fpa_Mul( ANN_MIN_ADMISSIBLE_RATIO, prob))
+                 && fpa_IsGrt( max_prob, accur) )
             {
-                if ( fpa_IsGrt( max_prob, accur) )
+                accur = max_prob;
+                for ( i = 0; i < arr_GetLength( options); i++ )
                 {
-                    accur = max_prob;
-                    for ( i = 0; i < arr_GetLength( options); i++ )
-                    {
-                        arr_SetProf( options, arr_GetMatrixProf( grid, i, new_point));
-                    }
-                    best_options = options;
+                    arr_SetProf( options, i, arr_GetMatrixProf( grid, i, new_point));
                 }
+                best_options = options;
             }
         }
 
         /* Подчищаем за собой */
         arr_DeleteArray( output);
     }
-    
+
     /* Если были найдены более оптимальные значения опций, устанавливаем их */
-    if ( mem_IsNotRefNull( best_options) )
+    if ( arr_IsNotNull( best_options) )
     {
         for ( i = 0; i < arr_GetLength( best_options); i++ )
         {
@@ -924,7 +996,7 @@ ann_GetFullFileName( const char * file_name) /* имя файла */
     buff_Buffer_ptr buff_p;
     const char * stat_dir_name = scr_GetStringOption( "ann_stat_dir_name");
     const char * stat_test_name = scr_GetStringOption( "ann_stat_test_name");
-    
+
     buff_Init( buff_p);
     if ( stat_dir_name != NULL )
     {
@@ -971,16 +1043,16 @@ ann_GetFullFileName( const char * file_name) /* имя файла */
 
 /**
  * Напечатать характеристики процедуры
- * 
- * Формат файла с характеристиками процедур: 
- * 
+ *
+ * Формат файла с характеристиками процедур:
+ *
  *   <процедура>
  *       ...
  *   <процедура>
- * 
+ *
  * где
  * <процедура>            = <имя процедуры> '#' <список характеристик>
- * <список характеристик> = <характеристика> 
+ * <список характеристик> = <характеристика>
  *                        | <характеристика> '#' <список характеристик>
  */
 void
@@ -990,7 +1062,7 @@ ann_PrintProcChars( ire2k_Proc_ref proc ) /* процедура */
     buff_Buffer_ptr buff_p;
     const char * file_name = ann_GetFullFileName( "procs_chars.txt");
     FILE * file = ui_Fopen( file_name, "a+");
-    unsigned int proc_char;
+    int proc_char;
 
     buff_Init( buff_p);
     ann_PrintProc( buff_p, ann_IfcInfo_p->proc);
@@ -1014,7 +1086,7 @@ static ann_RegionsInfo_t *ann_RgnInfo_p = NULL;
 
 /* Вспомогательные глобальные переменные */
 static cfg_Node_ref ann_CurHead = mem_Entry_null;
-static unsigned int ann_UnbalValue = 0;
+static int ann_UnbalValue = 0;
 static ecomp_Profile_t ann_UnbalShAlt = ECOMP_ZERO_PROFILE;
 
 /**
@@ -1030,7 +1102,7 @@ ann_InitRegionsStat( ire2k_Proc_ref proc) /* процедура */
     ann_RgnInfo_p->max_cnt = cfo_FindProcMaxCounter( proc);
     ann_RgnInfo_p->opers_num = cfo_GetProcNumNodes( proc);
     ann_RgnInfo_p->regions = list_New( mem_Pool_null);
-    
+
     return;
 } /* ann_InitRegionsStat */
 
@@ -1041,7 +1113,7 @@ void
 ann_AddRegionsStat( cfg_Node_ref head) /* голова региона */
 {
     list_Unit_ref rgn_unit;
-    
+
     rgn_unit = list_InsRef( ann_RgnInfo_p->regions, head);
     list_SetRef2( rgn_unit, list_New( mem_Pool_null));
 
@@ -1053,11 +1125,11 @@ ann_AddRegionsStat( cfg_Node_ref head) /* голова региона */
  */
 void
 ann_AddRegionsOpersNum( cfg_Node_ref head,      /* голова региона */
-                       unsigned int opers_num) /* число операций в регионе */
+                        int opers_num) /* число операций в регионе */
 {
     list_List_ref nodes;
     list_Unit_ref rgn_unit = list_Last( ann_RgnInfo_p->regions);
-    
+
     ECOMP_ASSERT( mem_IsRefsEQ( head, list_GetRef( rgn_unit)));
 
     nodes = list_GetRef2( rgn_unit);
@@ -1074,15 +1146,15 @@ ann_AddRegionsNodeStat( cfg_Node_ref head,         /* голова регион�
                        ecomp_Profile_t n_cnt,     /* счётчик узла в процедуре */
                        ecomp_Profile_t v_cnt,     /* счётчик узла в регионе */
                        ecomp_Bool_t s_enter,      /* признак наличия бокового входа */
-                       unsigned int proc_opers,   /* число операций в процедуре */
-                       unsigned int region_opers) /* число операций в регионе */
+                       int proc_opers,   /* число операций в процедуре */
+                       int region_opers) /* число операций в регионе */
 {
     arr_Array_ptr node_chars;
     list_List_ref nodes;
     list_Unit_ref rgn_unit = list_Last( ann_RgnInfo_p->regions);
-    
+
     ECOMP_ASSERT( mem_IsRefsEQ( head, list_GetRef( rgn_unit)));
-    
+
     node_chars = arr_NewArray( ARR_PROF_UNITS, ANN_RGN_NODE_CHARS_NUM, ARR_ZERO_INIT);
     ann_SetNodeNCnt( node_chars, n_cnt);
     ann_SetNodeVCnt( node_chars, v_cnt);
@@ -1101,7 +1173,7 @@ ann_AddRegionsNodeStat( cfg_Node_ref head,         /* голова регион�
     {
         ann_SetNodeUnbal( node_chars, ECOMP_FALSE);
     }
-    
+
     nodes = list_GetRef2( rgn_unit);
     list_InsPtr( nodes, node_chars);
 
@@ -1113,8 +1185,8 @@ ann_AddRegionsNodeStat( cfg_Node_ref head,         /* голова регион�
  */
 void
 ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,      /* голова региона */
-                             unsigned int max_dep,   /* максимальная глубина в схождении */
-                             unsigned int min_dep,   /* минимальная глубина в схождении */
+                             int max_dep,   /* максимальная глубина в схождении */
+                             int min_dep,   /* минимальная глубина в схождении */
                              ecomp_Profile_t sh_alt) /* вероятность короткой пльтернативы */
 {
     ECOMP_ASSERT( mem_IsRefNull( ann_CurHead));
@@ -1208,27 +1280,27 @@ ann_AddRegionsNodeUnbalStat( cfg_Node_ref head,      /* голова регио�
 
 /**
  * Напечатать статистику фазы regions для процедуры
- * 
- * Формат файла со статистикой фазы regions: 
- * 
+ *
+ * Формат файла со статистикой фазы regions:
+ *
  *   <процедура>
  *       ...
  *   <процедура>
- * 
+ *
  * где
  * <процедура>           = <имя процедуры> '#' <максимальный счётчик> '#'
  *                         <число операций> '#' <список регионов>
- * <список регионов>     = <регион> 
+ * <список регионов>     = <регион>
  *                       | <регион> '#' <список регионов>
- * <регион>              = <счётчик головы> ':' <число операций> ':' <список узлов> 
+ * <регион>              = <счётчик головы> ':' <число операций> ':' <список узлов>
  * <список узлов>        = <узел>
  *                       | <узел> ':' <список узлов>
  * <узел>                = <1-ые характеристики>
  *                       | <1-ые характеристики> '-' <2-ые характеристики>
- * <1-ые характеристики> = <счётчик в процедуре> '-' <счётчик в регионе> '-' 
+ * <1-ые характеристики> = <счётчик в процедуре> '-' <счётчик в регионе> '-'
  *                         <признак бокового входа> '-' <число операций в процедуре> '-'
  *                         <число операций в регионе>
- * <2-ые характеристики> = <максимальная глубина схождения> '-'  
+ * <2-ые характеристики> = <максимальная глубина схождения> '-'
  *                         <минимальная глубина схождения> '-'
  *                         <вероятность короткой пльтернативы>
  */
@@ -1240,7 +1312,7 @@ ann_PrintRegionsStat( )
     cfg_Node_ref head;
     list_List_ref nodes;
     list_Unit_ref rgn_unit, node_unit;
-    
+
     /* При необходимости печатаем статистику фазы regions */
     if ( scr_IsBoolOptionSet( "ann_stat_print") )
     {
@@ -1275,7 +1347,7 @@ ann_PrintRegionsStat( )
         fprintf( file, "%s\n", buff_GetStr( buff_p));
         ui_Fclose( file);
     }
-    
+
     /* Подчищаем за собой */
     for LIST_UNITS( rgn_unit, ann_RgnInfo_p->regions)
     {
@@ -1309,7 +1381,7 @@ ann_InitIfConvStat( ire2k_Proc_ref proc) /* процедура */
 
     ann_IfcInfo_p->proc = proc;
     ann_IfcInfo_p->regions = list_New( mem_Pool_null);
-    
+
     return;
 } /* ann_InitIfConvStat */
 
@@ -1320,7 +1392,7 @@ void
 ann_AddIfConvStat( cfg_Node_ref head) /* голова региона */
 {
     list_Unit_ref rgn_unit;
-    
+
     rgn_unit = list_InsRef( ann_IfcInfo_p->regions, head);
     list_SetRef2( rgn_unit, list_New( mem_Pool_null));
 
@@ -1339,8 +1411,8 @@ ann_AddIfConvESBStatBefore( pco_ESB_ref esb) /* скалярный участо�
     list_List_ref esbs;
     list_Unit_ref rgn_unit = list_Last( ann_IfcInfo_p->regions);
     pco_ESBWalk_t walk;
-    unsigned int o_num = 0;
-    unsigned int c_num = 0;
+    int o_num = 0;
+    int c_num = 0;
 
     for PCO_ESB_BODY_NODES( node, esb, walk)
     {
@@ -1354,13 +1426,13 @@ ann_AddIfConvESBStatBefore( pco_ESB_ref esb) /* скалярный участо�
             o_num++;
         }
     }
-    
+
     esb_chars = arr_NewArray( ARR_PROF_UNITS, ANN_IFC_ESB_CHARS_NUM, ARR_ZERO_INIT);
     ann_SetESBCnt( esb_chars, cfg_GetNodeCounter( pco_GetESBHead( esb)));
     ann_SetESBOpersNum( esb_chars, o_num);
     ann_SetESBCallsNum( esb_chars, c_num);
     ann_SetESBMerge(esb_chars, ECOMP_FALSE);
-    
+
     esbs = list_GetRef2( rgn_unit);
     list_InsPtr( esbs, esb_chars);
 
@@ -1379,7 +1451,7 @@ ann_AddIfConvESBStatAfter( pco_ESB_ref esb,             /* скалярный у
     list_Unit_ref rgn_unit = list_Last( ann_IfcInfo_p->regions);
     list_Unit_ref esb_unit = list_Last( list_GetRef2( rgn_unit));
     arr_Array_ptr esb_chars = list_GetPtr( esb_unit);
-    
+
     esb_chars = arr_NewArray( ARR_PROF_UNITS, ANN_IFC_ESB_CHARS_NUM, ARR_ZERO_INIT);
     ann_SetESBMerge(esb_chars, ECOMP_TRUE);
     ann_SetESBBTime( esb_chars, time_before);
@@ -1461,24 +1533,24 @@ ann_AddIfConvESBStatAfter( pco_ESB_ref esb,             /* скалярный у
 
 /**
  * Напечатать статистику фазы if_conv для процедуры
- * 
- * Формат файла со статистикой фазы if_conv: 
- * 
+ *
+ * Формат файла со статистикой фазы if_conv:
+ *
  *   <процедура>
  *       ...
  *   <процедура>
- * 
+ *
  * где
  * <процедура>                 = <имя процедуры> '#' <список регионов>
- * <список регионов>           = <регион> 
+ * <список регионов>           = <регион>
  *                             | <регион> '#' <список регионов>
- * <регион>                    = <счётчик головы> ':' <список сливаемых участков> 
+ * <регион>                    = <счётчик головы> ':' <список сливаемых участков>
  * <список сливаемых участков> = <сливаемый участок>
  *                             | <сливаемый участок> ':' <список сливаемых участков>
- * <сливаемый участок>         = <счётчик головы> '-' <число операций> '-' 
+ * <сливаемый участок>         = <счётчик головы> '-' <число операций> '-'
  *                               <число операций чтения>
- *                             | <счётчик головы> '-' <число операций> '-' 
- *                               <число операций чтения> '-' <время планирования до> '-' 
+ *                             | <счётчик головы> '-' <число операций> '-'
+ *                               <число операций чтения> '-' <время планирования до> '-'
  *                               <время планирования после> '-' <полезность слияния>
  */
 void
@@ -1520,7 +1592,7 @@ ann_PrintIfConvStat( )
         fprintf( file, "%s\n", buff_GetStr( buff_p));
         ui_Fclose( file);
     }
-    
+
     /* Подчищаем за собой */
     for LIST_UNITS( rgn_unit, ann_IfcInfo_p->regions)
     {
@@ -1542,19 +1614,19 @@ ann_PrintIfConvStat( )
 
 /**
  * Напечатать статистику фазы dcs для процедуры
- * 
- * Формат файла со статистикой фазы dcs: 
- * 
+ *
+ * Формат файла со статистикой фазы dcs:
+ *
  *   <процедура>
  *       ...
  *   <процедура>
- * 
+ *
  * где
- * <процедура>            = <имя процедуры> '#' <число cfg-узлов> '#' <число cfg-дуги> '#' 
+ * <процедура>            = <имя процедуры> '#' <число cfg-узлов> '#' <число cfg-дуги> '#'
  *                          <число cfg-циклы> '#' <список характеристик>
- * <список характеристик> = <характеристика> 
+ * <список характеристик> = <характеристика>
  *                        | <характеристика> '#' <список характеристик>
- * <характеристика>       = <уровень анализа> ':' <число мёртвых cfg-узлов> ':' 
+ * <характеристика>       = <уровень анализа> ':' <число мёртвых cfg-узлов> ':'
  *                          <число мёртвых cfg-дуг> ':' <число мёртвых cfg-циклов>
  */
 void
@@ -1572,7 +1644,7 @@ ann_PrintDCSStat( ire2k_Proc_ref proc ) /* процедура */
     ann_PrintInt( buff_p, "#", graph_GetGraphNodeNumber( cfg));
     ann_PrintInt( buff_p, "#", graph_GetGraphEdgeNumber( cfg));
     ann_PrintInt( buff_p, "#", graph_GetGraphNodeNumber( cfg_GetProcLoopTree( proc)));
-                    
+
     for ( level = (int) CFO_DCS_LEVEL_1; level < (int) CFO_DCS_LEVEL_NUM; level++ )
     {
         cfo_InitDCSForProc( proc, level, dcs_info_p);
