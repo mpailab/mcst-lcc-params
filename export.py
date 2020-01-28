@@ -18,7 +18,7 @@ def write_h( models_num, file):
 /**
  * ann_real.h - интерфейс реализации искусственных нейронных сетей
  *
- * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
+ * Copyright (c) 1992-2020 AO "MCST". All rights reserved.
  */
 
 #include "ann_iface.h"
@@ -213,7 +213,7 @@ ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
 
     return (ann_NewModel(layers_num, weights, biases, acts, options, grid, info));
 
-} /* ann_InitModel""" + str(i) + """ */
+} /* ann_InitModel""" + str(model_num) + """ */
 """)
 
 # Запись интерфейсного файла
@@ -222,10 +222,12 @@ def write_с( models, file):
     file.write("""/**
  * ann_real.c - интерфейс реализации искусственных нейронных сетей
  *
- * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
+ * Copyright (c) 1992-2020 AO "MCST". All rights reserved.
  */
 
 #include "fpa_iface.h"
+#include "scr_iface.h"
+
 #include "ann_real.h"
 """)
 

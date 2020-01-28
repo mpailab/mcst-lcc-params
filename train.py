@@ -221,10 +221,10 @@ def run ():
         # Read characters of procedures
         chars = stat.read_procs_chars(spec)
         weights = stat.read_procs_weights(spec)
-        C[spec] = [ (weight, chars[proc]) for proc, weight in weights if proc in chars ]
+        C[spec] = [ (weight, chars[proc]) for proc, weight in weights.items() if proc in chars ]
 
         # Find maximal counter
-        cnt = max(cnt, weights)
+        cnt = max(cnt, *(weights.values()))
 
         # Store data for every group of parameters
         for gr in PARS.keys():
@@ -241,6 +241,8 @@ def run ():
 
             # Form list of the raw data
             vh = DB.values[spec][procs_t][gr]
+            default = tuple([par.defaults[x] for x in gr])
+            vh[default] = [(1.0,1.0,1.0)]
             vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
 
             # Check that data is suitable
@@ -355,6 +357,7 @@ def run ():
         max_acc = max(acc_t.values())
         min_loss = min([loss_t[op] for op in OPTIMIZERS if acc_t[op] == max_acc])
         best_opt = [op for op in OPTIMIZERS if acc_t[op] == max_acc and loss_t[op] == min_loss]
+        print('options: ' + str(gr) + ', acc: ' + str(max_acc) + ', loss: ' + str(min_loss), file=verbose.debug)
 
         # Set best optimizer
         model.compile( optimizer=best_opt[0], loss='categorical_crossentropy', metrics=['categorical_accuracy'])
