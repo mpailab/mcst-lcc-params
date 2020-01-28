@@ -1,17 +1,17 @@
 #ifndef ANN_REAL_H
 #define ANN_REAL_H
 /**
- * ann_real.h - п╦п╫я┌п╣я─я└п╣п╧я│ я─п╣п╟п╩п╦п╥п╟я├п╦п╦ п╦я│п╨я┐я│я│я┌п╡п╣п╫п╫я▀я┘ п╫п╣п╧я─п╬п╫п╫я▀я┘ я│п╣я┌п╣п╧
+ * ann_real.h - интерфейс реализации искусственных нейронных сетей
  *
- * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
+ * Copyright (c) 1992-2020 AO "MCST". All rights reserved.
  */
 
 #include "ann_iface.h"
 
-/* п╖п╦я│п╩п╬ п╬п╠я┐я┤п╣п╫п╫я▀я┘ п╫п╣п╧я─п╬п╫п╫я▀я┘ я│п╣я┌п╣п╧ */
-#define ANN_MODELS_NUM 1
+/* Число обученных нейронных сетей */
+#define ANN_MODELS_NUM 7
 
-/* п╓я┐п╫п╨я├п╦п╦ п╦п╫п╦я├п╦п╟п╩п╦п╥п╟я├п╦п╦ п╫п╣п╧я─п╬п╫п╫я▀я┘ я│п╣я┌п╣п╧ */
+/* Функции инициализации нейронных сетей */
 extern const ann_InitModelFunc_t ann_InitModel[ANN_MODELS_NUM];
 
 #endif /* ! ANN_IFACE_H */
