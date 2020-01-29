@@ -9,6 +9,7 @@ from textwrap import wrap
 
 # Internal imports
 import options as gl
+import par
 
 # Запись заголовочного файла
 def write_h( models_num, file):
@@ -114,12 +115,13 @@ ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
     unsigned int layers_num = """ + str(layers_num) + """;
     unsigned int grid_size = """ + str(grid_size) + """;
     unsigned int options_num = """ + str(options_num) + """;
-    arr_Array_ptr weights = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr biases  = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr acts    = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr options = arr_NewArray( ARR_PROF_UNITS, options_num, ARR_ZERO_INIT);
+    arr_Array_ptr weights = arr_NewArray( ARR_PTR_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr biases  = arr_NewArray( ARR_PTR_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr acts    = arr_NewArray( ARR_PTR_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr options = arr_NewArray( ARR_REF_UNITS, options_num, ARR_ZERO_INIT);
     arr_Array_ptr grid    = arr_NewMatrix( ARR_PROF_UNITS, options_num, grid_size);
     ann_Option_ref option;
+    ecomp_Profile_t value;
     unsigned int i, j;
     """)
 
@@ -171,24 +173,19 @@ ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
 
         if gl.PARAMS[option][0] == float:
             file.write("""
-    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT,
-                            fpa_ConvFloatVal( scr_GetFloatOption( \"""" + option + """\")), 
-                            info);""")
+    value = fpa_ConvIntVal( scr_GetFloatOptionWithDefault( \"""" + option + """\", """ + par.defaults[option] + """));
+    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT, value, info);""")
 
         elif gl.PARAMS[option][0] == int:
             file.write("""
-    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT,
-                            fpa_ConvIntVal( scr_GetIntOption( \"""" + option + """\")), 
-                            info);""")
+    value = fpa_ConvIntVal( scr_GetIntOptionWithDefault( \"""" + option + """\", """ + par.defaults[option] + """));
+    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_INT, value, info);""")
 
         else:
             assert(gl.PARAMS[option][0] == bool)
             file.write("""
-    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT,
-                            scr_GetBoolOptionWithDefault( \"""" + option + """\",
-                                                          ECOMP_FALSE)
-                            ? ECOMP_ONE_PROFILE : ECOMP_ZERO_PROFILE,
-                            info);""")
+    value = scr_GetBoolOptionWithDefault( \"""" + option + """\", ECOMP_FALSE) ? ECOMP_ONE_PROFILE : ECOMP_ZERO_PROFILE;
+    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_BOOL, value, info);""")
 
         file.write("""
     arr_SetRef( options, """ + str(i) + ", option);")
