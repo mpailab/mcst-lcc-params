@@ -9,7 +9,6 @@ from textwrap import wrap
 
 # Internal imports
 import options as gl
-import par
 
 # Запись заголовочного файла
 def write_h( models_num, file):
@@ -19,7 +18,7 @@ def write_h( models_num, file):
 /**
  * ann_real.h - интерфейс реализации искусственных нейронных сетей
  *
- * Copyright (c) 1992-2020 AO "MCST". All rights reserved.
+ * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
  */
 
 #include "ann_iface.h"
@@ -115,13 +114,12 @@ ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
     unsigned int layers_num = """ + str(layers_num) + """;
     unsigned int grid_size = """ + str(grid_size) + """;
     unsigned int options_num = """ + str(options_num) + """;
-    arr_Array_ptr weights = arr_NewArray( ARR_PTR_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr biases  = arr_NewArray( ARR_PTR_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr acts    = arr_NewArray( ARR_PTR_UNITS, layers_num, ARR_ZERO_INIT);
-    arr_Array_ptr options = arr_NewArray( ARR_REF_UNITS, options_num, ARR_ZERO_INIT);
+    arr_Array_ptr weights = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr biases  = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr acts    = arr_NewArray( ARR_PROF_UNITS, layers_num, ARR_ZERO_INIT);
+    arr_Array_ptr options = arr_NewArray( ARR_PROF_UNITS, options_num, ARR_ZERO_INIT);
     arr_Array_ptr grid    = arr_NewMatrix( ARR_PROF_UNITS, options_num, grid_size);
     ann_Option_ref option;
-    ecomp_Profile_t value;
     unsigned int i, j;
     """)
 
@@ -173,19 +171,24 @@ ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
 
         if gl.PARAMS[option][0] == float:
             file.write("""
-    value = fpa_ConvIntVal( scr_GetFloatOptionWithDefault( \"""" + option + """\", """ + par.defaults[option] + """));
-    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT, value, info);""")
+    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT,
+                            fpa_ConvFloatVal( scr_GetFloatOption( \"""" + option + """\")), 
+                            info);""")
 
         elif gl.PARAMS[option][0] == int:
             file.write("""
-    value = fpa_ConvIntVal( scr_GetIntOptionWithDefault( \"""" + option + """\", """ + par.defaults[option] + """));
-    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_INT, value, info);""")
+    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT,
+                            fpa_ConvIntVal( scr_GetIntOption( \"""" + option + """\")), 
+                            info);""")
 
         else:
             assert(gl.PARAMS[option][0] == bool)
             file.write("""
-    value = scr_GetBoolOptionWithDefault( \"""" + option + """\", ECOMP_FALSE) ? ECOMP_ONE_PROFILE : ECOMP_ZERO_PROFILE;
-    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_BOOL, value, info);""")
+    option = ann_NewOption( \"""" + option + """\", ANN_OPTION_FLOAT,
+                            scr_GetBoolOptionWithDefault( \"""" + option + """\",
+                                                          ECOMP_FALSE)
+                            ? ECOMP_ONE_PROFILE : ECOMP_ZERO_PROFILE,
+                            info);""")
 
         file.write("""
     arr_SetRef( options, """ + str(i) + ", option);")
@@ -210,7 +213,7 @@ ann_InitModel""" + str(model_num) + """( ann_Info_t *info) /* инфо */
 
     return (ann_NewModel(layers_num, weights, biases, acts, options, grid, info));
 
-} /* ann_InitModel""" + str(model_num) + """ */
+} /* ann_InitModel""" + str(i) + """ */
 """)
 
 # Запись интерфейсного файла
@@ -219,12 +222,10 @@ def write_с( models, file):
     file.write("""/**
  * ann_real.c - интерфейс реализации искусственных нейронных сетей
  *
- * Copyright (c) 1992-2020 AO "MCST". All rights reserved.
+ * Copyright (c) 1992-2019 AO "MCST". All rights reserved.
  */
 
 #include "fpa_iface.h"
-#include "scr_iface.h"
-
 #include "ann_real.h"
 """)
 

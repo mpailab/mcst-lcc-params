@@ -34,6 +34,282 @@ def clear ():
         shutil.rmtree(DATA_DIR)
         os.makedirs(DATA_DIR)
 
+class Node:
+    def __init__ (self, n, t, c, on, cn, ln, sn):
+        self.number     = n     # номер узла
+        self.type       = t     # тип узла
+        self.counter    = c     # счётчик узла
+        self.opers_num  = on    # число операций в узле
+        self.calls_num  = cn    # число операций вызова в узле
+        self.loads_num  = ln    # число операций чтения в узле
+        self.stores_num = sn    # число операций записи в узле
+
+    def w_opers_num (self):
+        return self.opers_num * self.counter
+
+    def w_calls_num (self):
+        return self.calls_num * self.counter
+
+    def calls_density (self):
+        return self.calls_num / self.opers_num
+
+    def w_calls_density (self):
+        return self.w_calls_num() / self.opers_num
+
+    def w_loads_num (self):
+        return self.loads_num * self.counter
+
+    def loads_density (self):
+        return self.loads_num / self.opers_num
+
+    def w_loads_density (self):
+        return self.w_loads_num() / self.opers_num
+
+    def w_stores_num (self):
+        return self.stores_num * self.counter
+
+    def stores_density (self):
+        return self.stores_num / self.opers_num
+
+    def w_stores_density (self):
+        return self.w_stores_num() / self.opers_num
+
+class Loop:
+    def __init__ (self, n, ovl, red):
+        self.number = n    # номер цикла
+        self.is_ovl = ovl  # признак накрученного цикла
+        self.is_red = red  # признак сводимиго цикла
+
+class Proc:
+    def __init__ (self, name, w, ns, ls, ds, ps):
+        self.name = name           # имя процедуры
+        self.weight = w            # вес процедуры
+        self.nodes = ns            # узлы процедуры
+        self.loops = ls            # циклы процедуры
+        self.dom_height  = ds[0]   # высота дерева доминаторов
+        self.dom_weight  = ds[1]   # ширина дерева доминаторов
+        self.dom_branch  = ds[2]   # максимальное ветвление вершины в дереве доминаторов
+        self.pdom_height = ps[0]   # высота дерева постдоминаторов
+        self.pdom_weight = ps[1]   # ширина дерева постдоминаторов
+        self.pdom_branch = ps[2]   # максимальное ветвление вершины в дереве постдоминаторов
+
+    def opers_num (self):
+        return reduce(lambda a, n: a + n.opers_num, self.nodes, 0)
+
+    def w_opers_num (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_opers_num(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_opers_num (self):
+        return reduce(max, map(lambda n: n.opers_num, self.nodes), 0)
+
+    def aver_opers_num (self):
+        return self.opers_num() / self.nodes_num()
+
+    def w_aver_opers_num (self):
+        return self.w_opers_num() / self.nodes_num()
+
+    def calls_num (self):
+        return reduce(lambda a, n: a + n.calls_num, self.nodes, 0)
+
+    def w_calls_num (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_calls_num(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_calls_num (self):
+        return reduce(max, map(lambda n: n.calls_num, self.nodes), 0)
+
+    def aver_calls_num (self):
+        return self.calls_num() / self.nodes_num()
+
+    def w_aver_calls_num (self):
+        return self.w_calls_num() / self.nodes_num()
+
+    def calls_density (self):
+        return reduce(lambda a, n: a + n.calls_density(), self.nodes, 0)
+
+    def w_calls_density (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_calls_density(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_calls_density(self):
+        return reduce(max, map(lambda n: n.calls_density(), self.nodes), 0)
+
+    def aver_calls_density(self):
+        return self.calls_density() / self.nodes_num()
+
+    def w_aver_calls_density(self):
+        return self.w_calls_density() / self.nodes_num()
+
+    def loads_num (self):
+        return reduce(lambda a, n: a + n.loads_num, self.nodes, 0)
+
+    def w_loads_num (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_loads_num(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_loads_num (self):
+        return reduce(max, map(lambda n: n.loads_num, self.nodes), 0)
+
+    def aver_loads_num (self):
+        return self.loads_num() / self.nodes_num()
+
+    def w_aver_loads_num (self):
+        return self.w_loads_num() / self.nodes_num()
+
+    def loads_density (self):
+        return reduce(lambda a, n: a + n.loads_density(), self.nodes, 0)
+
+    def w_loads_density (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_loads_density(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_loads_density(self):
+        return reduce(max, map(lambda n: n.loads_density(), self.nodes), 0)
+
+    def aver_loads_density(self):
+        return self.loads_density() / self.nodes_num()
+
+    def w_aver_loads_density(self):
+        return self.w_loads_density() / self.nodes_num()
+
+    def stores_num (self):
+        return reduce(lambda a, n: a + n.stores_num, self.nodes, 0)
+
+    def w_stores_num (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_stores_num(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_stores_num (self):
+        return reduce(max, map(lambda n: n.stores_num, self.nodes), 0)
+
+    def aver_stores_num (self):
+        return self.stores_num() / self.nodes_num()
+
+    def w_aver_stores_num (self):
+        return self.w_stores_num() / self.nodes_num()
+
+    def stores_density (self):
+        return reduce(lambda a, n: a + n.stores_density(), self.nodes, 0)
+
+    def w_stores_density (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.w_stores_density(), self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def max_stores_density(self):
+        return reduce(max, map(lambda n: n.stores_density(), self.nodes), 0)
+
+    def aver_stores_density(self):
+        return self.stores_density() / self.nodes_num()
+
+    def w_aver_stores_density(self):
+        return self.w_stores_density() / self.nodes_num()
+
+    def nodes_num (self):
+        return len(self.nodes)
+
+    def w_nodes_num (self):
+        if self.max_cnt():
+            return reduce(lambda a, n: a + n.counter, self.nodes, 0) / self.max_cnt()
+        else:
+            return 0
+
+    def loops_num (self):
+        return len(self.loops)
+
+    def ovl_loops_num (self):
+        return len([l for l in self.loops if l.is_ovl])
+
+    def irr_loops_num (self):
+        return len([l for l in self.loops if not l.is_red])
+
+    def max_cnt (self):
+        return reduce(max, map(lambda n: n.counter, self.nodes), 0)
+
+    def aver_cnt (self):
+        return reduce(lambda a, n: a + n.counter, self.nodes, 0) / self.nodes_num()
+
+CHARS = [
+    (  0, "Вес процедуры", lambda p: p.weight),
+    (  1, "Число операций", Proc.opers_num),
+    (  2, "Взвешенное число операций", Proc.w_opers_num),
+    (  3, "Максимальное число операций в узле", Proc.max_opers_num),
+    (  4, "Среднее число операций в узле", Proc.aver_opers_num),
+    (  5, "Взвешенное среднее число операций в узле", Proc.w_aver_opers_num),
+
+    (  6, "Число операций вызова", Proc.calls_num),
+    (  7, "Взвешенное число операций вызова", Proc.w_calls_num),
+    (  8, "Максимальное число операций вызова в узле", Proc.max_calls_num),
+    (  9, "Среднее число операций вызова в узле", Proc.aver_calls_num),
+    ( 10, "Взвешенное среднее число операций вызова в узле", Proc.w_aver_calls_num),
+    ( 11, "Плотность операций вызова", Proc.calls_density),
+    ( 12, "Взвешенная плотность операций вызова", Proc.w_calls_density),
+    ( 13, "Максимальная плотность операций вызова в узле", Proc.max_calls_density),
+    ( 14, "Средняя плотность операций вызова в узле", Proc.aver_calls_density),
+    ( 15, "Взвешенная средняя плотность операций вызова в узле", Proc.w_aver_calls_density),
+
+    ( 16, "Число операций чтения", Proc.loads_num),
+    ( 17, "Взвешенное число операций чтения", Proc.w_loads_num),
+    ( 18, "Максимальное число операций чтения в узле", Proc.max_loads_num),
+    ( 19, "Среднее число операций чтения в узле", Proc.aver_loads_num),
+    ( 20, "Взвешенное среднее число операций чтения в узле", Proc.w_aver_loads_num),
+    ( 21, "Плотность операций чтений", Proc.loads_density),
+    ( 22, "Взвешенная плотность операций вызова", Proc.w_loads_density),
+    ( 23, "Максимальная плотность операций вызова в узле", Proc.max_loads_density),
+    ( 24, "Средняя плотность операций вызова в узле", Proc.aver_loads_density),
+    ( 25, "Взвешенная средняя плотность операций вызова в узле", Proc.w_aver_loads_density),
+
+    ( 26, "Число операций записи", Proc.stores_num),
+    ( 27, "Взвешенное число операций записи", Proc.w_stores_num),
+    ( 28, "Максимальное число операций записи в узле", Proc.max_stores_num),
+    ( 29, "Среднее число операций записи в узле", Proc.aver_stores_num),
+    ( 30, "Взвешенное среднее число операций записи в узле", Proc.w_aver_stores_num),
+    ( 31, "Плотность операций записи", Proc.stores_density),
+    ( 32, "Взвешенная плотность операций вызова", Proc.w_stores_density),
+    ( 33, "Максимальная плотность операций вызова в узле", Proc.max_stores_density),
+    ( 34, "Средняя плотность операций вызова в узле", Proc.aver_stores_density),
+    ( 35, "Взвешенная средняя плотность операций вызова в узле", Proc.w_aver_stores_density),
+
+    ( 36, "Число узлов", Proc.nodes_num),
+    ( 37, "Взвешенное число узлов", Proc.w_nodes_num),
+
+    ( 38, "Число циклов", Proc.loops_num),
+    ( 39, "Число накрученных циклов", Proc.ovl_loops_num),
+    ( 40, "Число несводимых циклов", Proc.irr_loops_num),
+
+    ( 41, "Максимальный счётчик", Proc.max_cnt),
+    ( 42, "Средний счётчик", Proc.aver_cnt),
+
+    ( 43, "Высота дерева доминаторов", lambda p: p.dom_height),
+    ( 44, "Ширина дерева доминаторов", lambda p: p.dom_weight),
+    ( 45, "Максимальное ветвление вершин в дереве доминаторов", lambda p: p.dom_branch),
+
+    ( 46, "Высота дерева постдоминаторов", lambda p: p.pdom_height),
+    ( 47, "Ширина дерева постдоминаторов", lambda p: p.pdom_weight),
+    ( 48, "Максимальное ветвление вершин в дереве постдоминаторов", lambda p: p.pdom_branch),
+]
+
+def desc (param):
+    return "{:>3} : {:>1}".format(param[0], param[1])
+
+def calc (param, proc):
+    f = param[2]
+    return f(proc)
+
 # Database structure
 class DataBase:
 
@@ -130,7 +406,7 @@ COLLECT_GRID = gl.COLLECT_GRID
 INTERP = gl.TRAIN_INTERP
 
 # List of available optimizers 
-OPTIMIZERS = ['rmsprop', 'sgd', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam']
+OPTIMIZERS = ['rmsprop'] #, 'sgd', 'adagrad', 'adadelta', 'adam', 'adamax', 'nadam']
 
 # Number of epochs
 EPOCHS = gl.TRAIN_EPOCHS
@@ -161,6 +437,56 @@ def grid (group, ranges=par.ranges, steps=COLLECT_GRID):
     l = list(map(lambda x: x.flatten().tolist(), np.meshgrid(*ax, sparse=False, indexing='ij')))
 
     return list(zip(*l))
+
+# Read characters of procedures
+def read_procs (spec, procs, stat_dir = None, weight_file = None):
+    
+    procs_and_weights = stat.get_procs_and_weights(spec, procs)
+    procs = procs_and_weights[0]
+    proc_order = procs_and_weights[1]
+
+    res = []
+    for proc in procs:
+
+        proc_info = stat.get_proc(spec, proc, stat_dir)
+        
+        w_proc = stat.proc_weight(proc_order, proc)
+
+        nodes = []
+        for n in proc_info.nodes:
+            node = proc_info.nodes[n]
+            nodes.append(Node(int(n),
+                                gl.NODE_TYPE[node.chars['type']], 
+                                float(node.chars['cnt']), 
+                                int(node.chars['o_num']), 
+                                int(node.chars['c_num']), 
+                                int(node.chars['l_num']), 
+                                int(node.chars['s_num'])))
+
+        loops = []
+        for l in proc_info.loops:
+            loop = proc_info.loops[l]
+            loops.append(Loop(int(l), 
+                                bool(loop['ovl']), 
+                                bool(loop['red'])))
+
+        res.append(Proc(proc, w_proc, nodes, loops,
+                        [int(proc_info.chars['dom_height']),
+                            int(proc_info.chars['dom_weight']),
+                            int(proc_info.chars['dom_succs'])],
+                        [int(proc_info.chars['pdom_height']),
+                            int(proc_info.chars['pdom_weight']),
+                            int(proc_info.chars['pdom_succs'])]))
+    return res
+
+def proc_to_chars (proc):
+    return list(map(lambda x: float(calc(x, proc)), CHARS))
+
+def to_chars (procs):
+    return list(map(proc_to_chars, procs))
+    
+def read_proc_chars (spec, procs, stat_dir = None, weight_file = None):
+    return to_chars(read_procs(spec, procs, stat_dir, weight_file))
 
 #########################################################################################
 # Collect the raw data
@@ -205,6 +531,9 @@ def average (l):
 def run ():
     
     DB.load()
+    
+    # Check statistics correctness
+    stat.check(SPECS)
 
     print('Train neural network')
 
@@ -219,12 +548,10 @@ def run ():
         procs = SPECS[spec]
 
         # Read characters of procedures
-        chars = stat.read_procs_chars(spec)
-        weights = stat.read_procs_weights(spec)
-        C[spec] = [ (weight, chars[proc]) for proc, weight in weights.items() if proc in chars ]
+        C[spec] = read_proc_chars(spec, procs)
 
         # Find maximal counter
-        cnt = max(cnt, *(weights.values()))
+        cnt = max(cnt, max(map(lambda x: x[0], C[spec])))
 
         # Store data for every group of parameters
         for gr in PARS.keys():
@@ -241,8 +568,6 @@ def run ():
 
             # Form list of the raw data
             vh = DB.values[spec][procs_t][gr]
-            default = tuple([par.defaults[x] for x in gr])
-            vh[default] = [(1.0,1.0,1.0)]
             vs = [ (v, average(list(map(lambda x: F(x), vh[v])))) for v in vh.keys()]
 
             # Check that data is suitable
@@ -311,7 +636,7 @@ def run ():
                 if c[0] != 0:
                     n_val = val * np.exp(c[0] / cnt)
                     n_val = [np.asscalar(x) for x in n_val]
-                    data.append((c[1], n_val))
+                    data.append((c[1:], n_val))
 
         N = int(DELTA * len(data))
 
@@ -357,7 +682,9 @@ def run ():
         max_acc = max(acc_t.values())
         min_loss = min([loss_t[op] for op in OPTIMIZERS if acc_t[op] == max_acc])
         best_opt = [op for op in OPTIMIZERS if acc_t[op] == max_acc and loss_t[op] == min_loss]
-        print('options: ' + str(gr) + ', acc: ' + str(max_acc) + ', loss: ' + str(min_loss), file=verbose.debug)
+        print(acc_t)
+        print(loss_t)
+        print(best_opt)
 
         # Set best optimizer
         model.compile( optimizer=best_opt[0], loss='categorical_crossentropy', metrics=['categorical_accuracy'])
@@ -378,20 +705,38 @@ def run ():
 
 # Поиск оптимальные значения параметров компилятора lcc
 def find ():
-    
-    procs_chars = stat.read_procs_chars()
-    procs_weights = stat.read_procs_weights()
-    procs = [ proc for proc in procs_chars.keys() if proc in procs_weights.keys() ]
-    chars = { proc : procs_chars[proc] for proc in procs }
-    weights = { proc : procs_weights[proc] for proc in procs }
+
+    if not gl.TRAIN_PROC_CHARS and gl.TRAIN_PROC_CHARS_DIR is None:
+        verbose.error('Нет характеристик процедур, для которых необходимо найти оптимальные значения параметров компилятора lcc.')
+
+    if gl.TRAIN_PROC_CHARS and not gl.TRAIN_PROC_CHARS_DIR is None:
+        verbose.warning('Одновременно указаны характеристики процедур и каталог со статистикой процедур, '
+                        'для которых необходимо найти оптимальные значения параметров компилятора lcc. '
+                        'Будут использованы характеристики процедур, заданные опцией --proc_chars.')
+
+    if gl.TRAIN_PROC_CHARS:
+        chars = to_chars([Proc( 'tmp', p[0], [Node(*n) for n in  p[1]], [Loop(*l) for l in  p[2]], p[3], p[4]) for p in gl.TRAIN_PROC_CHARS])
+
+    else:
+        procs = [x[1] for x in os.walk(gl.TRAIN_PROC_CHARS_DIR)]
+
+        for proc in procs:
+            stat_file = os.path.join(gl.TRAIN_PROC_CHARS_DIR, proc, 'regions.txt')
+            if not os.path.isfile(stat_file):
+                verbose.error('Incorrect statictic for proc %r. There is not file %r.' % (proc, stat_file))
+        
+        if gl.TRAIN_PROC_WEIGHTS is None:
+            verbose.error('Weights for procs was not defined. There is not file %r.' % gl.TRAIN_PROC_WEIGHTS)
+
+        chars = read_proc_chars('tmp', procs, gl.TRAIN_PROC_CHARS_DIR, gl.TRAIN_PROC_WEIGHTS)
         
     pars_to_models = export.read()
     print('Optimal values of parameters')
     for gr in PARS.keys():
 
         model = pars_to_models[gr]
-        val_grids = list(map(model.predict, chars))
-        val_grid = np.average(val_grids, weights=np.array(weights))
+        val_grids = [model.predict(p[1:]) for p in chars]
+        val_grid = np.average(val_grids, weights=np.array([p[0] for p in chars]))
         val = np.unravel_index(np.argmax(val_grid), val_grid.shape)
 
         for i in range(len(gr)):
