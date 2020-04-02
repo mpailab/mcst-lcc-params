@@ -11,25 +11,28 @@
 # option_name -> (type, initial value, step, steps number)
 declare -A OPTS
 
-OPTS["regn_max_proc_op_sem_size"]=(int 0 1 50000)
-OPTS["regn_heur1"]=(float 0.0 0.001 1000)
-OPTS["regn_heur2"]=(float 0.0 0.001 1000)
-OPTS["regn_heur3"]=(float 0.0 0.001 1000)
-OPTS["regn_heur4"]=(float 0.0 0.001 1000)
-OPTS["regn_heur_bal1"]=(float 0.0 0.001 1000)
-OPTS["regn_heur_bal2"]=(float 0.0 0.001 1000)
-OPTS["regn_opers_limit"]=(int 0 1 5000)
-OPTS["regn_prob_heur"]=(float 0.0 0.001 1000)
-OPTS["regn_disb_heur"]=(int 0 1 15)
-OPTS["ifconv_merge_heur"]=(float 0.0 0.001 1000)
-OPTS["ifconv_opers_num"]=(int 0 1 500)
-OPTS["ifconv_calls_num"]=(int 0 1 10)
-OPTS["dcs_level"]=(int 0 1 4)
+OPTS["regn_max_proc_op_sem_size"]="int 0 1 50000"
+OPTS["regn_heur1"]="float 0.0 0.001 1000"
+OPTS["regn_heur2"]="float 0.0 0.001 1000"
+OPTS["regn_heur3"]="float 0.0 0.001 1000"
+OPTS["regn_heur4"]="float 0.0 0.001 1000"
+OPTS["regn_heur_bal1"]="float 0.0 0.001 1000"
+OPTS["regn_heur_bal2"]="float 0.0 0.001 1000"
+OPTS["regn_opers_limit"]="int 0 1 5000"
+OPTS["regn_prob_heur"]="float 0.0 0.001 1000"
+OPTS["regn_disb_heur"]="int 0 1 15"
+OPTS["ifconv_merge_heur"]="float 0.0 0.001 1000"
+OPTS["ifconv_opers_num"]="int 0 1 500"
+OPTS["ifconv_calls_num"]="int 0 1 10"
+OPTS["dcs_level"]="int 0 1 4"
 
 # Печать допустимых для настройки опций компилятора lcc
 print_supported_options ()
 {
-    echo "${!OPTS[@]}"
+    for x in ${!OPTS[@]}
+    do
+        echo "$x"
+    done
 } # print_supported_options
 
 # Проверка того, что список $1 является списком опций компилятора
@@ -108,7 +111,7 @@ print_usage()
 is_suite ()
 {
     SUITES="all 1995 f1995 i1995 2000 f2000 i2000 2006 f2006 i2006 2017r f2017r i2017r"
-    if [[ "$SUITES" == *"$1"* ]]
+    if [[ "$SUITES" != *"$1"* ]]
     then
         return 1
     fi
@@ -144,7 +147,7 @@ until [ -z "$1" ]
             OPTS_STR="$1"
             ;;
 
-        @("-O1" "-O2" "-O3" "-O4" "-base" "-peak"))   
+        "-O1"|"-O2"|"-O3"|"-O4"|"-base"|"-peak")
             [ "$MODE" == "" ] || die "mode '$MODE' is already specified"
             MODE="$1" 
             ;;
@@ -172,7 +175,7 @@ until [ -z "$1" ]
             shift
             COMP_MACHINE="$1"
             [ "$COMP_MACHINE" != "" ] || die "no parameter for -comp option"
-            IFS=' ' read -r -a COMP_MACHINE_LIST <<< $COMP_MACHINE
+            IFS=' ' read -r -a COMP_MACHINE_LIST <<< "$COMP_MACHINE"
             check_machines $COMP_MACHINE_LIST
             ;;
 
@@ -180,7 +183,7 @@ until [ -z "$1" ]
             shift
             EXEC_MACHINE="$1"
             [ "$EXEC_MACHINE" != "" ] || die "no parameter for -exec option"
-            IFS=' ' read -r -a EXEC_MACHINE_LIST <<< $EXEC_MACHINE
+            IFS=' ' read -r -a EXEC_MACHINE_LIST <<< "$EXEC_MACHINE"
             check_machines $EXEC_MACHINE_LIST
             ;;
 
@@ -202,7 +205,7 @@ until [ -z "$1" ]
             [ -d "$OUTPUT_DIR" ] || die "invalid parameter for -o option"
             ;;
 
-        @("-h" "-help" "--help"))
+        "-h"|"-help"|"--help")
             print_usage 
             ;;
 
@@ -218,7 +221,7 @@ then
     print_supported_options
     exit 0
 fi
-IFS=' ' read -r -a OPTS_LIST <<< $OPTS_STR
+IFS=' ' read -r -a OPTS_LIST <<< "$OPTS_STR"
 check_options $OPTS_LIST
 
 [ "$MODE" != "" ] || die "<mode> is not specified"
