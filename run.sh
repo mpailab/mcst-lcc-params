@@ -73,8 +73,14 @@ OUTPUT_DIR="$CUR_DIR"
 # Нештатный выход из скрипта
 die ()
 {
-    echo -e "$SCRIPT_NAME: error: $@"
+    echo -e "error: $@"
     exit 1
+} # die
+
+# Нештатный выход из скрипта
+warning ()
+{
+    echo -e "warning: $@"
 } # die
 
 # Печать опций скрипта
@@ -120,7 +126,22 @@ is_suite ()
 # Проверка того, что список $1 является списком допустимых машин
 check_machines ()
 {
-    return 1
+    local -n machine_list=$1
+    for i in "${!machine_list[@]}"
+    do
+        timelimit -s15 -t1 rsh ${machine_list[$i]} echo "ok" > /dev/null 2>&1
+        case "$?" in
+            0)
+                ;;
+
+            143)
+                warning "Machine '${machine_list[$i]}' is not available and will be skipped."
+                unset -v 'machine_list[$i]'
+                ;;
+
+            *) die "invalid machine name '${machine_list[$i]}'" ;;
+        esac
+    done
 } # check_machines
 
 # Является ли поданный аргумент числом
@@ -176,7 +197,8 @@ until [ -z "$1" ]
             COMP_MACHINE="$1"
             [ "$COMP_MACHINE" != "" ] || die "no parameter for -comp option"
             IFS=' ' read -r -a COMP_MACHINE_LIST <<< "$COMP_MACHINE"
-            check_machines $COMP_MACHINE_LIST
+            check_machines COMP_MACHINE_LIST
+            [ ! -z "$COMP_MACHINE_LIST" ] || die "there are no available comp-machines"
             ;;
 
         "-exec")
@@ -184,7 +206,8 @@ until [ -z "$1" ]
             EXEC_MACHINE="$1"
             [ "$EXEC_MACHINE" != "" ] || die "no parameter for -exec option"
             IFS=' ' read -r -a EXEC_MACHINE_LIST <<< "$EXEC_MACHINE"
-            check_machines $EXEC_MACHINE_LIST
+            check_machines EXEC_MACHINE_LIST
+            [ ! -z "$EXEC_MACHINE_LIST" ] || die "there are no available exec-machines"
             ;;
 
         "-grid")
