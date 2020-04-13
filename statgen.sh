@@ -358,7 +358,7 @@ cp $SOURCE_DIR/*.sh .
 
 # Собираем характеристики процедур 
 INNER_ARGS="$BASE_INNER_ARGS --lets=ann_procs_chars_file:$PROCS_CHARS_FILE"
-ARGS="-comp $BASE_ARGS -old-opt \"$INNER_ARGS\""
+ARGS="-comp $BASE_ARGS -run \"${TEST_NAME_LIST[@]}\" -old-opt \"$INNER_ARGS\""
 if [ "${#COMP_MACHINE_LIST[@]}" > 1 ]
 then
     rsh "${COMP_MACHINE_LIST[1]}" "cd $WORK_DIR; ./cmp.sh $ARGS" &
@@ -368,10 +368,58 @@ else
 fi
 
 # Собираем начальные значения времени компиляции и emul_exe процедур 
-INNER_ARGS="$BASE_INNER_ARGS --lets=ann_procs_comp_time_file:$PROCS_COMP_TIME_FILE"
-INNER_ARGS="$INNER_ARGS --lets=ann_procs_emul_exe_file:$PROCS_EMUL_EXE_FILE"
-ARGS="-comp $BASE_ARGS -old-opt \"$INNER_ARGS\""
+INNER_ARGS="$BASE_INNER_ARGS --lets=procs_comp_time_file:$PROCS_COMP_TIME_FILE"
+INNER_ARGS="$INNER_ARGS --lets=procs_emul_exe_file:$PROCS_EMUL_EXE_FILE"
+ARGS="-comp $BASE_ARGS -run \"${TEST_NAME_LIST[@]}\" -old-opt \"$INNER_ARGS\""
 rsh "${COMP_MACHINE_LIST[0]}" "cd $WORK_DIR; ./cmp.sh $ARGS"
+
+"--true=print_proc_ire2k_time --true=emul_exe"
 
 # Дожидаемся завершения сбора характеристик процедур
 wait $PROCS_CHARS_PID
+
+OPT_START_NUM=0
+COMP_STEP_NUM=`echo "scale=0; ${#OPTS_LIST[@]}/${#COMP_MACHINE_LIST[@]}" | bc`
+for (( comp_step=0; comp_step <= $COMP_STEP_NUM; comp_step++ ))
+do
+    if [ (($OPT_START_NUM + ${#COMP_MACHINE_LIST[@]})) <= ${#OPTS_LIST[@]} ]
+    then
+        OPT_END_NUM=$(($OPT_DELTA + ${#COMP_MACHINE_LIST[@]}))
+    else
+        OPT_END_NUM=${#COMP_MACHINE_LIST[@]}
+    fi
+
+    comp_i=0
+    for (( opt_num=$OPT_START_NUM; opt_num < $OPT_END_NUM; opt_num++ ))
+    do
+        OPT_NAME=${OPTS_LIST[$opt_num]}
+        IFS=' ' read -r -a OPT_ATTR <<< "${OPT[$OPT_NAME]}}"
+        OPT_TYPE=${ATTR[0]}
+        OPT_VALUE=${ATTR[1]}
+        OPT_STEP=${ATTR[2]}
+        OPT_MAX_VALUE=${ATTR[3]}
+        if ( $OPT_MAX_VALUE > $GRID )
+        then
+            OPT_STEP=`echo "scale=5; $OPT_STEP * ($OPT_MAX_VALUE / $GRID)" | bc`
+        fi
+
+        while [ $OPT_VALUE < $OPT_MAX_VALUE ]
+        do
+            OPT_STAT_DIR="$OUTPUT_DIR/$OPT_NAME_$OPT_VALUE"
+            PROCS_COMP_TIME_FILE="$OPT_STAT_DIR/procs_comp_time.txt"
+            PROCS_EXEC_TIME_FILE="$OPT_STAT_DIR/procs_exec_time.txt"
+            PROCS_EMUL_EXE_FILE="$OPT_STAT_DIR/procs_emul_exe.txt"
+            
+            OPT_VALUE=`echo "scale=5; $OPT_VALUE + $OPT_STEP" | bc`
+            
+            INNER_ARGS="$BASE_INNER_ARGS --lets=procs_comp_time_file:$PROCS_COMP_TIME_FILE"
+            INNER_ARGS="$INNER_ARGS --lets=procs_emul_exe_file:$PROCS_EMUL_EXE_FILE"
+            ARGS="-comp $BASE_ARGS -run \"${TEST_NAME_LIST[@]}\" -old-opt \"$INNER_ARGS\""
+            rsh "${COMP_MACHINE_LIST[$comp_i]}" "cd $WORK_DIR; ./cmp.sh $ARGS"
+        done
+
+        comp_i=$((comp_i + 1))
+    done
+
+    OPT_START_NUM=$OPT_END_NUM
+done
