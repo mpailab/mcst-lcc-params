@@ -8,41 +8,63 @@
 ##########################################################################################
 
 # Хэш-таблица настраиваемых опций компилятора lcc
-# option_name -> (type, initial value, step, steps number)
-declare -A OPTS
+# option_name -> (TYPE, initial value, step, steps number)
+declare -A OPTS_INFO
 
-OPTS["regn_max_proc_op_sem_size"]="int 0 1 50000"
-OPTS["regn_heur1"]="float 0.0 0.001 1000"
-OPTS["regn_heur2"]="float 0.0 0.001 1000"
-OPTS["regn_heur3"]="float 0.0 0.001 1000"
-OPTS["regn_heur4"]="float 0.0 0.001 1000"
-OPTS["regn_heur_bal1"]="float 0.0 0.001 1000"
-OPTS["regn_heur_bal2"]="float 0.0 0.001 1000"
-OPTS["regn_opers_limit"]="int 0 1 5000"
-OPTS["regn_prob_heur"]="float 0.0 0.001 1000"
-OPTS["regn_disb_heur"]="int 0 1 15"
-OPTS["ifconv_merge_heur"]="float 0.0 0.001 1000"
-OPTS["ifconv_opers_num"]="int 0 1 500"
-OPTS["ifconv_calls_num"]="int 0 1 10"
-OPTS["dcs_level"]="int 0 1 4"
+OPTS_INFO["regn_max_proc_op_sem_size"]="int 0 1 50000"
+OPTS_INFO["regn_heur1"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_heur2"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_heur3"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_heur4"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_heur_bal1"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_heur_bal2"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_opers_limit"]="int 0 1 5000"
+OPTS_INFO["regn_prob_heur"]="float 0.0 0.001 1.0"
+OPTS_INFO["regn_disb_heur"]="int 0 1 15"
+OPTS_INFO["ifconv_merge_heur"]="float 0.0 0.001 1.0"
+OPTS_INFO["ifconv_opers_num"]="int 0 1 500"
+OPTS_INFO["ifconv_calls_num"]="int 0 1 10"
+OPTS_INFO["dcs_level"]="int 0 1 4"
 
+##
 # Печать допустимых для настройки опций компилятора lcc
+##
 print_supported_options ()
 {
-    for x in ${!OPTS[@]}
+    for x in ${!OPTS_INFO[@]}
     do
         echo "$x"
     done
 } # print_supported_options
 
+##
 # Проверка того, что список $1 является списком опций компилятора
+##
 check_options ()
 {
     for x in $1
     do
-        [ ${OPTS[$x]+_} ] || die "invalid option name '$x', should be one of ${!OPTS[@]}"
+        [ ${OPTS_INFO[$x]+_} ] || die "invalid option name '$x', should be one of ${!OPTS_INFO[@]}"
     done
 } # check_options
+
+##
+# Получить точность вычислений значений параметра в зависимости от его типа
+#
+# Аргументы:
+#  $1 - тип параметра (int или float)
+##
+get_scale()
+{
+    local -i res;
+    case "$1" in
+
+        "int")   res=0 ;;
+        "float") res=5 ;;
+        *) die "invalid option type '$1'" ;;
+    esac
+    return $res
+}
 
 ##########################################################################################
 # Списки бенчмарков
@@ -110,20 +132,26 @@ OUTPUT_DIR="$CUR_DIR"
 # Внутренние функции срипта
 ##########################################################################################
 
+##
 # Нештатный выход из скрипта
+##
 die ()
 {
     echo -e "error: $@"
     exit 1
 } # die
 
+##
 # Нештатный выход из скрипта
+##
 warning ()
 {
     echo -e "warning: $@"
 } # die
 
+##
 # Печать опций скрипта
+##
 print_usage()
 {
     echo "usage: $SCRIPT_NAME <-opts STR> <mode> [-fwhole] [-prof] [-math]"
@@ -155,14 +183,18 @@ print_usage()
     exit 0
 } # print_usage
 
+##
 # Проверка того, что $1 - имя существующего пакета бенчмарков
+##
 check_suite ()
 {
     local -n suite=$1
     [[ "${!SPEC_TABLE[@]}" == *"$suite"* ]] || die "invalid parameter for -suite option"
 } # check_suite
 
+##
 # Проверка того, $1 - список бенчмарков из пакета $2
+##
 check_specs ()
 {
     local -n specs=$1
@@ -173,7 +205,9 @@ check_specs ()
     done
 } # check_specs
 
+##
 # Проверка того, что список $1 является списком допустимых машин
+##
 check_machines ()
 {
     local -n machine_list=$1
@@ -194,7 +228,9 @@ check_machines ()
     done
 } # check_machines
 
+##
 # Является ли поданный аргумент числом
+##
 is_number ()
 {
     if [ "$1" = "" ] || \
@@ -204,6 +240,212 @@ is_number ()
         return 1
     fi
 } # is_number
+
+##
+# Запустить компиляцию заданного теста на заданной машине при заданного значении опции
+# 
+# Аргументы:
+#  $1 - имя машины компиляции
+#  $2 - имя машины исполнения
+#  $3 - имя теста
+#  $4 - значение опции
+#  $5 - директория для сброса статистики
+##
+compile()
+{
+    local machine="$1"
+    local exec_machine="$2"
+    local test="$3"
+    local value="$4"
+    local stat_dir="$5"
+
+    local args="$BASE_INNER_ARGS"
+    args="$args --lets=procs_comp_time_file:$stat_dir/procs_comp_time.txt"
+    args="$args --lets=procs_emul_exe_file:$stat_dir/procs_emul_exe.txt"
+    if [ "$value" != "none" ]
+    then
+        # Запускаем компиляцию в каталоге, привязанном к текущей машине исполнения
+        if [ "$TYPE" == "int" ]
+        then
+            args="$args --let=$OPTION:$value}"
+        else
+            args="$args --letf=$OPTION:$value}"
+        fi
+        args="-comp $BASE_ARGS -run $test -old-opt \"$args\""
+        rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args"
+    else
+        # При выполнении предварительной задачи из стека компиляция 
+        # запускает единожды в корневой рабочей директории
+        args="-comp $BASE_ARGS -run $test -old-opt \"$args\""
+        rsh "$machine" "cd $WORK_DIR; ./cmp.sh $args"
+    fi
+
+} # compile
+
+##
+# Получить статистику исполнения теста на заданной машине исполнения 
+# 
+# Аргументы:
+#  $1 - имя машины исполнения
+#  $2 - имя теста
+#  $3 - директория для сброса статистики
+##
+get_exec_stat()
+{
+    local machine="$1"
+    local test="$2"
+    local stat_dir="$3"
+    local lpwd=`pwd`
+
+    # Получаем профили исполняемых процедур
+    cd "$WORK_DIR/$machine/$CMP_RES_DIR"
+    $WORK_DIR/make_prof.sh $test &> /dev/null
+    if [ $? -ne 0 ]
+    then
+        warning "make_prof.sh is failed for '$test'"
+
+    else
+        # Суммируем профили исполняемых процедур
+        local -A TIME
+        local -A NUM
+        for prof in `ls exec.$test/prof*.txt`
+        do
+            declare -a rows
+            readarray -t rows < <(cat $prof | grep "% " | grep -v "(*)")
+            for i in ${!rows[@]}
+            do
+                row="${rows[$i]}"
+                proc=`echo $row | awk '{print $6}'`
+                time=`echo $row | awk '{print $5}'`
+                num=1
+                if [ ${TIME[$proc]+abc} ]
+                then
+                    time=`echo "${TIME[$proc]}+$time" | bc`
+                    num=$((${NUM[$proc]} + 1))
+                fi
+                TIME[$proc]=$time
+                NUM[$proc]=$num
+            done
+        done
+
+        # Сохраняем профили исполняемых процедур
+        for proc in ${!TIME[@]}
+        do 
+            time=`echo "${TIME[$proc]}/${NUM[$proc]}" | bc`
+            echo "$proc $time" >> $stat_dir/procs_exec_time.txt
+        done
+    fi
+
+    # Возвращаемся в текущий каталог
+    cd $lpwd
+
+} # get_exec_stat
+
+##
+# Запустить исполнение заданного теста на заданной машине исполнения
+# 
+# Аргументы:
+#  $1 - имя машины исполнения
+#  $2 - имя теста
+#  $3 - следующее значение опции
+#  $4 - директория для сброса статистики
+#  $5 - pid последнего процесса на host-машине, запустившего исполнение на машине $1
+##
+execute()
+{
+    local machine="$1"
+    local test="$2"
+    local next_value="$3"
+    local stat_dir="$4"
+    local pid="$5"
+
+    # Ждём завершения последнего процесса на host-машине, 
+    # запустившего исполнение на данной машине исполнения
+    wait "$pid"
+
+    # При необходимости ждём завершения ночного тестирования
+    local available=`rsh "$machine" "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
+    while [ -z "$available"]
+    do
+        sleep 1000
+        available=`rsh "$machine" "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
+    done
+
+    # Для чистоты статистики ждём освобождения машины исполнения
+    local uptime=`rsh "$machine" uptime | awk '{print $11 $12 $13}'`
+    IFS=',' read -r -a load <<< "$uptime"
+    while (( $(echo "${load[0]} > 1 || ${load[1]} > 1 || ${load[2]} > 1" | bc -l) ))
+    do
+        sleep 1000
+        uptime=`rsh "$machine" uptime | awk '{print $11 $12 $13}'`
+        IFS=',' read -r -a load <<< "$uptime"
+    done
+    
+    # Машина свободна запускаем исполнения теста
+    local args="-exec $BASE_ARGS -run $test -old-opt \"$BASE_INNER_ARGS\""
+    rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args"
+
+    # Собираем статистику исполнения
+    get_exec_stat "$machine" "$test" "$stat_dir"
+
+    # Добавляем в конец стека задачу компиляции и исполнения данного теста
+    # со следующим значением опции
+    if (( $(echo "$next_value < $MAX_VALUE" | bc -l) ))
+    then
+        STACK+=("0 $test $exec_machine $next_value")
+    fi
+
+} # execute
+
+##
+# Выполнить текущую задачу из стека
+# 
+# Аргументы:
+#  $1 - список характеристик задачи (p1 p2 p3 p4), где
+#       p1 - признак предворительной задачи
+#       p2 - имя теста
+#       p3 - имя машины исполнения
+#       p4 - значение параметра
+##
+perform()
+{
+    local -n task=$1
+    local is_initial="${task[0]}"
+    local test="${task[1]}"
+    local exec_machine="${task[2]}"
+    local value="${task[3]}"
+
+    # Создаём директорию для сбора статистики
+    local stat_dir="$OUTPUT_DIR/$OPTION.$value.$test.$exec_machine"
+    mkdir $stat_dir || die "can't create a directory '$stat_dir'"
+
+    if [ "$is_initial" ]
+    then
+        # Для предварительных задач компиляцию запускаем лишь единожды
+        if [ "$exec_machine" == "${EXEC_MACHINES[0]}" ]
+        then
+            compile "$COMP_MACHINE" "$exec_machine" "$test" "$value" "$stat_dir"
+        fi
+
+        # Копируем результаты компиляции в каталог, привязанный к текущей машине исполнения
+        cp -r "$WORK_DIR/$CMP_RES_DIR/$test*" "$WORK_DIR/$exec_machine/$CMP_RES_DIR"
+
+        # Выставляем начальное значение опции для текущей машины исполнения
+        value="${VALUES["$exec_machine"]}"
+
+    else
+        # Запускаем компиляцию для текущего значения параметра
+        compile "$COMP_MACHINE" "$exec_machine" "$test" "$value" "$stat_dir"
+
+        # Выставляем следующее значение опции для текущей машины исполнения
+        value=`echo "scale=$SCALE; $value + $STEP" | bc`
+    fi
+
+    # Запускаем процесс исполнения для текущего значения параметра
+    execute "$exec_machine" "$test" "$value" "$stat_dir" "${PIDS["$exec_machine"]}" &
+    PIDS["$exec_machine"]=$!
+
+} # perform
 
 ##########################################################################################
 # Обработка аргументов, поданных скрипту
@@ -289,8 +531,8 @@ then
     print_supported_options
     exit 0
 fi
-IFS=' ' read -r -a OPTS_LIST <<< "$OPTS_STR"
-check_options $OPTS_LIST
+IFS=' ' read -r -a OPTS <<< "$OPTS_STR"
+check_options $OPTS
 
 [ "$MODE" != "" ] || die "<mode> is not specified"
 
@@ -300,16 +542,18 @@ if [ "$TEST_NAME" == "" ]
 then
     $TEST_NAME="${SPEC_TABLE[$SUITE]}"
 fi
-IFS=' ' read -r -a TEST_NAME_LIST <<< "$TEST_NAME"
-check_specs TEST_NAME_LIST
+IFS=' ' read -r -a TEST_NAMES <<< "$TEST_NAME"
+check_specs TEST_NAMES
 
-IFS=' ' read -r -a COMP_MACHINE_LIST <<< "$COMP_MACHINE"
-check_machines COMP_MACHINE_LIST
-[ ! -z "$COMP_MACHINE_LIST" ] || die "there are no available comp-machines"
+IFS=' ' read -r -a COMP_MACHINES <<< "$COMP_MACHINE"
+check_machines COMP_MACHINES
+[ ! -z "$COMP_MACHINES" ] || die "there are no available comp-machines"
+[ "${#COMP_MACHINES[@]}" == 1 ] || warning "currently, multiple comp-machines are not supported. Only '${COMP_MACHINES[0]}' will be used."
+COMP_MACHINE=${COMP_MACHINES[0]}
 
-IFS=' ' read -r -a EXEC_MACHINE_LIST <<< "$EXEC_MACHINE"
-check_machines EXEC_MACHINE_LIST
-[ ! -z "$EXEC_MACHINE_LIST" ] || die "there are no available exec-machines"
+IFS=' ' read -r -a EXEC_MACHINES <<< "$EXEC_MACHINE"
+check_machines EXEC_MACHINES
+[ ! -z "$EXEC_MACHINES" ] || die "there are no available exec-machines"
 
 is_number "$GRID" || die "invalid parameter for -grid option"
 
@@ -323,11 +567,6 @@ OUTPUT_DIR=`realpath $OUTPUT_DIR`
 ##########################################################################################
 # Инициализация внутренних переменных
 ##########################################################################################
-
-PROCS_CHARS_FILE="$OUTPUT_DIR/procs_chars.txt"
-PROCS_COMP_TIME_FILE="$OUTPUT_DIR/procs_comp_time.txt"
-PROCS_EXEC_TIME_FILE="$OUTPUT_DIR/procs_exec_time.txt"
-PROCS_EMUL_EXE_FILE="$OUTPUT_DIR/procs_emul_exe.txt"
 
 BASE_ARGS="$MODE -suite $SUITE -old -force"
 BASE_INNER_ARGS=""
@@ -344,6 +583,17 @@ then
     BASE_INNER_ARGS="$BASE_INNER_ARGS -ffast-math"
 fi
 
+CMP_RES_DIR="${MODE#"-"}"
+if [ $IS_WHOLE == 1 ]
+then
+    CMP_RES_DIR="$CMP_RES_DIR.wh"
+fi
+if [ $IS_PROF == 1 ]
+then
+    CMP_RES_DIR="$CMP_RES_DIR.prof"
+fi
+CMP_RES_DIR="work.$CMP_RES_DIR.old"
+
 ##########################################################################################
 # Основной блок скрипта
 ##########################################################################################
@@ -353,73 +603,105 @@ WORK_DIR="$CUR_DIR/$SHORT_SCRIPT_NAME_$DATA"
 mkdir $WORK_DIR || die "can't create a directory '$WORK_DIR'"
 cd $WORK_DIR
 
-# Копируем исходники
+# Копируем исходники в рабочий каталог
 cp $SOURCE_DIR/*.sh .
 
+# Создаём рабочии поддиректории для каждой машины исполнения по отдельности
+# и копируем в них исходники скрипта cmp.sh
+for exec_machine in "${EXEC_MACHINES[@]}"
+do
+    EXEC_WORK_DIR="$WORK_DIR/$exec_machine"
+    mkdir $EXEC_WORK_DIR || die "can't create a directory '$EXEC_WORK_DIR'"   
+    cp $SOURCE_DIR/*.sh $EXEC_WORK_DIR
+done
+
 # Собираем характеристики процедур 
-INNER_ARGS="$BASE_INNER_ARGS --lets=ann_procs_chars_file:$PROCS_CHARS_FILE"
-ARGS="-comp $BASE_ARGS -run \"${TEST_NAME_LIST[@]}\" -old-opt \"$INNER_ARGS\""
-if [ "${#COMP_MACHINE_LIST[@]}" > 1 ]
+INNER_ARGS="$BASE_INNER_ARGS --lets=ann_procs_chars_file:$OUTPUT_DIR/procs_chars.txt"
+ARGS="-comp $BASE_ARGS -run \"${TEST_NAMES[@]}\" -old-opt \"$INNER_ARGS\""
+if [ "$COMP_MACHINE" == "$HOST_NAME" ]
 then
-    rsh "${COMP_MACHINE_LIST[1]}" "cd $WORK_DIR; ./cmp.sh $ARGS" &
-    PROCS_CHARS_PID=$!
+    rsh "$COMP_MACHINE" "cd $WORK_DIR; ./cmp.sh $ARGS"
 else
-    rsh "${COMP_MACHINE_LIST[0]}" "cd $WORK_DIR; ./cmp.sh $ARGS"
+    # Машина компиляции отлична от host-машины, для экономии времени 
+    # характеристики процедур соберём на host-машине
+    rsh "$HOST_NAME" "cd $WORK_DIR; ./cmp.sh $ARGS" &
 fi
 
-# Собираем начальные значения времени компиляции и emul_exe процедур 
-INNER_ARGS="$BASE_INNER_ARGS --lets=procs_comp_time_file:$PROCS_COMP_TIME_FILE"
-INNER_ARGS="$INNER_ARGS --lets=procs_emul_exe_file:$PROCS_EMUL_EXE_FILE"
-ARGS="-comp $BASE_ARGS -run \"${TEST_NAME_LIST[@]}\" -old-opt \"$INNER_ARGS\""
-rsh "${COMP_MACHINE_LIST[0]}" "cd $WORK_DIR; ./cmp.sh $ARGS"
-
-"--true=print_proc_ire2k_time --true=emul_exe"
-
-# Дожидаемся завершения сбора характеристик процедур
-wait $PROCS_CHARS_PID
-
-OPT_START_NUM=0
-COMP_STEP_NUM=`echo "scale=0; ${#OPTS_LIST[@]}/${#COMP_MACHINE_LIST[@]}" | bc`
-for (( comp_step=0; comp_step <= $COMP_STEP_NUM; comp_step++ ))
+# Обходим опции и собираем статистику для каждой из них по отдельности
+IS_NEXT=0
+for OPTION in ${OPTS[@]}
 do
-    if [ (($OPT_START_NUM + ${#COMP_MACHINE_LIST[@]})) <= ${#OPTS_LIST[@]} ]
+    [ "$IS_NEXT" ] || echo
+    echo "option: $OPTION"
+
+    # Получаем характеристики опции
+    IFS=' ' read -r -a ATTR <<< "${OPTS_INFO[$OPTION]}}"
+    TYPE=${ATTR[0]}
+    VALUE=${ATTR[1]}
+    STEP=${ATTR[2]}
+    MAX_VALUE=${ATTR[3]}
+
+    # Устанавливаем точность вычисления значений опции
+    SCALE=`get_scale $TYPE`
+
+    # Корретируем шаг увеличения изменений опции
+    if (( $(echo "($MAX_VALUE / $STEP) > $GRID" | bc -l) ))
     then
-        OPT_END_NUM=$(($OPT_DELTA + ${#COMP_MACHINE_LIST[@]}))
-    else
-        OPT_END_NUM=${#COMP_MACHINE_LIST[@]}
+        STEP=`echo "SCALE=$SCALE; $MAX_VALUE / $GRID" | bc`
     fi
+    STEP=`echo "SCALE=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
 
-    comp_i=0
-    for (( opt_num=$OPT_START_NUM; opt_num < $OPT_END_NUM; opt_num++ ))
+    # Инициализируем глобальные таблицы параметров машин исполнения
+    declare -A VALUES # таблица начальных значений опции:
+                      # (<машина исполнения> => <значение опции>)
+    declare -A PIDS   # pid последненого процесса на host-машине, 
+                      # запустившего процесс на машине исполнения:
+                      # (<машина исполнения> => <pid>)
+    for exec_machine in "${EXEC_MACHINES[@]}"
     do
-        OPT_NAME=${OPTS_LIST[$opt_num]}
-        IFS=' ' read -r -a OPT_ATTR <<< "${OPT[$OPT_NAME]}}"
-        OPT_TYPE=${ATTR[0]}
-        OPT_VALUE=${ATTR[1]}
-        OPT_STEP=${ATTR[2]}
-        OPT_MAX_VALUE=${ATTR[3]}
-        if ( $OPT_MAX_VALUE > $GRID )
-        then
-            OPT_STEP=`echo "scale=5; $OPT_STEP * ($OPT_MAX_VALUE / $GRID)" | bc`
-        fi
-
-        while [ $OPT_VALUE < $OPT_MAX_VALUE ]
-        do
-            OPT_STAT_DIR="$OUTPUT_DIR/$OPT_NAME_$OPT_VALUE"
-            PROCS_COMP_TIME_FILE="$OPT_STAT_DIR/procs_comp_time.txt"
-            PROCS_EXEC_TIME_FILE="$OPT_STAT_DIR/procs_exec_time.txt"
-            PROCS_EMUL_EXE_FILE="$OPT_STAT_DIR/procs_emul_exe.txt"
-            
-            OPT_VALUE=`echo "scale=5; $OPT_VALUE + $OPT_STEP" | bc`
-            
-            INNER_ARGS="$BASE_INNER_ARGS --lets=procs_comp_time_file:$PROCS_COMP_TIME_FILE"
-            INNER_ARGS="$INNER_ARGS --lets=procs_emul_exe_file:$PROCS_EMUL_EXE_FILE"
-            ARGS="-comp $BASE_ARGS -run \"${TEST_NAME_LIST[@]}\" -old-opt \"$INNER_ARGS\""
-            rsh "${COMP_MACHINE_LIST[$comp_i]}" "cd $WORK_DIR; ./cmp.sh $ARGS"
-        done
-
-        comp_i=$((comp_i + 1))
+        VALUES["$exec_machine"]="$VALUE"
+        PIDS["$exec_machine"]=""
+        VALUE=`echo "SCALE=$SCALE; $VALUE + $STEP" | bc`
     done
 
-    OPT_START_NUM=$OPT_END_NUM
+    # Создаём стек задач и заполняем его предварительными задачами
+    declare -a STACK=()
+    for test in "${TEST_NAMES[@]}"
+    do
+        for exec_machine in "${EXEC_MACHINES[@]}"
+        do
+            STACK+=("1 $test $exec_machine none")
+        done
+    done
+
+    # Ждём освобождения стека и выполнения всех запущенных задач
+    IS_WAIT=1
+    while [ "$IS_WAIT" ]
+    do
+        if [ "${#STACK[@]}" > 0 ]
+        then
+            # Стек непуст, выполняем первую его задачу
+            IFS=' ' read -r -a TASK <<< "${STACK[0]}"
+            STACK=("${STACK[@]:1}")
+            perform TASK
+
+        else
+            # Стек пуст, проверяем завершение запущенных задач
+            IS_WAIT=0
+            for exec_machine in "${EXEC_MACHINES[@]}"
+            do
+                if [ -n "$(ps -p ${PIDS["$exec_machine"]} -o pid=)" ]
+                then
+                    # Есть незавершённая задача, ждём ...
+                    sleep 1000
+                    IS_WAIT=1
+                    break
+                fi
+            done
+        fi
+    done
+
+    IS_NEXT=1
 done
+
+# "--true=print_proc_ire2k_time --true=emul_exe"
