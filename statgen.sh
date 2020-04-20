@@ -229,7 +229,7 @@ check_machines ()
     local -n machine_list=$1
     for i in "${!machine_list[@]}"
     do
-        timelimit -s15 -t1 rsh ${machine_list[$i]} echo "ok" > /dev/null 2>&1
+        timelimit -s15 -t2 rsh ${machine_list[$i]} echo "ok" > /dev/null 2>&1
         case "$?" in
             0)
                 ;;
@@ -403,53 +403,60 @@ execute()
     done
 
     # При необходимости ждём завершения ночного тестирования
-    local available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes"`
+    local available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes" 2> /dev/null`
     while [ -z "$available" ]
     do
         sleep 1000
-        available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes"`
+        available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes" 2> /dev/null`
     done
 
     # Для чистоты статистики ждём освобождения машины исполнения
-    local uptime=`rsh $machine uptime | awk '{print $11 $12 $13}'`
+    local uptime=`rsh $machine uptime 2> /dev/null | awk '{print $(NF-2) $(NF-1) $NF}'`
     IFS=',' read -r -a load <<< "$uptime"
-    while (( $(echo \"${load[0]} > 1 || ${load[1]} > 1 || ${load[2]} > 1\" | bc -l) ))
+    local cpu_num=`rsh $machine nproc 2> /dev/null`
+    local n=`echo "scale=0; $cpu_num / 4" | bc`
+    while (( $(echo "${load[0]} > $n || ${load[1]} > $n || ${load[2]} > $n" | bc -l) ))
     do
-        sleep 1000
-        uptime=`rsh $machine uptime | awk '{print $11 $12 $13}'`
+        sleep 1
+        uptime=`rsh $machine uptime 2> /dev/null | awk '{print $(NF-2) $(NF-1) $NF}'`
         IFS=',' read -r -a load <<< "$uptime"
     done
     
     # Машина свободна запускаем исполнения теста
     local args="-exec $BASE_ARGS -run $test"
     [ -z "$BASE_INNER_ARGS" ] || args="$args -old-opt \"$BASE_INNER_ARGS\""
-    rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args" &> /dev/null
+    rsh "$machine" "cd $WORK_DIR/$machine; ./cmp.sh $args" &> /dev/null
 
     # Собираем статистику исполнения
     get_exec_stat "$machine" "$test" "$stat_dir"
+
+    while (( ${LOCK["$machine"]} ))
+    do
+        sleep 1
+    done
 
     # Определяем следующее значение опции
     if [ "$value" == "none" ]
     then
         # Выставляем начальное значение опции для текущей машины исполнения
-        value="${VALUES["$exec_machine"]}"
+        value="${VALUES["$machine"]}"
 
     else
         # Выставляем следующее значение опции для текущей машины исполнения
-        value=`echo "scale=$SCALE; $value + $STEP" | bc`
+        value=`echo "scale=$SCALE; $value + ${STEPS["$machine"]}" | bc`
     fi
 
     # Добавляем в конец стека задачу компиляции и исполнения данного теста
     # со следующим значением опции (т.к. дочерние процессы не могут менять значения
     # переменных родительского процесса, то реализуем этот механизм посредством
     # записи и чтения из специальных файлов)
-    local msg="stop"
+    local msg="STOP > $machine"
     if (( $(echo "$value < $MAX_VALUE" | bc -l) ))
     then
-        msg="$test $exec_machine $value"
+        msg="$test $machine $value"
     fi
     local data=`date +%Y%m%d%H%M%S`
-    local file="/dev/shm/${SHORT_SCRIPT_NAME}_task_${data}_${test}_${exec_machine}_${value}"
+    local file="/dev/shm/${SHORT_SCRIPT_NAME}_task_${data}_${test}_${machine}_${value}"
     echo "$msg" > $file
 
 } # execute
@@ -495,7 +502,14 @@ perform()
 
     # Запускаем процесс исполнения для текущего значения параметра
     execute "$exec_machine" "$test" "$value" "$stat_dir" "${PIDS["$exec_machine"]}" &
-    PIDS["$exec_machine"]=$!
+    local pid=$!
+    PIDS["$exec_machine"]=$pid
+    if [ "$value" == "none" ]
+    then
+        PIDS_INFO["$pid"]+="$test $exec_machine $value ${VALUES["$exec_machine"]}"
+    else
+        PIDS_INFO["$pid"]+="$test $exec_machine $value ${STEPS["$exec_machine"]}"
+    fi
 
 } # perform
 
@@ -711,12 +725,14 @@ do
     # Инициализируем глобальные таблицы параметров машин исполнения
     declare -A VALUES # таблица начальных значений опции:
                       # (<машина исполнения> => <значение опции>)
+    declare -A STEPS
     declare -A PIDS   # pid последненого процесса на host-машине, 
                       # запустившего процесс на машине исполнения:
                       # (<машина исполнения> => <pid>)
     for exec_machine in "${EXEC_MACHINES[@]}"
     do
         VALUES["$exec_machine"]="$VALUE"
+        STEPS["$exec_machine"]=`echo "scale=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
         PIDS["$exec_machine"]=""
         VALUE=`echo "scale=$SCALE; $VALUE + $STEP" | bc`
     done
@@ -731,7 +747,8 @@ do
         done
     done
 
-    STEP=`echo "scale=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
+    declare -A LOCK
+    declare -A PIDS_INFO=()
 
     # Ждём освобождения стека и выполнения всех запущенных задач
     IS_WAIT=1
@@ -742,7 +759,38 @@ do
             for file in `ls /dev/shm/${SHORT_SCRIPT_NAME}_task_*`
             do
                 TASK=$(head -n 1 $file)
-                [ "$TASK" == "stop" ] || STACK+=("$TASK")
+                if [[ "$TASK" == "STOP > "* ]]
+                then
+                    IFS=' ' read -r -a TASK_ATTR <<< "$TASK"
+                    exec_machine=${TASK_ATTR[2]}
+                    for machine in "${!PIDS[@]}"
+                    do
+                        LOCK["$machine"]=1
+                        
+                        PID="${PIDS["$machine"]}"
+                        if [ -n "$(ps -p $PID -o pid=)" ]
+                        then
+                            IFS=' ' read -r -a PID_ATTR <<< "${PIDS_INFO[$PID]}"
+                            TEST="${PID_ATTR[0]}"
+                            VALUE=`echo "scale=$SCALE; ${PID_ATTR[2]} + ${PID_ATTR[3]} + ${STEPS["$machine"]}" | bc`
+                            if [ -n "$(ps -p $PID -o pid=)" ]
+                            then
+                                if (( $(echo "$VALUE < $MAX_VALUE" | bc -l) ))
+                                then
+                                    STEPS["$machine"]=`echo "scale=$SCALE; 2 * ${STEPS["$machine"]}" | bc`
+                                    STEPS["$exec_machine"]="${STEPS["$machine"]}"
+                                    STACK+=("$TEST $exec_machine $VALUE")
+                                    
+                                    LOCK["$machine"]=0
+                                    break
+                                fi
+                            fi
+                        fi
+                        LOCK["$machine"]=0
+                    done
+                else
+                    STACK+=("$TASK")
+                fi
                 rm $file
             done
         fi
@@ -788,5 +836,3 @@ do
 
     IS_NEXT=1
 done
-
-# "--true=print_proc_ire2k_time --true=emul_exe"
