@@ -275,6 +275,13 @@ compile()
     local value="$4"
     local stat_dir="$5"
 
+    echo "  compile $test on $machine for $value"
+
+    if [ -z "$machine" ] || [ -z "$exec_machine" ] || [ -z "$test" ] || [ -z "$value" ] || [ -z "$stat_dir" ]
+    then
+        return 1
+    fi
+
     local args="$BASE_INNER_ARGS"
     args="$args --lets=procs_comp_time_file:$stat_dir/procs_comp_time.txt"
     args="$args --lets=procs_emul_exe_file:$stat_dir/procs_emul_exe.txt"
@@ -288,13 +295,11 @@ compile()
             args="$args --letf=$OPTION:$value}"
         fi
         args="-comp $BASE_ARGS -run $test -old-opt \"$args\""
-        echo "rsh \"$machine\" \"cd $WORK_DIR/$exec_machine; ./cmp.sh $args\""
         rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args" &> /dev/null
     else
         # При выполнении предварительной задачи из стека компиляция 
         # запускает единожды в корневой рабочей директории
         args="-comp $BASE_ARGS -run $test -old-opt \"$args\""
-        echo "rsh \"$machine\" \"cd $WORK_DIR; ./cmp.sh $args\""
         rsh "$machine" "cd $WORK_DIR; ./cmp.sh $args" &> /dev/null
     fi
 
@@ -314,6 +319,11 @@ get_exec_stat()
     local test="$2"
     local stat_dir="$3"
     local lpwd=`pwd`
+
+    if [ -z "$machine" ] || [ -z "$test" ] || [ -z "$stat_dir" ]
+    then
+        return 1
+    fi
 
     # Получаем профили исполняемых процедур
     cd "$WORK_DIR/$machine/$CMP_RES_DIR"
@@ -361,11 +371,12 @@ get_exec_stat()
 
 ##
 # Запустить исполнение заданного теста на заданной машине исполнения
+# при заданного значении опции
 # 
 # Аргументы:
 #  $1 - имя машины исполнения
 #  $2 - имя теста
-#  $3 - следующее значение опции
+#  $3 - значение опции
 #  $4 - директория для сброса статистики
 #  $5 - pid последнего процесса на host-машине, запустившего исполнение на машине $1
 ##
@@ -373,24 +384,31 @@ execute()
 {
     local machine="$1"
     local test="$2"
-    local next_value="$3"
+    local value="$3"
     local stat_dir="$4"
     local pid="$5"
 
+    echo "  execute $test on $machine for $value"
+
+    if [ -z "$machine" ] || [ -z "$test" ] || [ -z "$value" ] || [ -z "$stat_dir" ]
+    then
+        return 1
+    fi
+
     # Ждём завершения последнего процесса на host-машине, 
     # запустившего исполнение на данной машине исполнения
-    [ -z "$pid" ] || wait "$pid"
-
-    echo ": 1"
+    while [ -n "$pid" ] && [ -e /proc/$pid ]
+    do
+        sleep 1
+    done
 
     # При необходимости ждём завершения ночного тестирования
-    local available=`rsh $machine "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
+    local available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes"`
     while [ -z "$available" ]
     do
         sleep 1000
-        available=`rsh $machine "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
+        available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes"`
     done
-    echo ": 2"
 
     # Для чистоты статистики ждём освобождения машины исполнения
     local uptime=`rsh $machine uptime | awk '{print $11 $12 $13}'`
@@ -401,29 +419,38 @@ execute()
         uptime=`rsh $machine uptime | awk '{print $11 $12 $13}'`
         IFS=',' read -r -a load <<< "$uptime"
     done
-
-    echo ": 3"
     
     # Машина свободна запускаем исполнения теста
     local args="-exec $BASE_ARGS -run $test"
     [ -z "$BASE_INNER_ARGS" ] || args="$args -old-opt \"$BASE_INNER_ARGS\""
-    echo "rsh \"$machine\" \"cd $WORK_DIR/$exec_machine; ./cmp.sh $args\""
     rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args" &> /dev/null
 
     # Собираем статистику исполнения
     get_exec_stat "$machine" "$test" "$stat_dir"
 
-    # Добавляем в конец стека задачу компиляции и исполнения данного теста
-    # со следующим значением опции
-    echo "a"
-    if (( $(echo "$next_value < $MAX_VALUE" | bc -l) ))
+    # Определяем следующее значение опции
+    if [ "$value" == "none" ]
     then
-        echo "b"
-        local data=`date +%Y%m%d%H%M%S`
-        local file="/dev/shm/${SHORT_SCRIPT_NAME}_task_${data}_${test}_${exec_machine}_${next_value}"
-        echo "0 $test $exec_machine $next_value" > $file
+        # Выставляем начальное значение опции для текущей машины исполнения
+        value="${VALUES["$exec_machine"]}"
+
+    else
+        # Выставляем следующее значение опции для текущей машины исполнения
+        value=`echo "scale=$SCALE; $value + $STEP" | bc`
     fi
-    echo "c"
+
+    # Добавляем в конец стека задачу компиляции и исполнения данного теста
+    # со следующим значением опции (т.к. дочерние процессы не могут менять значения
+    # переменных родительского процесса, то реализуем этот механизм посредством
+    # записи и чтения из специальных файлов)
+    local msg="stop"
+    if (( $(echo "$value < $MAX_VALUE" | bc -l) ))
+    then
+        msg="$test $exec_machine $value"
+    fi
+    local data=`date +%Y%m%d%H%M%S`
+    local file="/dev/shm/${SHORT_SCRIPT_NAME}_task_${data}_${test}_${exec_machine}_${value}"
+    echo "$msg" > $file
 
 } # execute
 
@@ -440,10 +467,9 @@ execute()
 perform()
 {
     local -n task=$1
-    local is_initial="${task[0]}"
-    local test="${task[1]}"
-    local exec_machine="${task[2]}"
-    local value="${task[3]}"
+    local test="${task[0]}"
+    local exec_machine="${task[1]}"
+    local value="${task[2]}"
 
     echo "task: ${task[@]}"
 
@@ -451,36 +477,25 @@ perform()
     local stat_dir="$OUTPUT_DIR/$OPTION.$value.$test.$exec_machine"
     mkdir $stat_dir || die "can't create a directory '$stat_dir'"
 
-    if [ "$is_initial" ]
+    if [ "$value" == "none" ]
     then
         # Для предварительных задач компиляцию запускаем лишь единожды
         if [ "$exec_machine" == "${EXEC_MACHINES[0]}" ]
         then
             compile "$COMP_MACHINE" "$exec_machine" "$test" "$value" "$stat_dir"
         fi
-        echo "> 1"
 
         # Копируем результаты компиляции в каталог, привязанный к текущей машине исполнения
         cp -r $WORK_DIR/$CMP_RES_DIR/$test* $WORK_DIR/$exec_machine/$CMP_RES_DIR
 
-        # Выставляем начальное значение опции для текущей машины исполнения
-        value="${VALUES["$exec_machine"]}"
-
     else
         # Запускаем компиляцию для текущего значения параметра
         compile "$COMP_MACHINE" "$exec_machine" "$test" "$value" "$stat_dir"
-        echo "> 2"
-
-        # Выставляем следующее значение опции для текущей машины исполнения
-        value=`echo "scale=$SCALE; $value + $STEP" | bc`
     fi
-    echo "> 3"
 
     # Запускаем процесс исполнения для текущего значения параметра
     execute "$exec_machine" "$test" "$value" "$stat_dir" "${PIDS["$exec_machine"]}" &
     PIDS["$exec_machine"]=$!
-
-    echo "> 4"
 
 } # perform
 
@@ -663,11 +678,11 @@ INNER_ARGS="$BASE_INNER_ARGS --lets=ann_procs_chars_file:$OUTPUT_DIR/procs_chars
 ARGS="-comp $BASE_ARGS -run \"${TEST_NAMES[@]}\" -old-opt \"$INNER_ARGS\""
 if [ "$COMP_MACHINE" == "$HOST_NAME" ]
 then
-    rsh "$COMP_MACHINE" "cd $WORK_DIR; ./cmp.sh $ARGS"
+    rsh "$COMP_MACHINE" "cd $WORK_DIR; ./cmp.sh $ARGS" &> /dev/null
 else
     # Машина компиляции отлична от host-машины, для экономии времени 
     # характеристики процедур соберём на host-машине
-    rsh "$HOST_NAME" "cd $WORK_DIR; ./cmp.sh $ARGS" &
+    rsh "$HOST_NAME" "cd $WORK_DIR; ./cmp.sh $ARGS" &> /dev/null &
 fi
 
 # Обходим опции и собираем статистику для каждой из них по отдельности
@@ -692,7 +707,6 @@ do
     then
         STEP=`echo "scale=$SCALE; $MAX_VALUE / $GRID" | bc`
     fi
-    STEP=`echo "scale=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
 
     # Инициализируем глобальные таблицы параметров машин исполнения
     declare -A VALUES # таблица начальных значений опции:
@@ -713,20 +727,25 @@ do
     do
         for exec_machine in "${EXEC_MACHINES[@]}"
         do
-            STACK+=("1 $test $exec_machine none")
+            STACK+=("$test $exec_machine none")
         done
     done
+
+    STEP=`echo "scale=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
 
     # Ждём освобождения стека и выполнения всех запущенных задач
     IS_WAIT=1
     while (( $IS_WAIT ))
     do
-        for file in `ls /dev/shm/${SHORT_SCRIPT_NAME}_task_*`
-        do
-            TASK=$(head -n 1 file)
-            STACK+=("$TASK")
-            rm "$file"
-        done
+        if ls /dev/shm/${SHORT_SCRIPT_NAME}_task_* 1> /dev/null 2>&1
+        then
+            for file in `ls /dev/shm/${SHORT_SCRIPT_NAME}_task_*`
+            do
+                TASK=$(head -n 1 $file)
+                [ "$TASK" == "stop" ] || STACK+=("$TASK")
+                rm $file
+            done
+        fi
 
         if (( ${#STACK[@]} ))
         then
@@ -734,26 +753,21 @@ do
             IFS=' ' read -r -a TASK <<< "${STACK[0]}"
             STACK=("${STACK[@]:1}")
             perform TASK
-            echo "> 5"
 
         else
-            echo "> 6"
             # Стек пуст, проверяем завершение запущенных задач
             IS_WAIT=0
             if (( ${#EXEC_MACHINES[@]} > 1 ))
             then
                 for exec_machine in "${EXEC_MACHINES[@]}"
                 do
-                    echo "> 7"
                     if [ -n "$(ps -p ${PIDS["$exec_machine"]} -o pid=)" ]
                     then
-                        echo "> 8"
                         # Есть незавершённая задача, ждём ...
-                        while ls /dev/shm/${SHORT_SCRIPT_NAME}_task_* 1> /dev/null 2>&1
+                        while ! ls /dev/shm/${SHORT_SCRIPT_NAME}_task_* 1> /dev/null 2>&1
                         do
-                            sleep 10
+                            sleep 1
                         done
-                        echo "> 9"
                         IS_WAIT=1
                         break
                     fi
@@ -762,14 +776,15 @@ do
                 exec_machine=${EXEC_MACHINES[0]}
                 if [ -n "$(ps -p ${PIDS["$exec_machine"]} -o pid=)" ]
                 then
-                    echo "> 10"
                     wait "${PIDS["$exec_machine"]}"
-                    echo "> 11"
                     IS_WAIT=1
                 fi
             fi
         fi
     done
+
+    # Ждём завершения всех фоновых процессов
+    wait
 
     IS_NEXT=1
 done
