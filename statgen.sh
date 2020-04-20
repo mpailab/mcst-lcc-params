@@ -31,9 +31,10 @@ OPTS_INFO["dcs_level"]="int 0 1 4"
 ##
 print_supported_options ()
 {
+    echo "Supported options:"
     for x in ${!OPTS_INFO[@]}
     do
-        echo "$x"
+        echo "  $x"
     done
 } # print_supported_options
 
@@ -44,7 +45,7 @@ check_options ()
 {
     for x in $1
     do
-        [ ${OPTS_INFO[$x]+_} ] || die "invalid option name '$x', should be one of ${!OPTS_INFO[@]}"
+        [ ${OPTS_INFO[$x]+_} ] || die "invalid option name '$x'.\nUse '-opts list' to show all available options"
     done
 } # check_options
 
@@ -56,14 +57,12 @@ check_options ()
 ##
 get_scale()
 {
-    local -i res;
     case "$1" in
 
-        "int")   res=0 ;;
-        "float") res=5 ;;
+        "int")   echo 0 ;;
+        "float") echo 5 ;;
         *) die "invalid option type '$1'" ;;
     esac
-    return $res
 }
 
 ##########################################################################################
@@ -88,6 +87,7 @@ SPEC_2017_LIST="$SPEC_F2017_LIST $SPEC_I2017_LIST"
 
 SPEC_ALL_LIST="$SPEC_1995_LIST $SPEC_2000_LIST $SPEC_2006_LIST $SPEC_2017_LIST"
 
+declare -A SPEC_TABLE
 SPEC_TABLE=(
     ["all"]="$SPEC_ALL_LIST"
     ["1995"]="$SPEC_1995_LIST"
@@ -104,6 +104,43 @@ SPEC_TABLE=(
     ["i2017r"]="$SPEC_I2017_LIST"
 )
 
+##
+# Проверка того, что $1 - имя существующего пакета бенчмарков
+##
+check_suite ()
+{
+    local -n suite=$1
+    [[ "${!SPEC_TABLE[@]}" == *"$suite"* ]] || die "invalid parameter for -suite option"
+} # check_suite
+
+##
+# Проверка того, $1 - список бенчмарков из пакета $2
+##
+check_specs ()
+{
+    local -n specs=$1
+    local -n suite=$2
+    for spec in "${specs[@]}"
+    do
+        [[ "${SPEC_TABLE[$suite]}" == *"$spec"* ]] || die "benchmark '$spec' is not in the suite '$suite'.\nUse '-run list' to show all available benchmarks."
+    done
+} # check_specs
+
+##
+# Печать доступных бенчмарков
+##
+print_supported_benchmarks ()
+{
+    local -n suite=$1
+    local -a benchmarks
+    IFS=' ' read -r -a benchmarks <<< "${SPEC_TABLE[$suite]}"
+    echo "Supported benchmarks of suite '$suite':"
+    for x in ${benchmarks[@]}
+    do
+        echo "  $x"
+    done
+} # print_supported_options
+
 ##########################################################################################
 # Внутренние переменные срипта
 ##########################################################################################
@@ -111,7 +148,7 @@ SPEC_TABLE=(
 HOST_NAME=`hostname`
 SCRIPT_NAME=`basename $0`
 SHORT_SCRIPT_NAME=`basename $0 .sh`
-SCRIPT_NAME_BLANK=`printf ' %.0s' {1..${#SCRIPT_NAME}}`
+SCRIPT_NAME_BLANK=`head -c ${#SCRIPT_NAME} < /dev/zero | tr '\0' ' '`
 CUR_DIR=`pwd`
 DATA=`date +%Y%m%d%H%M%S`
 
@@ -142,7 +179,7 @@ die ()
 } # die
 
 ##
-# Нештатный выход из скрипта
+# Выдача предупреждения
 ##
 warning ()
 {
@@ -169,7 +206,8 @@ print_usage()
     echo "-math      - use -ffast-math"
     echo "-suite STR - run only specified suite of benchmarks: all, [fi]1995, [fi]2000,"
     echo "             [fi]2006, [fi]2017r (by default: $SUITE)"
-    echo "-run STR   - run only specified benchmarks STR"
+    echo "-run STR   - run only specified benchmarks STR;"
+    echo "             specify 'list' to show all available benchmarks"
     echo "-comp STR  - run compilation on specified machines (by default: $COMP_MACHINE)"
     echo "-exec STR  - run execution on specified machines (by default: $EXEC_MACHINE)"
     echo "-grid NUM  - use grid with N points (by default: $GRID)"
@@ -182,28 +220,6 @@ print_usage()
     echo "-h         - print this help"
     exit 0
 } # print_usage
-
-##
-# Проверка того, что $1 - имя существующего пакета бенчмарков
-##
-check_suite ()
-{
-    local -n suite=$1
-    [[ "${!SPEC_TABLE[@]}" == *"$suite"* ]] || die "invalid parameter for -suite option"
-} # check_suite
-
-##
-# Проверка того, $1 - список бенчмарков из пакета $2
-##
-check_specs ()
-{
-    local -n specs=$1
-    local -n suite=$2
-    for spec in "${specs[@]}"
-    do
-        [[ "${SPEC_TABLE[$suite]}" == *"$spec"* ]] || die "benchmark '$spec' is not in the suite '$suite'"
-    done
-} # check_specs
 
 ##
 # Проверка того, что список $1 является списком допустимых машин
@@ -272,12 +288,14 @@ compile()
             args="$args --letf=$OPTION:$value}"
         fi
         args="-comp $BASE_ARGS -run $test -old-opt \"$args\""
-        rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args"
+        echo "rsh \"$machine\" \"cd $WORK_DIR/$exec_machine; ./cmp.sh $args\""
+        rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args" &> /dev/null
     else
         # При выполнении предварительной задачи из стека компиляция 
         # запускает единожды в корневой рабочей директории
         args="-comp $BASE_ARGS -run $test -old-opt \"$args\""
-        rsh "$machine" "cd $WORK_DIR; ./cmp.sh $args"
+        echo "rsh \"$machine\" \"cd $WORK_DIR; ./cmp.sh $args\""
+        rsh "$machine" "cd $WORK_DIR; ./cmp.sh $args" &> /dev/null
     fi
 
 } # compile
@@ -361,39 +379,51 @@ execute()
 
     # Ждём завершения последнего процесса на host-машине, 
     # запустившего исполнение на данной машине исполнения
-    wait "$pid"
+    [ -z "$pid" ] || wait "$pid"
+
+    echo ": 1"
 
     # При необходимости ждём завершения ночного тестирования
-    local available=`rsh "$machine" "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
-    while [ -z "$available"]
+    local available=`rsh $machine "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
+    while [ -z "$available" ]
     do
         sleep 1000
-        available=`rsh "$machine" "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
+        available=`rsh $machine "[ -f \"/tmp/flags/machine_locked\" ] || echo \"yes\""`
     done
+    echo ": 2"
 
     # Для чистоты статистики ждём освобождения машины исполнения
-    local uptime=`rsh "$machine" uptime | awk '{print $11 $12 $13}'`
+    local uptime=`rsh $machine uptime | awk '{print $11 $12 $13}'`
     IFS=',' read -r -a load <<< "$uptime"
-    while (( $(echo "${load[0]} > 1 || ${load[1]} > 1 || ${load[2]} > 1" | bc -l) ))
+    while (( $(echo \"${load[0]} > 1 || ${load[1]} > 1 || ${load[2]} > 1\" | bc -l) ))
     do
         sleep 1000
-        uptime=`rsh "$machine" uptime | awk '{print $11 $12 $13}'`
+        uptime=`rsh $machine uptime | awk '{print $11 $12 $13}'`
         IFS=',' read -r -a load <<< "$uptime"
     done
+
+    echo ": 3"
     
     # Машина свободна запускаем исполнения теста
-    local args="-exec $BASE_ARGS -run $test -old-opt \"$BASE_INNER_ARGS\""
-    rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args"
+    local args="-exec $BASE_ARGS -run $test"
+    [ -z "$BASE_INNER_ARGS" ] || args="$args -old-opt \"$BASE_INNER_ARGS\""
+    echo "rsh \"$machine\" \"cd $WORK_DIR/$exec_machine; ./cmp.sh $args\""
+    rsh "$machine" "cd $WORK_DIR/$exec_machine; ./cmp.sh $args" &> /dev/null
 
     # Собираем статистику исполнения
     get_exec_stat "$machine" "$test" "$stat_dir"
 
     # Добавляем в конец стека задачу компиляции и исполнения данного теста
     # со следующим значением опции
+    echo "a"
     if (( $(echo "$next_value < $MAX_VALUE" | bc -l) ))
     then
-        STACK+=("0 $test $exec_machine $next_value")
+        echo "b"
+        local data=`date +%Y%m%d%H%M%S`
+        local file="/dev/shm/${SHORT_SCRIPT_NAME}_task_${data}_${test}_${exec_machine}_${next_value}"
+        echo "0 $test $exec_machine $next_value" > $file
     fi
+    echo "c"
 
 } # execute
 
@@ -415,6 +445,8 @@ perform()
     local exec_machine="${task[2]}"
     local value="${task[3]}"
 
+    echo "task: ${task[@]}"
+
     # Создаём директорию для сбора статистики
     local stat_dir="$OUTPUT_DIR/$OPTION.$value.$test.$exec_machine"
     mkdir $stat_dir || die "can't create a directory '$stat_dir'"
@@ -426,9 +458,10 @@ perform()
         then
             compile "$COMP_MACHINE" "$exec_machine" "$test" "$value" "$stat_dir"
         fi
+        echo "> 1"
 
         # Копируем результаты компиляции в каталог, привязанный к текущей машине исполнения
-        cp -r "$WORK_DIR/$CMP_RES_DIR/$test*" "$WORK_DIR/$exec_machine/$CMP_RES_DIR"
+        cp -r $WORK_DIR/$CMP_RES_DIR/$test* $WORK_DIR/$exec_machine/$CMP_RES_DIR
 
         # Выставляем начальное значение опции для текущей машины исполнения
         value="${VALUES["$exec_machine"]}"
@@ -436,14 +469,18 @@ perform()
     else
         # Запускаем компиляцию для текущего значения параметра
         compile "$COMP_MACHINE" "$exec_machine" "$test" "$value" "$stat_dir"
+        echo "> 2"
 
         # Выставляем следующее значение опции для текущей машины исполнения
         value=`echo "scale=$SCALE; $value + $STEP" | bc`
     fi
+    echo "> 3"
 
     # Запускаем процесс исполнения для текущего значения параметра
     execute "$exec_machine" "$test" "$value" "$stat_dir" "${PIDS["$exec_machine"]}" &
     PIDS["$exec_machine"]=$!
+
+    echo "> 4"
 
 } # perform
 
@@ -540,10 +577,15 @@ check_suite SUITE
 
 if [ "$TEST_NAME" == "" ]
 then
-    $TEST_NAME="${SPEC_TABLE[$SUITE]}"
+    TEST_NAME="${SPEC_TABLE[$SUITE]}"
+
+elif [ "$TEST_NAME" == "list" ]
+then
+    print_supported_benchmarks SUITE
+    exit 0
 fi
 IFS=' ' read -r -a TEST_NAMES <<< "$TEST_NAME"
-check_specs TEST_NAMES
+check_specs TEST_NAMES SUITE
 
 IFS=' ' read -r -a COMP_MACHINES <<< "$COMP_MACHINE"
 check_machines COMP_MACHINES
@@ -599,7 +641,7 @@ CMP_RES_DIR="work.$CMP_RES_DIR.old"
 ##########################################################################################
 
 # Переходим в рабочую директорию
-WORK_DIR="$CUR_DIR/$SHORT_SCRIPT_NAME_$DATA"
+WORK_DIR="$CUR_DIR/${SHORT_SCRIPT_NAME}_$DATA"
 mkdir $WORK_DIR || die "can't create a directory '$WORK_DIR'"
 cd $WORK_DIR
 
@@ -613,6 +655,7 @@ do
     EXEC_WORK_DIR="$WORK_DIR/$exec_machine"
     mkdir $EXEC_WORK_DIR || die "can't create a directory '$EXEC_WORK_DIR'"   
     cp $SOURCE_DIR/*.sh $EXEC_WORK_DIR
+    mkdir "$EXEC_WORK_DIR/$CMP_RES_DIR" || die "can't create a directory '$EXEC_WORK_DIR/$CMP_RES_DIR'"
 done
 
 # Собираем характеристики процедур 
@@ -635,21 +678,21 @@ do
     echo "option: $OPTION"
 
     # Получаем характеристики опции
-    IFS=' ' read -r -a ATTR <<< "${OPTS_INFO[$OPTION]}}"
+    IFS=' ' read -r -a ATTR <<< "${OPTS_INFO[$OPTION]}"
     TYPE=${ATTR[0]}
     VALUE=${ATTR[1]}
     STEP=${ATTR[2]}
     MAX_VALUE=${ATTR[3]}
 
     # Устанавливаем точность вычисления значений опции
-    SCALE=`get_scale $TYPE`
+    SCALE=$(get_scale $TYPE)
 
     # Корретируем шаг увеличения изменений опции
     if (( $(echo "($MAX_VALUE / $STEP) > $GRID" | bc -l) ))
     then
-        STEP=`echo "SCALE=$SCALE; $MAX_VALUE / $GRID" | bc`
+        STEP=`echo "scale=$SCALE; $MAX_VALUE / $GRID" | bc`
     fi
-    STEP=`echo "SCALE=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
+    STEP=`echo "scale=$SCALE; $STEP * ${#EXEC_MACHINES[@]}" | bc`
 
     # Инициализируем глобальные таблицы параметров машин исполнения
     declare -A VALUES # таблица начальных значений опции:
@@ -661,7 +704,7 @@ do
     do
         VALUES["$exec_machine"]="$VALUE"
         PIDS["$exec_machine"]=""
-        VALUE=`echo "SCALE=$SCALE; $VALUE + $STEP" | bc`
+        VALUE=`echo "scale=$SCALE; $VALUE + $STEP" | bc`
     done
 
     # Создаём стек задач и заполняем его предварительными задачами
@@ -676,28 +719,55 @@ do
 
     # Ждём освобождения стека и выполнения всех запущенных задач
     IS_WAIT=1
-    while [ "$IS_WAIT" ]
+    while (( $IS_WAIT ))
     do
-        if [ "${#STACK[@]}" > 0 ]
+        for file in `ls /dev/shm/${SHORT_SCRIPT_NAME}_task_*`
+        do
+            TASK=$(head -n 1 file)
+            STACK+=("$TASK")
+            rm "$file"
+        done
+
+        if (( ${#STACK[@]} ))
         then
             # Стек непуст, выполняем первую его задачу
             IFS=' ' read -r -a TASK <<< "${STACK[0]}"
             STACK=("${STACK[@]:1}")
             perform TASK
+            echo "> 5"
 
         else
+            echo "> 6"
             # Стек пуст, проверяем завершение запущенных задач
             IS_WAIT=0
-            for exec_machine in "${EXEC_MACHINES[@]}"
-            do
+            if (( ${#EXEC_MACHINES[@]} > 1 ))
+            then
+                for exec_machine in "${EXEC_MACHINES[@]}"
+                do
+                    echo "> 7"
+                    if [ -n "$(ps -p ${PIDS["$exec_machine"]} -o pid=)" ]
+                    then
+                        echo "> 8"
+                        # Есть незавершённая задача, ждём ...
+                        while ls /dev/shm/${SHORT_SCRIPT_NAME}_task_* 1> /dev/null 2>&1
+                        do
+                            sleep 10
+                        done
+                        echo "> 9"
+                        IS_WAIT=1
+                        break
+                    fi
+                done
+            else
+                exec_machine=${EXEC_MACHINES[0]}
                 if [ -n "$(ps -p ${PIDS["$exec_machine"]} -o pid=)" ]
                 then
-                    # Есть незавершённая задача, ждём ...
-                    sleep 1000
+                    echo "> 10"
+                    wait "${PIDS["$exec_machine"]}"
+                    echo "> 11"
                     IS_WAIT=1
-                    break
                 fi
-            done
+            fi
         fi
     done
 
