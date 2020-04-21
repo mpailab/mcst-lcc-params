@@ -659,15 +659,34 @@ then
 fi
 
 CMP_RES_DIR="${MODE#"-"}"
+if [[ "$CMP_RES_DIR" == "O"* ]]
+then
+    if [ $IS_WHOLE == 1 ]
+    then
+        CMP_RES_DIR="$CMP_RES_DIR.wh"
+    fi
+    if [ $IS_PROF == 1 ]
+    then
+        CMP_RES_DIR="$CMP_RES_DIR.prof"
+    fi
+fi
+CMP_RES_DIR="work.$CMP_RES_DIR.old"
+
+MODE_SUFFIX="${MODE#"-"}"
 if [ $IS_WHOLE == 1 ]
 then
-    CMP_RES_DIR="$CMP_RES_DIR.wh"
+    MODE_SUFFIX="$MODE_SUFFIX.wh"
 fi
 if [ $IS_PROF == 1 ]
 then
-    CMP_RES_DIR="$CMP_RES_DIR.prof"
+    MODE_SUFFIX="$MODE_SUFFIX.prof"
 fi
-CMP_RES_DIR="work.$CMP_RES_DIR.old"
+if [ $IS_MATH == 1 ]
+then
+    MODE_SUFFIX="$MODE_SUFFIX.math"
+fi
+OUTPUT_DIR="$OUTPUT_DIR/stat.$MODE_SUFFIX"
+mkdir $OUTPUT_DIR || die "can't create a directory '$OUTPUT_DIR'"
 
 ##########################################################################################
 # Основной блок скрипта
