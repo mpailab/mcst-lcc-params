@@ -229,7 +229,7 @@ check_machines ()
     local -n machine_list=$1
     for i in "${!machine_list[@]}"
     do
-        timelimit -s15 -t2 rsh ${machine_list[$i]} echo "ok" > /dev/null 2>&1
+        timelimit -s15 -t3 rsh ${machine_list[$i]} echo "ok" > /dev/null 2>&1
         case "$?" in
             0)
                 ;;
@@ -406,9 +406,11 @@ execute()
     local available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes" 2> /dev/null`
     while [ -z "$available" ]
     do
+        echo "night" > /dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}
         sleep 1000
         available=`rsh $machine "[ -f /tmp/flags/machine_locked ] || echo yes" 2> /dev/null`
     done
+    rm -f /dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}
 
     # Для чистоты статистики ждём освобождения машины исполнения
     local uptime=`rsh $machine uptime 2> /dev/null | awk '{print $(NF-2) $(NF-1) $NF}'`
@@ -417,10 +419,12 @@ execute()
     local n=`echo "scale=0; $cpu_num / 4" | bc`
     while (( $(echo "${load[0]} > $n || ${load[1]} > $n || ${load[2]} > $n" | bc -l) ))
     do
-        sleep 1
+        echo "overload" > /dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}
+        sleep 300
         uptime=`rsh $machine uptime 2> /dev/null | awk '{print $(NF-2) $(NF-1) $NF}'`
         IFS=',' read -r -a load <<< "$uptime"
     done
+    rm -f /dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}
     
     # Машина свободна запускаем исполнения теста
     local args="-exec $BASE_ARGS -run $test"
@@ -430,7 +434,7 @@ execute()
     # Собираем статистику исполнения
     get_exec_stat "$machine" "$test" "$stat_dir"
 
-    while (( ${LOCK["$machine"]} ))
+    while [ -f "/dev/shm/${SHORT_SCRIPT_NAME}_lock_${machine}" ]
     do
         sleep 1
     done
@@ -443,7 +447,13 @@ execute()
 
     else
         # Выставляем следующее значение опции для текущей машины исполнения
-        value=`echo "scale=$SCALE; $value + ${STEPS["$machine"]}" | bc`
+        local step="${STEPS["$machine"]}"
+        if [ -f "/dev/shm/${SHORT_SCRIPT_NAME}_abort_${machine}" ]
+        then
+            step=$(head -n 1 /dev/shm/${SHORT_SCRIPT_NAME}_abort_${machine})
+        fi
+        rm -f /dev/shm/${SHORT_SCRIPT_NAME}_abort_${machine}
+        value=`echo "scale=$SCALE; $value + $step" | bc`
     fi
 
     # Добавляем в конец стека задачу компиляции и исполнения данного теста
@@ -456,8 +466,7 @@ execute()
         msg="$test $machine $value"
     fi
     local data=`date +%Y%m%d%H%M%S`
-    local file="/dev/shm/${SHORT_SCRIPT_NAME}_task_${data}_${test}_${machine}_${value}"
-    echo "$msg" > $file
+    echo "$msg" > /dev/shm/${SHORT_SCRIPT_NAME}_task_${data}
 
 } # execute
 
@@ -504,12 +513,7 @@ perform()
     execute "$exec_machine" "$test" "$value" "$stat_dir" "${PIDS["$exec_machine"]}" &
     local pid=$!
     PIDS["$exec_machine"]=$pid
-    if [ "$value" == "none" ]
-    then
-        PIDS_INFO["$pid"]+="$test $exec_machine $value ${VALUES["$exec_machine"]}"
-    else
-        PIDS_INFO["$pid"]+="$test $exec_machine $value ${STEPS["$exec_machine"]}"
-    fi
+    PIDS_INFO["$pid"]+="$test $value"
 
 } # perform
 
@@ -747,7 +751,6 @@ do
         done
     done
 
-    declare -A LOCK
     declare -A PIDS_INFO=()
 
     # Ждём освобождения стека и выполнения всех запущенных задач
@@ -765,33 +768,63 @@ do
                     exec_machine=${TASK_ATTR[2]}
                     for machine in "${!PIDS[@]}"
                     do
-                        LOCK["$machine"]=1
+                        echo "yes" > /dev/shm/${SHORT_SCRIPT_NAME}_lock_${machine}
+                        sleep 2
                         
                         PID="${PIDS["$machine"]}"
-                        if [ -n "$(ps -p $PID -o pid=)" ]
+                        if [ -z "$(ps -p $PID -o pid=)" ]
                         then
-                            IFS=' ' read -r -a PID_ATTR <<< "${PIDS_INFO[$PID]}"
-                            TEST="${PID_ATTR[0]}"
-                            VALUE=`echo "scale=$SCALE; ${PID_ATTR[2]} + ${PID_ATTR[3]} + ${STEPS["$machine"]}" | bc`
-                            if [ -n "$(ps -p $PID -o pid=)" ]
+                            # Процесс завешен, делсть нечего
+                            rm -f /dev/shm/${SHORT_SCRIPT_NAME}_lock_${machine}
+                            continue
+                        fi
+
+                        IFS=' ' read -r -a PID_ATTR <<< "${PIDS_INFO[$PID]}"
+                        TEST="${PID_ATTR[0]}"
+                        VALUE="${PID_ATTR[1]}"
+                        if [ "$VALUE" == "none" ]
+                        then
+                            NEXT_VALUE=`echo "scale=$SCALE; ${VALUES["$exec_machine"]} + ${STEPS["$machine"]}" | bc`
+                            if (( $(echo "$NEXT_VALUE < $MAX_VALUE" | bc -l) ))
                             then
-                                if (( $(echo "$VALUE < $MAX_VALUE" | bc -l) ))
-                                then
-                                    STEPS["$machine"]=`echo "scale=$SCALE; 2 * ${STEPS["$machine"]}" | bc`
-                                    STEPS["$exec_machine"]="${STEPS["$machine"]}"
-                                    STACK+=("$TEST $exec_machine $VALUE")
-                                    
-                                    LOCK["$machine"]=0
-                                    break
-                                fi
+                                STEPS["$machine"]=`echo "scale=$SCALE; 2 * ${STEPS["$machine"]}" | bc`
+                                STEPS["$exec_machine"]="${STEPS["$machine"]}"
+                                STACK+=("$TEST $exec_machine $NEXT_VALUE")
+
+                            elif [ -f "/dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}" ]
+                            then
+                                kill -KILL $PID
+                                STEPS["$exec_machine"]="${STEPS["$machine"]}"
+                                STACK+=("$TEST $exec_machine ${VALUES["$exec_machine"]}")
+                                rm -f /dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}
+                            fi
+
+                        else
+                            NEXT_VALUE=`echo "scale=$SCALE; $VALUE + ${STEPS["$machine"]}" | bc`
+                            if (( $(echo "$NEXT_VALUE < $MAX_VALUE" | bc -l) ))
+                            then
+                                STEPS["$machine"]=`echo "scale=$SCALE; 2 * ${STEPS["$machine"]}" | bc`
+                                STEPS["$exec_machine"]="${STEPS["$machine"]}"
+                                STACK+=("$TEST $exec_machine $NEXT_VALUE")
+                                echo "${STEPS["$machine"]}" > /dev/shm/${SHORT_SCRIPT_NAME}_abort_${machine}
+
+                            elif [ -f "/dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}" ]
+                            then
+                                kill -KILL $PID
+                                STEPS["$exec_machine"]="${STEPS["$machine"]}"
+                                STACK+=("$TEST $exec_machine $VALUE")
+                                rm -f /dev/shm/${SHORT_SCRIPT_NAME}_wait_${machine}
+
                             fi
                         fi
-                        LOCK["$machine"]=0
+
+                        rm -f /dev/shm/${SHORT_SCRIPT_NAME}_lock_${machine}
+                        break
                     done
                 else
                     STACK+=("$TASK")
                 fi
-                rm $file
+                rm -f $file
             done
         fi
 
