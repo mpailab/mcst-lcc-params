@@ -282,7 +282,7 @@ compile()
         return 1
     fi
 
-    local args="$BASE_INNER_ARGS"
+    local args="$BASE_INNER_ARGS --true=print_proc_ire2k_time --true=emul_exe"
     args="$args --lets=procs_comp_time_file:$stat_dir/procs_comp_time.txt"
     args="$args --lets=procs_emul_exe_file:$stat_dir/procs_emul_exe.txt"
     if [ "$value" != "none" ]
